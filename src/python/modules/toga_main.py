@@ -1520,7 +1520,10 @@ class TogaMain(CommandLineManager):
             f'{Constants.SETUP} {self.twobittofa_binary} {twobit_file} stdout | '
             f'{self.CONTIG_SIZE_SCRIPT} - -o {dest_file}'
         )
-        twobit_out: str = self._exec(twobit_cmd, err_msg='', die=False)
+        twobit_out: str = self._exec(
+            twobit_cmd, err_msg='', die=False
+        )
+        print(f'{twobit_out=}')
         if 'is not a twoBit file' not in twobit_out:
             return
         compress_check_cmd: str = f'{Constants.SETUP} file {twobit_file} | grep -q "compressed"'
