@@ -4,25 +4,25 @@
 A collection of executables related to data preprocessing for CESAR
 """
 
-import os
-import sys
 
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-sys.path.extend([LOCATION, PARENT])
-
-from modules.cesar_wrapper_constants import (
+from .cesar_wrapper_constants import (
     MAX_CHAIN_GAP_SIZE, MAX_CHAIN_INTRON_LEN, MIN_INTRON_LENGTH, STOPS
 )
 from collections import defaultdict
-from common import chain_extract_id, parts
+from .shared import chain_extract_id
 from dataclasses import dataclass
 from shared import intersection, nn
 from typing import Dict, Iterable, List, Set, Tuple, Union
 
 import ctypes
 import logging
+import os
 import subprocess
+import sys
+
+LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
+sys.path.extend([LOCATION, PARENT])
 
 __author__ = 'Yury V. Malovichko'
 __version__ = '1.0'

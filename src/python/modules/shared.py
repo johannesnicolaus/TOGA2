@@ -13,6 +13,7 @@ from typing import (
 )
 
 import click
+import ctypes
 import fcntl
 import logging
 import networkx as nx
@@ -36,21 +37,7 @@ SPLIT_JOB_HEADER: Tuple[str] = (
     "set -eu",
     "set -o pipefail"
 )
-TMP_DIR_SUBS: Dict[str, List[str]] =  {
-    'joblists': [],
-    'job_partitions': [],
-    'coords': [],
-    'lastz': [
-        'search_space_fasta',
-        'exon_fasta',
-        'lastz',
-        'missing_exon_fasta',
-        'missing_lastz',
-        'bed'
-    ],
-    'hmm': [],
-    'cesar': ['input', 'output']
-}
+SLIB_NAME = "chain_bst_lib.so"
 
 ## Sequence handling & score calculation data
 COMPLEMENT: Dict[str, str] = {
@@ -173,6 +160,50 @@ def intersection(
     (start1, end1) and (start2, end2); values smaller than one indicate no intersection
     """
     return (min(end1, end2) - max(start1, start2))
+
+
+def chain_extract_id(index_file, chain_id, chain_file=None):
+    """Extract chain text using index file."""
+    # within TOGA should be fine:
+    chain_file = chain_file if chain_file else index_file.replace(".bst", ".chain")
+    if not os.path.isfile(chain_file):
+        # need this check anyways
+        sys.exit(f"chain_extract_id error: cannot find {chain_file} file")
+    # connect shared library
+    # .so must be there: in the modules/ dir
+    script_location = os.path.dirname(__file__)
+    slib_location = os.path.join(script_location, SLIB_NAME)
+    sh_lib = ctypes.CDLL(slib_location)
+    sh_lib.get_s_byte.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_uint64,
+        ctypes.POINTER(ctypes.c_uint64),
+        ctypes.POINTER(ctypes.c_uint64),
+    ]
+    sh_lib.get_s_byte.restype = ctypes.c_uint64
+
+    # call library: find chain start byte and offset
+    c_index_path = ctypes.c_char_p(index_file.encode())
+    c_chain_id = ctypes.c_uint64(int(chain_id))
+    c_sb = ctypes.c_uint64(0)  # write results in c_sb and c_of
+    c_of = ctypes.c_uint64(0)  # provide them byref -> like pointers
+
+    _ = sh_lib.get_s_byte(
+        c_index_path, c_chain_id, ctypes.byref(c_sb), ctypes.byref(c_of)
+    )
+
+    if c_sb.value == c_of.value == 0:
+        # if they are 0: nothing found then, raise Error
+        sys.stderr.write(f"Error, chain {chain_id} ")
+        sys.stderr.write("not found\n")
+        sys.exit(1)
+
+    # we got start byte and offset, extract chain from the file
+    f = open(chain_file, "rb")
+    f.seek(c_sb.value)  # jump to start_byte_position
+    chain = f.read(c_of.value).decode("utf-8")  # read OFFSET bytes
+    f.close()
+    return chain
 
 
 def make_cds_track(line):

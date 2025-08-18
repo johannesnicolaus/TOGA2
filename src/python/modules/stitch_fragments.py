@@ -10,21 +10,15 @@ LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
 
-# from modules.common import setup_logger
-# from modules.common import to_log
-# from modules.common import make_cds_track
-# from modules.common import flatten
 from collections import defaultdict
 from datetime import datetime as dt
-from modules.constants import Headers
-from modules.shared import (
+from .constants import Headers
+from .shared import (
     CONTEXT_SETTINGS, make_cds_track, flatten
 ) ## TODO: most of legacy T1 code in this import line is no longer needed; remove in the stable version
 from typing import Dict, List, Optional
 
-# import argparse
 import click
-# from version import __version__
 
 # artificial 0-scored points
 SOURCE = "SOURCE"
@@ -111,30 +105,6 @@ class Graph:
             lines.append(line)
         return "".join(lines)
 
-
-# def parse_args():
-#     """Parse CMD args."""
-#     app = argparse.ArgumentParser()
-#     app.add_argument("chain_file", help="Chain file")
-#     app.add_argument(
-#         "chain_scores_file", help="XGBoost output: chain orthology probabilities"
-#     )
-#     app.add_argument("bed_file", help="Bed file containing gene loci.")
-#     app.add_argument(
-#         "--only_fragmented",
-#         "--of",
-#         action="store_true",
-#         dest="only_fragmented",
-#         help="Output fragmented genes only.",
-#     )
-#     app.add_argument("--log_file", help="Log file", default=None)
-#     if len(sys.argv) < 3:
-#         app.print_help()
-#         sys.exit(0)
-#     args = app.parse_args()
-#     return args
-
-
 def read_gene_scores(score_file: str, threshold: float) -> Dict[str, List[str]]:
     """Read orthology_score.tsv file into a dict.
     Dict structure is:
@@ -153,9 +123,6 @@ def read_gene_scores(score_file: str, threshold: float) -> Dict[str, List[str]]:
         item = (chain_id, chain_score)
         ret[transcript].append(item)
     f.close()
-    # to_log(
-    #     f"stitch fragments: processing {len(ret)} transcripts with scores >= {threshold}"
-    # )
     return ret
 
 
@@ -164,10 +131,6 @@ def read_chain_file(chain_file):
 
     Create dict chain_id: (start, end)."""
     ret = {}
-    # to_log(
-    #     f"stitch fragments: parsing chain file {chain_file} to get a mapping "
-    #     f"between chain ID and coordinates in the query genome"
-    # )
     f = open(chain_file, "r")
     for line in f:
         if not line.startswith("chain"):
@@ -178,7 +141,6 @@ def read_chain_file(chain_file):
         chain_id = int(line_data[12])
         ret[chain_id] = (start, end)
     f.close()
-    # to_log(f"stitch fragments: parsed {len(ret)} chains")
     return ret
 
 

@@ -2,24 +2,16 @@
 
 """Contains executables used in the CESAR wrapper"""
 
-import os
-import sys
-
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-sys.path.extend([LOCATION, PARENT])
-
 from _io import TextIOWrapper
-# from CESAR_wrapper import *
 from collections import defaultdict
-from common import chain_extract_id, parts
 from dataclasses import dataclass
 from datetime import datetime
 # from GLP_values import *
-from modules.cesar_wrapper_constants import *
+from .cesar_wrapper_constants import *
 # from SeqOp import extract, intersection, reverse_complement
-from modules.shared import (
-    CONTEXT_SETTINGS, intersection, nn, reverse_complement
+from .shared import (
+    CONTEXT_SETTINGS, intersection, nn, reverse_complement, 
+    chain_extract_id, parts
 )
 # from string_splitter import split_at_
 from sys import stderr
@@ -27,7 +19,13 @@ from typing import Any, Dict, Iterable, List, Set, TextIO, Tuple, Union
 
 import click
 import ctypes
+import os
+import sys
 
+
+LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
+sys.path.extend([LOCATION, PARENT])
 __author__ = 'Yury V. Malovichko'
 __version__ = '0.5'
 __year__ = '2023'

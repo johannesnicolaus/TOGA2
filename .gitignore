@@ -7,6 +7,7 @@ __pycache__/
 _toga2.py
 patch_scripts/
 extra/
+src/python/modules/final_orthology_aggregator_old.py
 
 # compiled Rust code
 src/rust/target/*

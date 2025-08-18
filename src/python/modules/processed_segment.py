@@ -5,8 +5,8 @@ A speed-up version of processed_segment.py
 Most likely a final solution make
 """
 
-from cesar_wrapper_constants import * ## TODO: Explicit imports!
-from cesar_wrapper_executables import * ## TODO: Same!
+from .cesar_wrapper_constants import * ## TODO: Explicit imports!
+from .cesar_wrapper_executables import * ## TODO: Same!
 from collections import defaultdict
 from logging import Logger
 from math import floor
@@ -14,7 +14,7 @@ from .shared import nn, parts, safe_div
 from typing import (
     Any, Dict, Iterable, List, Optional, Set, Tuple, TypeVar, Union
 )
-from ucsc_report import (
+from .ucsc_report import (
     exon_aln_entry, exon_aln_header, format_fasta_as_aln, mutation_table, ProjectionPlotter
 )
 

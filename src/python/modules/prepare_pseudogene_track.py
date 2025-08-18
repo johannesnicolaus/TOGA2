@@ -4,9 +4,9 @@
 Prepares a BED12 track for processed pseudogenes found by TOGA2
 """
 
-from cesar_wrapper_constants import PINK
+from .cesar_wrapper_constants import PINK
 from collections import defaultdict
-from shared import CommandLineManager, CONTEXT_SETTINGS
+from .shared import CommandLineManager, CONTEXT_SETTINGS
 from typing import Any, Dict, List, Optional, Set, TextIO, Tuple
 
 import click

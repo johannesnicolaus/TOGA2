@@ -11,7 +11,7 @@ LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
 
-from shared import CommandLineManager, CONTEXT_SETTINGS, parse_single_column
+from .shared import CommandLineManager, CONTEXT_SETTINGS, parse_single_column
 from typing import List, Optional, Set, TextIO, Union
 
 import click

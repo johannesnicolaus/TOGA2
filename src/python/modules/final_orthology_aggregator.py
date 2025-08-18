@@ -5,22 +5,20 @@ Aggregates the results from the initial (graph-based) and fine (tree-based)
 orthology resolution steps
 """
 
+from .cesar_wrapper_constants import I, PI, UL, M, L, PG, N
+from .constants import Headers
+from collections import defaultdict
+from .shared import CommandLineManager, CONTEXT_SETTINGS
+
+from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
+
+import click
 import os
 import sys
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
-
-from cesar_wrapper_constants import I, PI, UL, M, L, PG, N
-from constants import Headers
-from collections import defaultdict
-from shared import (
-    CommandLineManager, CONTEXT_SETTINGS, get_proj2trans
-)
-from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
-
-import click
 
 __author__ = 'Yury V. Malovichko'
 __year__ = '2024'

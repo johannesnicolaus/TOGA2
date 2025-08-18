@@ -1623,7 +1623,7 @@ class TogaMain(CommandLineManager):
           after removing UTR exons; these are used at CESAR alignment step
         """
         ## filter the reference BED file first ## TODO: Accommodate for the optional arguments
-        from filter_ref_bed import AnnotationFilter
+        from .filter_ref_bed import AnnotationFilter
         args: List[str] = [
             self.ref_annotation, self.bed_file_copy, self.prefiltered_transcripts,
             '-ln', self.project_name
@@ -1654,7 +1654,7 @@ class TogaMain(CommandLineManager):
         if self.u12_file is None:
             return
         self._to_log('Formatting U12 data')
-        from intronIC_to_hdf5 import IntronIcConverter
+        from .intronIC_to_hdf5 import IntronIcConverter
         ## TODO: Rust implementation?
         args: List[str] = [
             self.cds_bed_hdf5, self.u12_file, self.u12_hdf5, '--hdf5_input', 
@@ -1796,7 +1796,7 @@ class TogaMain(CommandLineManager):
         """
         if self.disable_fragment_assembly:
             return
-        from stitch_fragments import main
+        from .stitch_fragments import main
         args: List[str] = [
             self.chain_file_copy, self.pred_scores, self.bed_file_copy,
             '-o', self.fragmented_projection_list,
@@ -2058,7 +2058,7 @@ class TogaMain(CommandLineManager):
         self._to_log(
             'Loss statuses considered for orthology annotation are: %s' % self.accepted_loss_symbols
         )
-        from conservation_summary import main
+        from .conservation_summary import main
         ## TODO: Needs a class representation for sure
         args: List[str] = [
             self.transcript_meta, '-r', self.final_rejection_log,
@@ -2076,7 +2076,7 @@ class TogaMain(CommandLineManager):
 
     def prepare_pseudogene_track(self) -> None:
         """Prepares a BED9 track of projections classified as processed pseudogenes"""
-        from prepare_pseudogene_track import PseudogeneTrackBuilder
+        from .prepare_pseudogene_track import PseudogeneTrackBuilder
         args: List[str] = [
             self.tr2chain_classes, self.chain_file_copy, 
             '-o', self.pseudogene_annotation, '-l', self.log_file, '-v'
@@ -2087,7 +2087,7 @@ class TogaMain(CommandLineManager):
         """
         Infers coding regions in the query genome, serving as proxies for query genes
         """
-        from infer_query_genes import QueryGeneCollapser
+        from .infer_query_genes import QueryGeneCollapser
         args: List[str] = [
             #self.query_annotation_filt, 
             self.query_exon_meta, self.query_genes_raw, 
@@ -2137,7 +2137,7 @@ class TogaMain(CommandLineManager):
         entangled clades
         """
 
-        from initial_orthology_resolver import InitialOrthologyResolver
+        from .initial_orthology_resolver import InitialOrthologyResolver
         args: List[str] = [
             self.bed_file_copy, self.query_annotation_filt, self.gene_loss_summary,
             self.pred_scores, self.orthology_resolution_dir,
@@ -2266,7 +2266,7 @@ class TogaMain(CommandLineManager):
         Prepares a BigBed22 track suitable for further loading to UCSC browser
         """
         ## TODO: Import the class here
-        from make_ucsc_report import BigBedProducer
+        from .make_ucsc_report import BigBedProducer
         args: List[str] = [
             self.aggr_ucsc_stub, self.bed_file_copy, self.feature_table,
             self.pred_scores, self.query_contig_size_file, self.SCHEMA_FILE,
@@ -2334,7 +2334,7 @@ class TogaMain(CommandLineManager):
         Creates a binary index of query exons in the gzipped exon Fasta file 
         """
         # from modules.index_gzipped_fasta import main
-        from exon_fasta_to_twobit import TwoBitConverter
+        from .exon_fasta_to_twobit import TwoBitConverter
         if not os.path.exists(self.exon_fasta):
             if os.path.exists(self.exon_gzip):
                 self._to_log(
@@ -2355,7 +2355,7 @@ class TogaMain(CommandLineManager):
 
     def filter_final_bed_files(self) -> None:
         """Cleans up final BED files from discarded projections and processed pseudogenes"""
-        from filter_output_bed import OutputBedFilter
+        from .filter_output_bed import OutputBedFilter
         args: List[str] = [
             self.query_annotation_filt, self.query_annotation_final
         ]
@@ -2375,7 +2375,7 @@ class TogaMain(CommandLineManager):
 
     def rename_query_genes(self) -> None:
         """Establishes query gene naming notation and renames gene entries in the final files"""
-        from finalise_orthology_files import QueryGeneNamer
+        from .finalise_orthology_files import QueryGeneNamer
         args: List[str] = [
             self.orth_resolution_raw, self.query_genes_raw, self.finalized_output_dir,
             '-qb', self.query_genes_bed_raw, '-ln', self.project_name

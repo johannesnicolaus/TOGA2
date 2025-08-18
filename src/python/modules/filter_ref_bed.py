@@ -4,17 +4,16 @@
 Filters reference BED file for further use within the TOGA 2.0 pipeline
 """
 
+from .shared import CommandLineManager, CONTEXT_SETTINGS
+from typing import List, Optional, Set, Tuple, Union
+
+import click
 import os
 import sys
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
-
-from shared import CommandLineManager, CONTEXT_SETTINGS
-from typing import Dict, List, Optional, Set, Tuple, Union
-
-import click
 
 __author__ = 'Yury V. Malovichko'
 __year__ = '2024'
@@ -200,7 +199,7 @@ class AnnotationFilter(CommandLineManager):
                 )
                 continue
             thin_start: int = int(data[1])
-            thin_end: int = int(data[2])
+            # thin_end: int = int(data[2])
             cds_start: int = int(data[6])
             cds_end: int = int(data[7])
             if cds_end < cds_start:

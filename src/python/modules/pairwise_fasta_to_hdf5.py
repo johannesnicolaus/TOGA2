@@ -4,20 +4,19 @@
 Converts pairwise FASTA file into an HDF5 storage 
 """
 
+from collections import defaultdict
+from .shared import CommandLineManager, CONTEXT_SETTINGS
+from numpy import bytes_
+from typing import Dict, List, Optional, TextIO
+
+import click
+import h5py
 import os
 import sys
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
-
-from collections import defaultdict
-from modules.shared import CommandLineManager, CONTEXT_SETTINGS
-from numpy import bytes_
-from typing import Dict, List, Optional, TextIO
-
-import click
-import h5py
 
 HEADER_START: str = '>'
 REFERENCE: str = 'REFERENCE'
@@ -100,7 +99,6 @@ class FastaToHdf5Converter(CommandLineManager):
         Writes pairwise protein Fasta records to HDF5, one dataset for each entry
         """
         with h5py.File(output, 'w') as f:
-            # header_encountered: bool = False
             header: str = ''
             hdf5_id: str = ''
             seq: str = ''
@@ -110,14 +108,10 @@ class FastaToHdf5Converter(CommandLineManager):
                     continue
                 if line[0] == HEADER_START:
                     if header:
-                        # print(hdf5_id)
                         try:
                             f.create_dataset(
                                 hdf5_id, 
                                 data=bytes_(f'{header}\n{seq}')
-                                # dtype=string_,
-                                # shape=(len(header) + len(seq) + 1,),
-                                # chunks=True
                             )
                             header = ''
                             hdf5_id = ''
@@ -138,9 +132,6 @@ class FastaToHdf5Converter(CommandLineManager):
                 f.create_dataset(
                     hdf5_id, 
                     data=bytes_(f'{header}\n{seq}')
-                    # dtype=string_,
-                    # shape=(len(header) + len(seq) + 1,),#len(header) + len(seq) + 1,
-                    # chunks=True
                 )
 
     def write_exons_for_sleasy(self, input: TextIO, output: str) -> None:
@@ -149,8 +140,6 @@ class FastaToHdf5Converter(CommandLineManager):
         sequences are stored as ordered lists of variable-length strings
         """
         exon_seq_dict: Dict[str, List[str]] = defaultdict(list)
-        # exon_seqs: List[str] = []
-        # exon_names: List[str] = []
         proj: str = ''
         exon_num: int = 0
         seq: str = ''
@@ -180,24 +169,8 @@ class FastaToHdf5Converter(CommandLineManager):
                 seq += line.rstrip().replace('-','')
         if proj:
             exon_seq_dict[proj].append((exon_num, seq))
-            # exon_seqs.append(seq)
-            # exon_names.append(f'{proj}_{exon_num}')
 
         with h5py.File(output, 'w') as f:
-            # f.create_dataset(
-            #     'sequence_names', 
-            #     data=exon_names, 
-            #     dtype=h5py.string_dtype(encoding='utf-8')
-            # )
-            # f.create_dataset(
-            #     'sequences', 
-            #     data=exon_seqs, 
-            #     dtype=h5py.string_dtype(encoding='utf-8'), 
-            #     compression='gzip', 
-            #     compression_opts=9
-            # )
-
-        
             for projection, exons in exon_seq_dict.items():
                 sorted_exons: List[str] = [
                     bytes_(x[1]) for x in sorted(exons, key=lambda y: y[0])

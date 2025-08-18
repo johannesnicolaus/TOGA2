@@ -4,7 +4,7 @@
 
 """
 
-from shared import CommandLineManager, CONTEXT_SETTINGS, hex_code
+from .shared import CommandLineManager, CONTEXT_SETTINGS, hex_code
 from shutil import which
 from typing import Dict, List, Optional, TextIO, Tuple, Union
 

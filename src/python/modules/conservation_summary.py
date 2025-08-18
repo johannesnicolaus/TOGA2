@@ -4,9 +4,9 @@
 Summarises projection classification data based on TOGA results
 """
 from collections import defaultdict
-from constants import Headers
+from .constants import Headers
 from shared import CONTEXT_SETTINGS, parse_single_column
-from cesar_wrapper_constants import CLASS_TO_NUM
+from .cesar_wrapper_constants import CLASS_TO_NUM
 from sys import stdout
 from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 
