@@ -1,4 +1,4 @@
 from . import (
-    constants, shared, 
+    shared, constants, 
     cesar_wrapper_constants, cesar_wrapper_executables
 )
