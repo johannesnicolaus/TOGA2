@@ -4,13 +4,6 @@
 A module for CESAR job binning based on maximal memory requirements
 """
 
-import os
-import sys
-
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-sys.path.extend([LOCATION, PARENT])
-
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
 from heapq import heappop, heappush
@@ -27,10 +20,16 @@ from modules.shared import (
 from pathlib import Path
 from shared import get_connected_components
 from shutil import which
-from typing import Dict, Iterable, List, Optional, TextIO, Tuple, Type, Union
+from typing import Dict, List, Optional, Tuple, Type, Union
 
 import click
 import networkx as nx
+import os
+# import sys
+
+LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
+# sys.path.extend([LOCATION, PARENT])
 
 __author__  = 'Yury V. Malovichko'
 __credits__ = ['Bogdan Kirilenko', 'Michael Hiller']

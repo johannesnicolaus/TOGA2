@@ -3,17 +3,15 @@
 """
 Infers contig size from the FASTA file
 """
+# LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+# PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
+# sys.path.extend([LOCATION, PARENT])
 
-import os
-import sys
-
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-sys.path.extend([LOCATION, PARENT])
-
-from modules.shared import CONTEXT_SETTINGS
+from .shared import CONTEXT_SETTINGS
 
 import click
+# import os
+import sys
 
 __author__ = 'Yury V. Malovichko'
 __year__ = '2024'

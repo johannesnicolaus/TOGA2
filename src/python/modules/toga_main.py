@@ -1278,10 +1278,6 @@ class TogaMain(CommandLineManager):
     def _clean_previous_results(self) -> None:
         """Cleans the output from the previous runs potentially interfering with the new run"""
         remove_from: int = Constants.RESUME_ORDER[self.resume_from]
-        # if remove_from < 2:
-        #     for d in Constants.CLEANUP_TARGETS['all']:
-        #         self._rmdir(d)
-        #     return
         for step, step_rank in Constants.RESUME_ORDER.items():
             ## do not remove the data from the upstream steps
             if step_rank < remove_from:
@@ -1298,8 +1294,7 @@ class TogaMain(CommandLineManager):
             for file in cleanup_targets:
                 filepath: str = getattr(self, file)
                 self._rm(filepath)
-            # if step == 'orthology_resolution' and self.selected_orthology_batches:
-            #     continue
+            ## TODO: Add support for orthology
         if remove_from > Constants.CESAR_AGGREGATION_RANK:
             self._to_log('Decompressing the annotation step results from the previous run')
             for file in Constants.FILES_TO_GZIP:
@@ -1426,7 +1421,7 @@ class TogaMain(CommandLineManager):
         ## check bigWigToWig binary
         for attr, default_name in Constants.BINARIES_TO_CHECK.items():
             if self.__getattribute__(attr) is None:
-                self._to_log('Looking for %s in PATH' % default_name)
+                self._to_log('Looking for %s in $PATH' % default_name)
                 exe_in_path: Union[str, None] = which(default_name)
                 if exe_in_path is None:
                     if default_name == 'mailx':
@@ -1441,28 +1436,12 @@ class TogaMain(CommandLineManager):
                         'Path to %s executable was not provided, with no defaults in $PATH' % default_name
                     )
                 self.__setattr__(attr, exe_in_path)
-        # if self.bigwig2wig_binary is None:
-        #     self._to_log('Looking for bigWigToWig in PATH', 'info')
-        #     bw2w_in_path: str = which('bigWigToWig')
-        #     if bw2w_in_path is not None:
-        #         self.bigwig2wig_binary: click.Path = os.path.abspath(bw2w_in_path)#Path(bw2w_in_path).absolute()
-        #     else:
-        #         if os.path.exists(HL_BW2W_PATH):
-        #             self._to_log('Falling back to standard bigWigToWig', 'info')
-        #             self.bigwig2wig_binary: click.Path = HL_BW2W_PATH
-        #         else:
-        #             self._to_log('ERROR: bigWigToWig is not accessible', 'critical')
-        #             self._die('bigWigToWig binary is not accessible')
-        ## TODO: add the same support for the following binaries:
 
         if self.cesar_binary is None:
             self._to_log('Falling back to standard CESAR2.0', 'info')
             self.cesar_binary = os.path.abspath(
                 os.path.join(LOCATION, 'CESAR2.0', 'cesar')
             )
-        # cds_script_in_path: str = which(self.CDS_TRACK_SCRIPT)
-        # if cds_script_in_path is None:
-        #     self.CDS_TRACK_SCRIPT = os.path.join(LOCATION, 'bin', 'bed12ToCDSOnly')
 
     def check_spliceai_files(self) -> None:
         """

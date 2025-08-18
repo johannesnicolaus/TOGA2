@@ -5,8 +5,8 @@ Shared functionality across the scripts
 """
 
 from click_option_group import OptionGroup
-from .constants import Constants
 from datetime import datetime
+from logging import Formatter
 from shutil import copy2, rmtree
 from typing import (
     Any, Dict, Iterable, List, Optional, TextIO, Set, Tuple, Union
@@ -38,6 +38,12 @@ SPLIT_JOB_HEADER: Tuple[str] = (
     "set -o pipefail"
 )
 SLIB_NAME = "chain_bst_lib.so"
+UTF8: str = 'utf-8'
+FORMATTER: Formatter = Formatter(
+    '[{asctime}][{filename}] - {levelname}: {message}',
+    style='{',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
 
 ## Sequence handling & score calculation data
 COMPLEMENT: Dict[str, str] = {
@@ -459,13 +465,13 @@ class CommandLineManager:
         self.logger.setLevel(logging.DEBUG)
         if hasattr(self, 'log_file') and self.log_file:
             file_handler: logging.FileHandler = logging.FileHandler(
-                self.log_file, mode='a', encoding=Constants.UTF8
+                self.log_file, mode='a', encoding=UTF8
             )
-            file_handler.setFormatter(Constants.FORMATTER)
+            file_handler.setFormatter(FORMATTER)
             self.logger.addHandler(file_handler)
         if hasattr(self, 'v') and self.v:
             console_handler: logging.StreamHandler = logging.StreamHandler()
-            console_handler.setFormatter(Constants.FORMATTER)
+            console_handler.setFormatter(FORMATTER)
             self.logger.addHandler(console_handler)
 
     def _to_log(self, msg: str, level: str = 'info'):

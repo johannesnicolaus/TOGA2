@@ -4,13 +4,6 @@
 Schedules CESAR preprocessing jobs for optimal cluster performance
 """
 
-import os
-import sys
-
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-sys.path.append(PARENT)
-
 from collections import defaultdict
 from modules.cesar_wrapper_constants import *
 from modules.constants import PRE_CLEANUP_LINE
@@ -19,11 +12,16 @@ from math import ceil
 from pathlib import Path
 from modules.shared import CommandLineManager, get_upper_dir, CONTEXT_SETTINGS, SPLIT_JOB_HEADER
 from shutil import which
-from typing import Dict, Iterable, List, Optional, TextIO, Union
+from typing import Dict, List, Optional, Union
 
 import click
+import os
+import sys
 
 TOGA2_ROOT: str = get_upper_dir(__file__, 4)
+LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
+# sys.path.append(PARENT)
 
 CESAR_PREPROCESS_SCRIPT: str = os.path.join(PARENT, 'cesar_preprocess.py')
 HL_BW2W_PATH: str = os.path.join(
