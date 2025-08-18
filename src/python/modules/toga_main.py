@@ -630,7 +630,7 @@ class TogaMain(CommandLineManager):
             PYTHON_DIR, 'modules', 'intronIC_to_hdf5.py'
         )
         self.CONTIG_SIZE_SCRIPT: str = os.path.join(
-            PYTHON_DIR, 'modules', 'get_contig_sizes.py'
+            PYTHON_DIR, 'get_contig_sizes.py'
         ) ## TODO: Alejandro must have a Rust implementation
         self.FEATURE_EXTRACTOR: str = os.path.join(
             LOCATION, 'src', 'rust', 'target', 'release', 'feature_extraction'

@@ -43,6 +43,10 @@ Stage: build
     ## build TOGA2, install/update the necessary third-party requirements
     cd /opt/TOGA2 && make
 
+    ## make sure that bash is the default shell in the container
+    sed -i 's/required/sufficient/g' /etc/pam.d/chsh
+    rm /bin/sh && ln -f /bin/bash /bin/sh
+
     ## looks like we're all set
 
 %runscript

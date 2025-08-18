@@ -7,7 +7,7 @@ Infers contig size from the FASTA file
 # PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 # sys.path.extend([LOCATION, PARENT])
 
-from .shared import CONTEXT_SETTINGS
+from modules.shared import CONTEXT_SETTINGS
 
 import click
 # import os
