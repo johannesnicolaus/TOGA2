@@ -9,9 +9,8 @@ from .cesar_wrapper_constants import (
     MAX_CHAIN_GAP_SIZE, MAX_CHAIN_INTRON_LEN, MIN_INTRON_LENGTH, STOPS
 )
 from collections import defaultdict
-from .shared import chain_extract_id
+from .shared import chain_extract_id, intersection, nn
 from dataclasses import dataclass
-from shared import intersection, nn
 from typing import Dict, Iterable, List, Set, Tuple, Union
 
 import ctypes
