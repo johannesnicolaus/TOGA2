@@ -11,7 +11,6 @@ LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
 
-from modules.common import to_log
 from modules.shared import CommandLineManager, CONTEXT_SETTINGS
 from numpy import bytes_
 from typing import List, Optional
