@@ -3,16 +3,13 @@ Uses CESAR2 alignment results and SpliceAI predictions
 to search for additional introns in the query data
 """
 
-from cesar_wrapper_constants import *
-from cesar_wrapper_executables import CesarInput, RawCesarOutput, fast_seq_id
-from collections import defaultdict
+from .cesar_wrapper_constants import *
+from .cesar_wrapper_executables import CesarInput, RawCesarOutput, fast_seq_id
 from copy import deepcopy
 from dataclasses import dataclass
-# from functools import reduce
 from logging import Logger
-from math import floor
 # from Operator import mul
-from shared import nn, parts,   safe_div
+from shared import parts
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
 __author__ = 'Yury V. Malovichko'

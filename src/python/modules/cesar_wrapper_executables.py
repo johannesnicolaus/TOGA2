@@ -6,14 +6,11 @@ from _io import TextIOWrapper
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
-# from GLP_values import *
 from .cesar_wrapper_constants import *
-# from SeqOp import extract, intersection, reverse_complement
 from .shared import (
     CONTEXT_SETTINGS, intersection, nn, reverse_complement, 
     chain_extract_id, parts
 )
-# from string_splitter import split_at_
 from sys import stderr
 from typing import Any, Dict, Iterable, List, Set, TextIO, Tuple, Union
 
