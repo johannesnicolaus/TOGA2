@@ -2155,6 +2155,13 @@ class TogaMain(CommandLineManager):
             f'cat {self.weak_ortholog_names} >> {self.discarded_overextended_projections}'
         )
         _ = self._exec(add_rej_to_discarded_cmd, 'Merging files with discarded projections\' names failed')
+        orthology_joblist: str = os.path.join(self.orthology_job_dir, 'joblist')
+        if not os.path.exists(orthology_joblist)or os.stat(orthology_joblist).st_size == 0:
+            self._to_log(
+                'No orthology jobs were scheduled; finalizing the orthology data',
+                'warning'
+            )
+            self.skip_tree_resolver = True
         if self.skip_tree_resolver:
             self._to_log('Moving final orthology file')
             cmd: str = f'mv {self.temporary_orth_report} {self.orth_resolution_raw}'
@@ -2164,6 +2171,8 @@ class TogaMain(CommandLineManager):
         """
         Runs fine orthology resolution (PRANK + IQTree2/RAxML) jobs
         """
+        if self.skip_tree_resolver:
+            return
         project_name: str = f'tree_resolution_{self.project_name}'
         self.parallel_process_names.append(project_name)
         project_path: str = os.path.join(self.nextflow_dir, project_name)
