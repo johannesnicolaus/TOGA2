@@ -2349,7 +2349,8 @@ class TogaMain(CommandLineManager):
             self.exon_fasta, self.exon_2bit, 
             '--fa2twobit', self.fatotwobit_binary,
             '-ln', self.project_name,
-            '-e', self.query_exon_meta
+            '-e', self.query_exon_meta,
+            '--tmp_dir', self.tmp
         ]
         TwoBitConverter(args, standalone_mode=False)
 
