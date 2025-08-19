@@ -5,7 +5,7 @@ A collection of constants and executables related to UCSC BigBed report formatti
 from cesar_wrapper_constants import (
     FS_INDELS, COMPENSATION, DEL_MISS, DEL_EXON, MISS_EXON, SSM
 )
-from .cesar_wrapper_executables import Mutation
+from cesar_wrapper_executables import Mutation
 from collections import defaultdict
 from dataclasses import dataclass ## TODO: HIGHLY REDUNDANT
 from .shared import parts
