@@ -42,6 +42,9 @@ TMPDIR=${tmp_dir} apptainer run --bind ${bound_dir1},${bound_dir2} ${container.s
 ```
 you should see the TOGA2 start menu.
 
+>[!NOTE]
+> The image provided in `supply/` directory contains the latest TOGA2 release, third-party software used for input preparation and TOGA2 annotation, and Nextflow for parallel process management. The container does <ins>not</ins> contain any Nextflow-compatible parallel job executor but is configured to be used with SLURM. To use it this way, bind the SLURM home directory with `--bind` option and provide `--parallel_job_executor slurm` to the `run` command. If you want to use any other executor, modify the definition file as needed and provide the respective executor name to `--parallel_job_executor` option. Otherwise, omit the `--parallel_job_executor` to parallel TOGA2 jobs over local CPUs. 
+
 ## Test run
 > [!WARNING]
 > Currently not implemented
