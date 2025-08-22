@@ -73,6 +73,7 @@ PACKAGES: Dict[str, Tuple[str, str]] = {
     'joblib': ('joblib', '1.4.2'), 
     'numpy': ('numpy', '2.2.5'), 
     'pandas': ('pandas', '2.2.3'),
+    'networkx': ('networkx', '3.3'),
     'numexpr': ('numexpr', '2.11.0'),
     'scikit-learn': ('sklearn', '1.7.1'), 
     'scipy': ('scipy', '1.15.2'),
