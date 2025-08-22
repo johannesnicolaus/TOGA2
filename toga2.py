@@ -14,8 +14,7 @@ from src.python.modules.cesar_wrapper_constants import (
 )
 from src.python.modules.constants import TOGA2_EPILOG, Constants
 from src.python.modules.shared import CONTEXT_SETTINGS, PrettyGroup
-from src.python.modules.toga_main import TogaMain
-from typing import Optional
+from typing import List, Optional
 
 import click
 import logging
@@ -1208,6 +1207,7 @@ def run(**kwargs) -> None:
     * ALIGNMENT_CHAINS - a path to genome alignment chains, with REF_2BIT as reference and QUERY_2BIT as query. Can be compressed in .gzip format;
     * REF_ANNOTATION_BED - protein-coding gene annotation for the reference genome, in Bed12 format
     """
+    from src.python.modules.toga_main import TogaMain
     TogaMain(**kwargs)
 
 
@@ -1250,7 +1250,11 @@ def from_config(config_file: click.File, override: Optional[str]) -> None:
     \b
     NOTE: This mode is currently under development and has not been tested yet.
     """
-    pass
+    from src.python.modules.toga_configured import Toga2ConfiguredLauncher
+    from src.python.modules.toga_main import TogaMain
+    
+    args: List[str] = Toga2ConfiguredLauncher(config_file, override=override)
+    TogaMain(args, standalone_mode=False)
 
 
 @toga2.command(
