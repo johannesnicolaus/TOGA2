@@ -13,6 +13,7 @@ from src.python.modules.cesar_wrapper_constants import (
     FIRST_ACCEPTOR, LAST_DONOR
 )
 from src.python.modules.constants import TOGA2_EPILOG, Constants
+from src.python.modules.input_producer import MIN_INTRON_LENGTH_FOR_PROFILES
 from src.python.modules.shared import CONTEXT_SETTINGS, PrettyGroup
 from typing import List, Optional
 
@@ -1261,6 +1262,197 @@ def from_config(config_file: click.File, override: Optional[str]) -> None:
 
     args: List[str] = Toga2ConfiguredLauncher(config_file, override=override).run()
     TogaMain(**args)
+
+
+@toga2.command(
+    context_settings=CONTEXT_SETTINGS,
+    no_args_is_help=True,
+    short_help="Prepare reference annotation files for TOGA2 input"
+)
+@click.argument(
+    'ref_2bit',
+    type=click.Path(exists=True),
+    metavar='REF_2BIT'
+)
+@click.argument(
+    'ref_annot',
+    type=click.Path(exists=True),
+    metavar='REF_ANNOTATION_BED'
+)
+@click.option(
+    '--ref_isoforms',
+    '-r',
+    type=click.Path(exists=True),
+    metavar='ISOFORMS_FILE',
+    default=None,
+    show_default=True,
+    help=(
+        'A path to a two-column tab-separated file containing gene-to-isoform mapping. '
+        'The contents will be also checked for consistency, with transcripts missing '
+        'gene mapping further removed from the annotation file'
+    )
+)
+@click.option(
+    '--output',
+    '-o',
+    type=click.Path(exists=False), 
+    metavar='PATH',
+    default=None,
+    show_default=False,
+    help='A path to save the results to [default: TOGA2_ref_annotation_<hex_code>]'
+)
+@click.option(
+    '--disable_transcript_filtering',
+    '-no_filter',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help=(
+        'If set, copies the input annotation file to the output directory as-is, '
+        'with no filtering. Highly discouraged unless you want to use compromised transcripts'
+        'for intron classificaiton/CESAR2 profile generation'
+    )
+)
+@click.option(
+    '--contigs',
+    type=str,
+    metavar='CONTIG_LIST',
+    default=None,
+    show_default=True,
+    help=(
+        'A comma-separated list of contig (scaffold, chromosome, etc.) names '
+        'to restrict the fitlered annotation to. Transcripts located in other contigs '
+        'will be excluded from the annotation.'
+    )
+)
+@click.option(
+    '--excluded_contigs',
+    type=str,
+    metavar='CONTIG_LIST',
+    default=None,
+    show_default=True,
+    help=(
+        'A comma-separated list of deprecated contig (scaffold, chromosome, etc.) names '
+        'to exclude from the filtered annotation. Transcripts located in this contigs '
+        'will be excluded from the annotation. Contigs appearing in both --contigs '
+        'and --excluded_contigs are treated as excluded.'
+    )
+)
+@click.option(
+    '--disable_intron_classification',
+    '-no_intronic',
+    is_flag=True,
+    default=False,
+    help=(
+        'If set, stops the procedure before intron classification step. Recommended if '
+        'you already have U12 intron file list or do not have access to intronIC. '
+        'NOTE: Setting this flag will also disable CESAR2 profile generation. '
+    )
+)
+@click.option(
+    '--disable_cesar_profiles',
+    '-no_cesary',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help=(
+        'If set, stops the procedure before reference-specific CESAR2 profile generation. '
+        'TOGA2 comes with a set of trusted CESAR2 profiles for selected mammalian and avian '
+        'references; generating custom profiles is recommended if your reference belongs to a '
+        'distant clade with highly divergent intron structure. '
+        'NOTE: The step is skipped automatically if --disable_intron_classification flag is set.'
+    )
+)
+@click.option(
+    '--intronic_binary',
+    type=click.Path(exists=True),
+    metavar='INTRONIC_PATH',
+    default=None,
+    show_default=True,
+    help=(
+        'A path to intronIC binary. If not set, will check '
+        'for executable intronIC instance in $PATH'
+    )
+)
+@click.option(
+    '--intronic_cores',
+    type=click.IntRange(min=1),
+    metavar='INT',
+    default=1,
+    show_default=True,
+    help='Number of CPUs to run intronIC with'
+)
+@click.option(
+    '--twobittofa_binary',
+    type=click.Path(exists=True),
+    metavar='PATH',
+    default=None,
+    show_default=True,
+    help=(
+        'A path to UCSC twoBitToFa executable; if not set, the executable with this name '
+        'will be sought for in $PATH'
+    )
+)
+@click.option(
+    '--min_intron_length_cesar',
+    '-cesar_min_l',
+    type=click.IntRange(min=1),
+    metavar='INT',
+    default=MIN_INTRON_LENGTH_FOR_PROFILES,
+    show_default=True,
+    help='Minimal intron length to consider for CESAR2 profile generation'
+)
+@click.option(
+    '--keep_temporary',
+    '-k',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='If set, does not remove the temporary files directory'
+)
+
+def prepare_input(**kwargs) -> None:
+    """
+    \b
+    MMP""MM""YMM   .g8""8q.     .g8\"""bgd      db          `7MMF'`7MMF'
+    P'   MM   `7 .dP'    `YM. .dP'     `M     ;MM:           MM    MM  
+         MM     dM'      `MM dM'       `     ,V^MM.          MM    MM  
+         MM     MM        MM MM             ,M  `MM          MM    MM  
+         MM     MM.      ,MP MM.    `7MMF'  AbmmmqMA         MM    MM  
+         MM     `Mb.    ,dP' `Mb.     MM   A'     VML        MM    MM  
+       .JMML.     `"bmmd"'     `"bmmmdPY .AMA.   .AMMA.    .JMML..JMML.
+
+    \b
+    prepare-input: Check mandatory reference annotation files & generate additional TOGA2 input
+
+    
+    Input preparation comprises four consecutive steps:\n
+    \t1) Reference annotation file is checked for format consistency; the code crashed if 
+    file format deviates from the Bed12 standard, and transcripts not suitable for use 
+    with TOGA2 (non-coding, frameshifted, or containing deprecated symbols in the name field) are filtered out
+    and reported in the rejection log. Input transcripts can be further restricted to specific contigs (scaffolds, chromosomes, etc.), 
+    or certain contigs can be specifically excluded from the annotation.\n
+    \t2) If isoforms file is provided, genes whose all transcripts were filtered out at the previous step are further 
+    removed from the isoforms file. Likewise, transcripts not mapped to any gene in the isoforms file are removed from the annotation.\n
+    \t3) Unless disabled, intrones in the filtered annotation are classified into U2 and U12 spliceosomal classes
+    with intronIC. The resulting file can be further used with TOGA2 --u12_file/-u12 argument to improve exon annotation.\n
+    \t4) Unless disabled and provided introns were classified with intronIC, reference-specific CESAR2 HMM profiles are generated. 
+    TOGA2 provides CESAR2 profiles for selected mammalian and avian references used for the original companion dataset generation; these profiles were prepared with custom 
+    training data and further manually adjusted for improved performance, and acquired results suggest that human-specific profiles 
+    perform sufficiently well with highly distant clades (e.g., insects). However, if your reference of choice is known to have peculiar intron content 
+    (ultra-short intron prevalence, highly divergent splice site dinucleotide profiles), this step is highly recommended to go through.\n
+
+    \b
+    Mandatory arguments are:
+    \t*REF_2BIT is a reference genome file in .2bit format. The same genome file is expected to be further used for TOGA2 runs;
+    \t*REF_ANNOT_FILE is user-provided reference annotation file in Bed12 format. Each entry is expected to be a single reference species protein-coding transctipt.
+
+    \b
+    For further details on input files, intron classification adopted by TOGA2, and CESAR2 profiles, consult TOGA2 paper, GitHub Wiki, or TOGA2 cookbook reference.
+    """
+    from src.python.modules.input_producer import InputProducer
+    InputProducer(**kwargs)
+
 
 
 @toga2.command(

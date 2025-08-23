@@ -211,10 +211,10 @@ LO_T_PID: int = 45
 LO_T_BLOSUM: int = 25
 
 ## mutation class shortcuts
-LEFT_SPLICE_CORR: Tuple[str] = ('ag',)  # acceptor
-LEFT_SPLICE_CORR_U12: str = 'ag'  # acceptor
-RIGHT_SPLICE_CORR: Tuple[str] = ('gt', 'gc')
-RIGHT_SPLICE_CORR_U12: str = 'gt'
+LEFT_SPLICE_CORR: Tuple[str] = ('ag',)  ## acceptor
+LEFT_SPLICE_CORR_U12: str = 'ag'  ## acceptor
+RIGHT_SPLICE_CORR: Tuple[str] = ('gt', 'gc') ## donor
+RIGHT_SPLICE_CORR_U12: str = 'gt' ## donor
 MISS_EXON: str = "Missing exon"
 DEL_EXON: str = "Deleted exon"
 DEL_MISS: Tuple[str] = (MISS_EXON, DEL_EXON)
