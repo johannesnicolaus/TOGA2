@@ -19,12 +19,20 @@ cd TOGA2
 make
 make install ## optional
 ```
-#### Essential third-party software
+#### > Essential third-party software
 `build` directive first checks for availability of the following commands in $PATH:
 * awk
 * cargo
 * gcc
-These utilities are necessary for further TOGA2 installation. If any of those are missing, the installation halts, prompting the user to install them manually
+
+These utilities are necessary for further TOGA2 installation. If any of those are missing, the installation halts, prompting the user to install them manually.
+#### > Parallel job managers
+By default, TOGA2 uses [Nextflow](https://www.nextflow.io) for parallel process management. During installation, `nextflow` availability in $PATH will be tested alongside with Nextflow-supported parallel job executors. In the absence of any supported manager, TOGA2 can still be run with `local` Nextflow executor (default mode), meaning executing parallel jobs on local CPUs.
+
+Alternatively, TOGA2 supports [Parasol](https://github.com/hillerlab/Parasol_LSF_Slurm?tab=readme-ov-file) as a wrapper over LSF/Slurm (**Note**: Currently installation code does <ins>not</ins> check for LSF/Slurm availability if `para` was found in $PATH). If neither Nextflow nor Parasol are available, the installation halts, prompting the user to instal either of the managers and the respective job executors.
+
+#### > Python packages
+The full list of required Python packages is listed in `requirements.txt`. TOGA2 was originally tested with Numpy v2, hence restricting the Numpy-reliant packages to newer versions. The listed versions might be further downgraded once the code is tested with Numpy v1 releases.
 
 ### via Apptainer
 Container image definition file for Apptainer is provided with TOGA2 under `supply/apptainer.def`. To build the container, make sure you have Apptainer installed, then run the following commands:
@@ -43,7 +51,7 @@ TMPDIR=${tmp_dir} apptainer run --bind ${bound_dir1},${bound_dir2} ${container.s
 you should see the TOGA2 start menu.
 
 >[!NOTE]
-> The image provided in `supply/` directory contains the latest TOGA2 release, third-party software used for input preparation and TOGA2 annotation, and Nextflow for parallel process management. The container does <ins>not</ins> contain any Nextflow-compatible parallel job executor but is configured to be used with SLURM. To use it this way, bind the SLURM home directory with `--bind` option and provide `--parallel_job_executor slurm` to the `run` command. If you want to use any other executor, modify the definition file as needed and provide the respective executor name to `--parallel_job_executor` option. Otherwise, omit the `--parallel_job_executor` to parallel TOGA2 jobs over local CPUs. 
+> The image provided in `supply/` directory contains the latest TOGA2 release, third-party software used for input preparation and TOGA2 annotation, and Nextflow for parallel process management. The container does <ins>not</ins> contain any Nextflow-compatible parallel job executor, and, while certain SLURM configuration was added, running parallel jobs from the container seems highly unlikely due to the code organization.  
 
 ## Test run
 > [!WARNING]
