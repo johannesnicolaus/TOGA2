@@ -302,7 +302,7 @@ reporting the following warning at the {} step:\n{}
 """ + SANITY_CHECK_PS
 
     ## default settings for 'test' mode
-    DEFAULT_CONFIG: str = os.path.join('supply', 'project_args.json')
+    DEFAULT_CONFIG: str = os.path.join('supply', 'project_args.tsv')
     DEFAULT_OUTPUT_DIR: str = 'sample_output'
 
 

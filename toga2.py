@@ -1783,9 +1783,9 @@ def test(output: Optional[click.Path]) -> None:
     from src.python.modules.toga_main import TogaMain
     config_file: str = Constants.DEFAULT_CONFIG
     override: str = f'-o {output} -v'
-
-    args: List[str] = Toga2ConfiguredLauncher(config_file, override=override).run()
-    TogaMain(**args)
+    with open(config_file, 'r') as h:
+        args: List[str] = Toga2ConfiguredLauncher(h, override=override).run()
+        TogaMain(**args)
 
 
 if __name__ == '__main__':

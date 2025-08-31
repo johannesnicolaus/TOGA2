@@ -40,18 +40,19 @@ class Toga2ConfiguredLauncher(CommandLineManager):
     ) -> None:
         self.v: bool = True
         self.set_logging()
+        self.logger.propagate = False
         self.config_file: click.File = config_file
         self.override: Union[str, None] = override
     
     def run(self) -> List[str]:
         cmd_args: Dict[str, str] = {}
-        for i, line in enumerate(self.config_file):
-            data: List[str] = line.rstrip().split('\t')
+        for i, line in enumerate(self.config_file, start=1):
+            data: List[str] = line.strip().split('\t')
             if not len(data):
                 continue
             if len(data) != 2:
                 self._die(
-                    'Improper config file configuration at line %i; expected 2 columns, got %i' % (
+                    'Improper formtting at configuration file line %i; expected 2 columns, got %i' % (
                         i, len(data)
                     )
                 )
