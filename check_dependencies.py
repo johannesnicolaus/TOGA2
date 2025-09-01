@@ -230,7 +230,10 @@ MISSING_THIRD_PARTY: str = 'missing_third_party.txt'
 
 ## installation commands for third-party software
 class Installer:
-    def install():
+    def install() -> None:
+        pass
+
+    def name() -> str:
         pass
 
 class IntronIcInstaller(Installer):
@@ -245,12 +248,18 @@ class IntronIcInstaller(Installer):
             sed_cmd: str = f"sed -i 's/SafeConfig/Config/g; s/readfp/read_file/g' {versioneer}"
             subprocess.run(sed_cmd, shell=True)
 
+    def name() -> str:
+        return 'intronIC'
+
 class PrankInstaller(Installer):
     def install():
         install_cmd: str = """git clone https://github.com/ariloytynoja/prank-msa.git bin/prank && \
     cd bin/prank/src && make && mv prank ../
 """
         subprocess.run(install_cmd, shell=True)
+
+    def name() -> str:
+        return 'prank'
 
 class IqTree2Installer(Installer):
     def install():
@@ -261,6 +270,9 @@ wget -P bin/ https://github.com/iqtree/iqtree2/releases/download/v2.4.0/iqtree-2
     rm -rf bin/iqtree-2.4.0-Linux-intel bin/iqtree-2.4.0-Linux-intel.tar.gz
 """
         subprocess.run(install_cmd, shell=True)
+
+    def name() -> str:
+        return 'IqTree2'
 
 INSTALLERS: Tuple[Installer] = (IntronIcInstaller, PrankInstaller, IqTree2Installer)
 
@@ -543,21 +555,22 @@ def check_third_party() -> None:
 def install_third_party() -> None:
     """
     """
-    if not os.path.exists(MISSING_THIRD_PARTY):
-        click.echo(
-            'All third-party programs have been successfully found in $PATH'
-        )
-        sys.exit(0)
-    with open(MISSING_THIRD_PARTY, 'r') as h:
-        for line in h:
-            line = line.rstrip()
-            if line not in INSTALL_CMDS:
-                click.echo('ERROR: No installation recipe for third-party software %s' % line)
-            cmd: str = INSTALL_CMDS[line]
-            subprocess.run(cmd, shell=True)
-            click.echo('Successfully installed %s' % line)
+    # if not os.path.exists(MISSING_THIRD_PARTY):
+    #     click.echo(
+    #         'All third-party programs have been successfully found in $PATH'
+    #     )
+    #     sys.exit(0)
+    # with open(MISSING_THIRD_PARTY, 'r') as h:
+    #     for line in h:
+    #         line = line.rstrip()
+    #         if line not in INSTALL_CMDS:
+    #             click.echo('ERROR: No installation recipe for third-party software %s' % line)
+    #         cmd: str = INSTALL_CMDS[line]
+    #         subprocess.run(cmd, shell=True)
+    #         click.echo('Successfully installed %s' % line)
     for installer in INSTALLERS:
         installer.install()
+        click.echo('Successfully installed %s' % installer.name())
 
 if __name__ == '__main__':
     check_deps()
