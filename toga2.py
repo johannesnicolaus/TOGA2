@@ -1366,7 +1366,7 @@ def from_config(config_file: click.File, override: Optional[str]) -> None:
 )
 @click.option(
     '--disable_cesar_profiles',
-    '-no_cesary',
+    '-no_cesar',
     is_flag=True,
     default=False,
     show_default=True,
@@ -1776,7 +1776,7 @@ def cookbook() -> None:
     metavar='PATH',
     default=Constants.DEFAULT_OUTPUT_DIR,
     show_default=True,
-    help='A path to store the resutls in'
+    help='A path to store the results in'
 )
 def test(output: Optional[click.Path]) -> None:
     from src.python.modules.toga_configured import Toga2ConfiguredLauncher

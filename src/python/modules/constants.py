@@ -384,7 +384,7 @@ class Headers:
     ) + '\n'
     MUT_FILE_HEADER: str = '\t'.join(
         (
-            'projection', 'exon', 'ref_codon', 'triplet',
+            'projection', 'exon', 'triplet', 'ref_codon',
             'chrom', 'start', 'end', 'type', 'description',
             'is_masked', 'masking_reason', 'mut_id'
         )

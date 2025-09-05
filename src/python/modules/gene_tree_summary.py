@@ -179,7 +179,6 @@ class GeneTreeSummary(CommandLineManager):
             # ]
             for clique_file, pair_num in clique2pairs.items():
                 clique_pref: str = self.get_clique_name(clique_file)
-                print(f'{clique_file=}, {clique_pref=}, {pair_num=}')
                 # batch_num: str = batch.replace('batch', '')
                 # input_file: str = f'{batch}_clique{batch_num}.fa'
                 # input_file: str = f'{batch}_clique{batch_num}.fa'

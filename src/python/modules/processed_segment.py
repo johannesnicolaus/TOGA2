@@ -5,18 +5,45 @@ A speed-up version of processed_segment.py
 Most likely a final solution make
 """
 
-from .cesar_wrapper_constants import * ## TODO: Explicit imports!
-# from .cesar_wrapper_constants import (
-#     GAP_CODON
-# )
-from .cesar_wrapper_executables import * ## TODO: Same!
-# from .cesar_wrapper_executables import (
-
-# )
+from .cesar_wrapper_constants import (
+    AA_CODE, ALT_FRAME_REASON, ALT_MASKING_REASON,
+    BIG_DEL, BIG_INDEL, BIG_INDEL_SIZE, BIG_INS, 
+    CLASS_TO_COL, CLASS_TO_NAME,
+    COMPENSATION, COMPENSATION_REASON,
+    DEL_EXON, DEL_MISS,
+    EX_DEL_REASON, EX_MISS_REASON,
+    GAP_CODON, FS_DEL, FS_INDELS, FS_INS,
+    INTACT_CODON_LOSS_THRESHOLD, 
+    INTRON_GAIN, INTRON_GAIN_MASK_REASON,
+    LEFT_SPLICE_CORR,  LEFT_SPLICE_CORR_U12,
+    MAX_MISSING_PM_THRESHOLD, MAX_RETAINED_INTRON_LEN, 
+    MIN_BLOSUM_THRESHOLD, MIN_ID_THRESHOLD, 
+    MIN_INTRON_LENGTH, MIN_INTACT_UL_FRACTION, 
+    MISS_EXON, NNN_CODON, 
+    NON_CANON_U2_REASON, NON_DEL_LOSS_THRESHOLD, 
+    ORTHOLOG, OBSOLETE_COMPENSATION,
+    RIGHT_SPLICE_CORR, RIGHT_SPLICE_CORR_U12,
+    PARALOG, PROC_PSEUDOGENE,
+    SAFE_SPLICE_SITE_REASONS,
+    SAFE_UNMASKABLE_REASONS, SAFE_UNMASKABLE_TYPES,
+    SSM_A, SSM_D,
+    START, START_MISSING, 
+    STRICT_FACTION_INTACT_THRESHOLD,
+    STOP, STOPS, STOP_MISSING, 
+    TERMINAL_EXON_DEL_SIZE, U12_REASON,
+    FI, I, PI, UL, L, M, PG, PP
+)
+from .cesar_wrapper_executables import (
+    assess_exon_quality, check_codon,
+    get_affected_exon_threshold, 
+    get_blosum_score, get_d_runs,
+    process_codon_pair, process_and_translate,
+    Mutation, RawCesarOutput
+)
 from collections import defaultdict
 from logging import Logger
 from math import floor
-from .shared import nn, parts, safe_div
+from .shared import intersection, nn, parts, safe_div
 from typing import (
     Any, Dict, Iterable, List, Optional, Set, Tuple, TypeVar, Union
 )
@@ -1034,6 +1061,7 @@ class ProcessedSegment:
                         ref_codon = ref_codon[:-3] + initial_ref_stop
                 codon_start: int = 0
                 subcodon_len_sum: int = 0
+                ## process the codon into individual triplets
                 for sub_num, (r, q) in enumerate(process_codon_pair(ref_codon, query_codon)):
                     if '|' in r:
                         r_, r = r.split('|')
@@ -1952,10 +1980,14 @@ class ProcessedSegment:
 
     def _codon2coords(self, codon: int) -> Tuple[str, int]:
         """
-        Returns reference codon coordinates in query in the (chrom, start, stop) form
+        Returns triplet coordinates in query in the (chrom, start, stop) form
+
+        NOTE: Before 02.09.2025, the function returned reference codon coordinates instead,
+        although the logic implies the contrary
         """
         chrom: str = self._codon2chrom(codon)
-        coords: List[int] = self.codon_coordinates.get(codon, [])
+        # coords: List[int] = self.codon_coordinates.get(codon, [])
+        coords: List[int] = self.triplet_coordinates.get(codon, [])
         if len(coords) > 1:
             return (chrom, min(coords), max(coords))
         else: 
@@ -2173,72 +2205,6 @@ class ProcessedSegment:
         start, end, = sorted((abs_donor, abs_acc))
         return end - start
 
-    def _mut_number_in_seq(
-        self,
-        subexons: List[Tuple[int, int, float, float]],
-        exon: int
-    ) -> Tuple[int, int]:
-        """
-        Computes the number of nonsense
-        """
-        exon_streak: Tuple[int] = self._merged_exon_streak(exon)
-        first_ex: int = exon_streak[0]
-        last_ex: int = exon_streak[-1]
-        seq_start: int = self.rel_exon_coords[first_ex].start
-        seq_end: int = self.rel_exon_coords[last_ex].stop
-        prev_phase: int = self.intron2phase.get(first_ex - 1, 0)
-        next_phase: int = self.intron2phase.get(last_ex, 0)
-        # print(f'{exon_streak=}, {prev_phase=}, {next_phase=}, {self.intron2phase=}')
-        if prev_phase < 0 or next_phase < 0:
-            raise ValueError(
-                'Trying to access the phase value for a deleted intron'
-            )
-        seq_start += (3 - prev_phase) % 3
-        seq_end -= next_phase
-
-        orig_ref_codon: str = ''
-        corr_ref_codon: str = ''
-        orig_query_codon: str = ''
-        corr_query_codon: str = ''
-        gained_mut_num: int = 0
-        lost_mut_num: int = 0
-        for i in range(seq_start, seq_end):
-            orig_ref_codon += self.reference[i]
-            corr_ref_codon += self.reference[i] if any(x[0] <= i < x[1] for x in subexons) else ''
-            orig_query_codon += self.query[i]
-            corr_query_codon += self.query[i] if any(x[0] <= i < x[1] for x in subexons) else ''
-            orig_ref_complete: bool = is_complete_codon(orig_ref_codon)
-            corr_ref_complete: bool = is_complete_codon(corr_ref_codon)
-            orig_query_complete: bool = is_complete_codon(orig_query_codon)
-            corr_query_complete: bool = is_complete_codon(corr_query_codon)
-            orig_ref_fs: bool = frameshift_codon(orig_ref_codon)
-            corr_ref_fs: bool = frameshift_codon(corr_ref_codon)
-            orig_query_fs: bool = frameshift_codon(orig_query_codon)
-            corr_query_fs: bool = frameshift_codon(corr_query_codon)
-            if orig_ref_complete or i == seq_end - 1:
-                if orig_ref_fs:
-                    if orig_ref_codon != corr_ref_codon:
-                        lost_mut_num += 1
-            if corr_ref_complete or i == seq_end - 1:
-                if corr_ref_fs:
-                    if orig_ref_codon != corr_ref_codon:
-                        gained_mut_num += 1
-                corr_ref_codon = ''
-            if orig_ref_complete:
-                orig_ref_codon = ''
-            if orig_query_complete or i == seq_end - 1:
-                if orig_query_fs or strip_noncoding(orig_query_codon).upper() in STOPS:
-                    if orig_query_codon != corr_query_codon:
-                        lost_mut_num += 1
-            if corr_query_complete or i == seq_end - 1:
-                if corr_query_fs or strip_noncoding(corr_query_codon).upper() in STOPS:
-                    if orig_query_codon != corr_query_codon:
-                        gained_mut_num += 1
-                corr_query_codon = ''
-            if orig_query_complete:
-                orig_query_codon = ''
-        return gained_mut_num, lost_mut_num
-
     def _get_frameshift(self, start: int, end: int):
         """
         Returns the difference in frame phase between reference and query sequences 
@@ -2417,13 +2383,36 @@ class ProcessedSegment:
                 max(self.triplet2ref_codon)
         )
         ref_codon: int = self.triplet2ref_codon[codon]
+        chrom: str = self.exon2chrom[exon]
+        strand: bool = self._exon2strand(exon)
+        if acc:
+            if strand:
+                ## map to the last to nucleotides before the exon
+                end: int = self.abs_exon_coords[exon].tuple()[0]
+                start: int = max(end -2, 0)
+            else:
+                ## same, but strandwise it is now the first two nucleotides after the exon
+                start: int = self.abs_exon_coords[exon].tuple()[1]
+                end: int = start + 2
+        else:
+            if strand:
+                ## map to the first two nucleotides after the exon
+                start: int = self.abs_exon_coords[exon].tuple()[1]
+                end: int = start + 2
+            else:
+                ## reverting the logic leads to the last two bases before the exon
+                end: int = self.abs_exon_coords[exon].tuple()[0]
+                start: int = max(end -2, 0)
         splice_site_mut: Mutation = Mutation(
             self.transcript,
             chain,
             exon,
             codon,
             ref_codon,
-            *self._codon2coords(codon),
+            # *self._codon2coords(codon),
+            chrom,
+            start,
+            end,
             SSM_A if acc else SSM_D,
             mut_name,
             to_mask,
@@ -2551,13 +2540,24 @@ class ProcessedSegment:
         ref_codon: str = self.all_ref_codons[1]
         if ref_codon != START:
             return
+        chrom: str = self.exon2chrom[1]
+        strand: bool = self._exon2strand(1)
+        if strand:
+            start: int = self.abs_exon_coords[1].tuple()[0]
+            end: int = start + 1
+        else:
+            end: int = self.abs_exon_coords[1].tuple()[1]
+            start: int = max(0, end - 1)
         start_loss: Mutation = Mutation(
             self.transcript,
             self.exon2chain[1],
             1, ## exon number
             1, ## codon number
             1, ## reference codon number
-            *self._codon2coords(1),
+            # *self._codon2coords(1),
+            chrom,
+            start,
+            end,
             START_MISSING,
             f'{ref_codon}->{query_codon}',
             True, ## start loss is not considered to be inactivating and is masked by default
@@ -2586,8 +2586,10 @@ class ProcessedSegment:
         ref_gap_num: int = ref_codon.count('-')
         query_gap_num: int = query_codon.count('-')
         delta: int = ref_gap_num - query_gap_num
+        ## return if there is no frameshift in the codon
         if not delta % 3:
             return
+        downstream: bool = False
         if exon is None:
             if codon in self.split_codon_struct:
                 split_structure: Dict[int, int] = self.split_codon_struct[codon]
@@ -2599,16 +2601,38 @@ class ProcessedSegment:
                     sub_query_gap_num: int = query_sub.count('-')
                     if sub_ref_gap_num != sub_query_gap_num:
                         exon = ex
+                        if ex != min(split_structure):
+                            downstream = True
                         break
                     sub_start += portion
                 if exon is None:
                     ## if mutations affects both exons sharing the split codon,
                     ## arbitrarily assign it to the downstream exon
                     exon = ex ## TODO: Should it be assigned to both/all three exons instead?
+                    downstream = True
             else:
                 exon: int = next(self._codon2exon(codon))
         if exon in self.unaligned_exons:
             return
+        chrom: str = self.exon2chrom[exon]
+        strand: bool = self._exon2strand(exon)
+        if strand:
+            if downstream:
+                ## assign to the end of the triplet
+                end: int = max(self.triplet_coordinates[codon])
+                start: int = max(0, end - 1)
+            else:
+                ## assign to the striplet start
+                start: int = min(self.triplet_coordinates[codon])
+                end: int = start + 1
+        else:
+            ## revert the logic above
+            if downstream:
+                start: int = min(self.triplet_coordinates[codon])
+                end: int = start + 1
+            else:
+                end: int = max(self.triplet_coordinates[codon])
+                start: int = max(0, end - 1)
         ref_codon_num: int = self.triplet2ref_codon[codon]
         description: str = str(delta)
         mutation_class: str = FS_INS if delta > 0 else FS_DEL
@@ -2619,7 +2643,10 @@ class ProcessedSegment:
             exon,
             codon,
             ref_codon_num,
-            *self._codon2coords(codon),
+            # *self._codon2coords(codon),
+            chrom,
+            start,
+            end,
             mutation_class,
             description,
             False, ## Point mutations are added unmasked by default
@@ -2657,6 +2684,7 @@ class ProcessedSegment:
             return
         if self.stop_updated:
             return
+        downstream: bool = False
         if exon is None:
             if codon in self.split_codon_struct:
                 split_structure: Dict[int, int] = self.split_codon_struct[codon]
@@ -2667,11 +2695,14 @@ class ProcessedSegment:
                     ref_sub: str = ref_codon[0:sub_start] + query_sub + ref_codon[sub_start+portion:]
                     if ref_sub in STOPS:
                         exon = ex
+                        if ex != min(split_structure):
+                            dowsntream = True
                         break
                     sub_start += portion
                 if exon is None:
                     ## if mutations affects both exons sharing the split codon,
                     ## arbitrarily assign it to the downstream exon
+                    downstream = True
                     exon = ex ## TODO: Should it be assigned to both/all three exons instead?
             else:
                 exon: int = next(self._codon2exon(codon))
@@ -2682,6 +2713,25 @@ class ProcessedSegment:
             is_masked, reason = True, 'Reference codon masked'
         else:
             is_masked, reason = False, '-'
+        chrom: str = self.exon2chrom[exon]
+        strand: bool = self._exon2strand(exon)
+        if strand:
+            if downstream:
+                ## assign to the end of the triplet
+                end: int = max(self.triplet_coordinates[codon])
+                start: int = max(0, end - 1)
+            else:
+                ## assign to the striplet start
+                start: int = min(self.triplet_coordinates[codon])
+                end: int = start + 1
+        else:
+            ## revert the logic above
+            if downstream:
+                start: int = min(self.triplet_coordinates[codon])
+                end: int = start + 1
+            else:
+                end: int = max(self.triplet_coordinates[codon])
+                start: int = max(0, end - 1)
         description: str = f'{ref_codon}->{query_codon}'
         mut_id: str = f'STOP_{self.nonsense_counter}'
         nonsense: Mutation = Mutation(
@@ -2690,7 +2740,10 @@ class ProcessedSegment:
             exon,
             codon,
             ref_num_codon,
-            *self._codon2coords(codon),
+            # *self._codon2coords(codon),
+            chrom,
+            start,
+            end,
             STOP,
             description,
             is_masked,
@@ -2716,8 +2769,8 @@ class ProcessedSegment:
         first_ref_codon: int = self.triplet2ref_codon[first_codon] ## TODO: Implement
         last_ref_codon: int = self.triplet2ref_codon[codon]
         first_chain: str = self.exon2chain[first_exon]
-        last_chain: str = self.exon2chain[last_exon]
-        chain_label: str = f'{first_chain}_{last_chain}'
+        # last_chain: str = self.exon2chain[last_exon]
+        # chain_label: str = f'{first_chain}_{last_chain}'
         first_chrom: str = self.exon2chrom[first_exon]
         last_chrom: str = self.exon2chrom[last_exon]
         chrom_label: str = f'{first_chrom}_{last_chrom}'
@@ -2729,6 +2782,7 @@ class ProcessedSegment:
         else:
             start = min(self.triplet_coordinates[first_codon])
         stop: int = (max if last_codon_strand else min)(self.triplet_coordinates[codon])
+        start, stop = sorted((start, stop))
         exon_label: str = f'{first_exon}_{last_exon}'
         codon_label: str = f'{first_codon}_{codon}'
         ref_codon_label: str = f'{first_ref_codon}_{last_ref_codon}'
@@ -2777,13 +2831,24 @@ class ProcessedSegment:
         if exon in self.unaligned_exons:
             return
         last_ref_codon: int = self.triplet2ref_codon[last_codon]
+        chrom: str = self.exon2chrom[exon]
+        strand: bool = self._exon2strand(exon)
+        if strand:
+            end: int = self.abs_exon_coords[exon].tuple()[1]
+            start: int = max(0, end - 1)
+        else:
+            start: int = self.abs_exon_coords[exon].tuple()[0]
+            end: int = start + 1
         stop_loss: Mutation = Mutation(
             self.transcript,
             self.exon2chain[self.exon_num],
             self.exon_num,
             last_codon,
             last_ref_codon,
-            *self._codon2coords(last_codon),
+            # *self._codon2coords(last_codon),
+            chrom,
+            start,
+            end,
             STOP_MISSING,
             f'{ref_codon}->{query_codon}',
             True, ## for now, stop loss is not considered to be an inactivating mutation,
