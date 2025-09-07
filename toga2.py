@@ -319,7 +319,7 @@ def toga2() -> None:
     '-se_model',
     type=click.Path(exists=True),
     metavar='PATH',
-    default=os.path.join('models', 'se_model.dat'),
+    default=os.path.join(LOCATION, 'models', 'se_model.dat'),
     show_default=True,
     help=(
         'A path to a orthology classification model for single exon reference transcripts'
@@ -330,7 +330,7 @@ def toga2() -> None:
     '-me_model',
     type=click.Path(exists=True),
     metavar='PATH',
-    default=os.path.join('models', 'me_model.dat'),
+    default=os.path.join(LOCATION, 'models', 'me_model.dat'),
     show_default=True,
     help=(
         'A path to a orthology classification model for multi-exon reference transcripts'
@@ -352,7 +352,7 @@ def toga2() -> None:
     '-ld_model',
     type=click.Path(exists=True),
     metavar='PATH',
-    default=os.path.join('models', 'se_model.dat'),
+    default=os.path.join(LOCATION, 'models', 'ld_model.dat'),
     show_default=True,
     help=(
         'A path to a refinement classification model for distantly related '

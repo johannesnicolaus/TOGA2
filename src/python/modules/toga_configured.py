@@ -44,7 +44,7 @@ class Toga2ConfiguredLauncher(CommandLineManager):
         self.config_file: click.File = config_file
         self.override: Union[str, None] = override
     
-    def run(self) -> List[str]:
+    def run(self) -> Dict[str, str]:
         cmd_args: Dict[str, str] = {}
         for i, line in enumerate(self.config_file, start=1):
             data: List[str] = line.strip().split('\t')
@@ -106,7 +106,8 @@ class Toga2ConfiguredLauncher(CommandLineManager):
                     recognized_arg: bool = False
                 else:
                     recognized_arg: bool = True
-                    slot_name: str = TOGA2_ARG2SLOT[curr_arg_name]
+                    # slot_name: str = TOGA2_ARG2SLOT[curr_arg_name]
+                    slot_name: str = curr_arg_name
                 ## must be a flag option unless something went wrong
                 if curr == over_arg_num - 1:
                     if recognized_arg:
@@ -121,6 +122,10 @@ class Toga2ConfiguredLauncher(CommandLineManager):
                     continue
                 ## otherwise this is an option with an argument
                 if recognized_arg:
+                    if next_arg.isdigit():
+                        next_arg = int(next_arg)
+                    elif next_arg.replace('.', '').isdigit():
+                        next_arg = float(next_arg)
                     cmd_args[slot_name] = next_arg
                 curr += 2
                 continue

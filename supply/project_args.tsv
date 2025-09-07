@@ -17,8 +17,8 @@ feature_jobs	100
 orthology_threshold	0.5
 single_exon_model	models/se_model.dat
 multi_exon_model	models/me_model.dat
-use_long_distance_model	models/se_model.dat
-long_distance_model	models/se_model.dat
+use_long_distance_model	False
+long_distance_model	models/ld_model.dat
 disable_fragment_assembly	False
 orthologs_only	False
 one2ones_only	False

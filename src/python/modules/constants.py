@@ -564,7 +564,6 @@ GENETIC_CODE: Dict[str, str] = {
     "NNN": "X",
 }
 
-
 ## Slots for command line managers
 TOGA2_SLOTS: Tuple[str] = (
     'ref_2bit', 'query_2bit', 'chain_file', 'ref_annotation',

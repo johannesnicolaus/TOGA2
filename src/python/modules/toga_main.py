@@ -26,7 +26,7 @@ import os
 import sys
 
 __author__ = 'Yury V. Malovichko'
-__version__ = '2.0.2'
+__version__ = '2.0.4'
 __year__ = '2024'
 __credits__ = ('Bogdan M. Kirilenko', 'Michael Hiller')
 
@@ -671,28 +671,25 @@ class TogaMain(CommandLineManager):
         ## create the output directory
         self._echo('Creating working directory')
         self.create_wd()
-        self._to_log(
-            'Working directory created', 'info'
-        )
-        self._to_log('Writing project metadata', 'info')
+        self._to_log('Working directory created')
+        self._to_log('Writing project metadata')
         self.write_project_meta()
         self._to_log(
-            f'Project metadata dumped at {self.arg_file}', 'info'
-        )
+            f'Project metadata dumped at {self.arg_file}')
 
         ## check the input arguments
         # self._echo('Checking input arguments')
-        self._to_log('Checking input arguments', 'info')
+        self._to_log('Checking input arguments')
         self.check_arguments()
         # self._echo('All settings are correct')
-        self._to_log('All settings are correct', 'info')
+        self._to_log('All settings are correct')
 
         ## check the availability of all the necessary binaries
         # self._echo('Checking third-part dependencies')
-        self._to_log('Checking third-part dependencies', 'info')
+        self._to_log('Checking third-part dependencies')
         self.check_binaries()
         # self._echo('All dependencies were found')
-        self._to_log('All dependencies were found', 'info')
+        self._to_log('All dependencies were found')
 
         ## if SpliceAI directory was provided, check its contents
         self.check_spliceai_files()
@@ -724,12 +721,12 @@ class TogaMain(CommandLineManager):
 
         ## create the necessary links, indices, and HDF5 storage files
         if self._execute_step('setup'):
-            self._to_log('Preparing input data', 'info')
+            self._to_log('Preparing input data')
             self.prepare_data()
-            self._to_log('All input data successfully checked and handled', 'info')
+            self._to_log('All input data successfully checked and handled')
 
         ## showdowm
-        self._to_log('Running TOGA main procedure', 'info')
+        self._to_log('Running TOGA main procedure')
         ## Step 1: Extract chain features
         if self._execute_step('feature_extraction'):
             if not self.legacy_chain_feature_extraction:

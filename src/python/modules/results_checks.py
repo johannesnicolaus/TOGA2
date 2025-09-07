@@ -317,7 +317,7 @@ class ResultChecker(CommandLineManager):
         """Retrieves gene-to-transcripts mapping for reference genome annotation"""
         with open(self.isoforms, 'r') as h:
             for i, line in enumerate(h, start=1):
-                data: List[str] = line.strip().spit('\t')
+                data: List[str] = line.strip().split('\t')
                 if not data:
                     continue
                 if len(data) != ISOFORMS_FIELDS:
