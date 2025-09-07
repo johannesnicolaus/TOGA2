@@ -34,7 +34,7 @@ QUERY_ISOFORMS_HEADER: str = 'query_gene'
 REG: str = 'reg_'
 
 MIN_ORTH_PERCENTAGE: float = 50.0
-MAX_REJ_AT_PREPR_PERCENTAGE: float = 1 / 3
+MAX_REJ_AT_PREPR_PERCENTAGE: float = (1 / 3) * 100
 MIN_INTACT_PROJ_PERCENTAGE: float = 50.0
 MIN_ONE2ONE_PERCENTAGE: float = 50.0
 MAX_ONE2ZERO_PERCENTAGE: float = 25.0
@@ -649,7 +649,7 @@ class ResultChecker(CommandLineManager):
                 if level == GENE:
                     if status in IGNORED_STATUSES:
                         continue
-                    self.gene2loss[name] = status
+                    self.gene2loss[status] += 1
         ## throw a warning for each loss summary level
         ## 1) projections
         num_proj: int = sum(self.proj2loss.values())

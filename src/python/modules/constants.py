@@ -289,7 +289,7 @@ workflow {{
 This is an automated notification on TOGA2 project {} hosted at directory {} \
 having crashed with the following error:\n{}
 """
-    SANITY_CHECK_PS: str = """
+    SANITY_CHECK_PS: str = """\
 If the current run's setup has known complications \
 (low quality input assemblies, large evolutionary distance between references and query species, \
 specific gene/genome architecture in any of the species, etc.), disregard this e-mail. \
