@@ -654,7 +654,7 @@ TOGA2_SLOTS: Tuple[str] = (
     'cds_gzip', 'codon_gzip', 'exon_gzip', 'prot_gzip',
     'splice_sites_gzip', 'exon_meta_gzip', 'transcript_meta_gzip',
     'query_annotation_final', 'query_annotation_with_utrs',
-    'processed_pseudogene_annotation', 'summary',
+    'processed_pseudogene_annotation', 'summary', 'decoration_track',
 
     'feature_job_dir', 'feature_data_dir', 'feature_res_dir',
     'preprocessing_job_dir', 'preprocessing_res_dir',
@@ -678,7 +678,8 @@ TOGA2_SLOTS: Tuple[str] = (
     'CONTIG_SIZE_SCRIPT', 
     'FEATURE_EXTRACTOR',
     'MODEL_TRAINER', 'FINAL_RESOLVER_SCRIPT',
-    'UTR_PROJECTOR_SCRIPT', 'SCHEMA_FILE'
+    'UTR_PROJECTOR_SCRIPT', 'DECORATOR_SCRIPT', 
+    'SCHEMA_FILE'
 )
 
 TOGA2_SLOT2ARG: Dict[str, str] = {

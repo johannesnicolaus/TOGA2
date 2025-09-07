@@ -3,6 +3,7 @@ use cubiculum::extract::extract::parse_bed;
 use cubiculum::structs::structs::{BedEntry, Coordinates};
 use fxhash::FxHashMap;
 use phf::phf_map;
+use std::cmp::max;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write, stdout};
 use std::path::Path;
@@ -10,10 +11,13 @@ use std::path::Path;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 /// Given a Bed file and a TOGA2 mutation report file, prepare 
+/// a decorator for the UCSC BigBed file\n
+/// 
 /// 
 struct Args {
 
-    /// path to the Bed12 file to decorate
+    /// path to the Bed12 file to decorate; 
+    /// make sure that the contents correspond to those of the decorated BigBed file
     #[arg(long, short = 'b')]
     bed_file: String,
 
@@ -21,8 +25,12 @@ struct Args {
     #[arg(long, short = 'm')]
     mutation_file: String,
 
-    /// path to the output file
-    #[arg(long, short = 'o')]
+    /// path to chromosome (contig, scaffold, etc.) size table
+    #[arg(long, short = 'c')]
+    chrom_sizes: String,
+
+    /// path to the output file, if not set, the results are printed to standard output
+    #[arg(long, short = 'o', default_value_t = String::from("stdout"))]
     output: String
 }
 
@@ -33,12 +41,21 @@ const MUT2SHAPE: phf::Map<&'static str, &'static str> = phf_map!{
     "SSMA" => "Square",
     "SSMD" => "SSMD"
 };
+const BLOCK_MUTS: (&str, &str) = ("BIG_DEL", "BIG_INS");
 
 const ACCEPTOR: &str = "SSMA";
 const DONOR: &str = "SSMD";
 
-const DELETED: &str = "Exon is deleted";
-const MISSING: &str = "Exon is missing";
+const REG_DEL: &str = "FS_DEL";
+const REG_INS: &str = "FS_INS";
+const BIG_DEL: &str = "BIG_DEL";
+const BIG_INS: &str = "BIG_INS";
+
+const DELETED: &str = "Deleted exon";
+const MISSING: &str = "Missing exon";
+
+const DELETED_REASON: &str = "Exon is deleted";
+const MISSING_REASON : &str = "Exon is missing";
 
 const MASKED: &str = "211,211,211,255";
 const NOT_MASKED: &str = "198,0,9,255";
@@ -46,6 +63,21 @@ const GLYPH: &str = "glyph";
 // static MUT2SHAPE: FxHashMap<&str, String> = FxHashMap::from_iter([
 //     ("", String::from("")),
 // ]);
+
+enum MutationType {
+    Interval,
+    Point
+}
+
+#[derive(Clone)]
+struct BlockMutation {
+    chrom: String,
+    start: u64,
+    end: u64,
+    exon: String,
+    mut_type: String,
+    color: &'static str
+}
 
 #[derive(Clone)]
 struct PointMutation {
@@ -76,9 +108,9 @@ fn main() {
             let mut_type: &str = mut_comps[7];
             // ignore mutations outside of the point mutation list§
             if !MUT2SHAPE.contains_key(mut_type) {continue};
-            let mask_reason: &str = mut_comps[11];
+            let mask_reason: &str = mut_comps[10];
             // ignore mutations corresponding to deleted and missing exons 
-            if mask_reason == DELETED || mask_reason == MISSING {continue};
+            if mask_reason == DELETED_REASON || mask_reason == MISSING_REASON {continue};
             let chrom: &str = mut_comps[4];
             let start: u64 = mut_comps[5]
                 .parse::<u64>()
@@ -114,6 +146,33 @@ fn main() {
         }
     }
 
+    // parse the chromosome size table
+    let mut chrom_sizes: FxHashMap<String, u64> = FxHashMap::default();
+    let chrom_sizes_file = {
+        let path = File::open(args.chrom_sizes).unwrap();
+        Box::new(BufReader::new(path)) as Box<dyn BufRead>
+    };
+    for (i, line_) in chrom_sizes_file.lines().enumerate() {
+        if let Ok(line) = line_ {
+            let chrom_sizes_comps: Vec<&str> = line.split('\t').collect::<Vec<&str>>();
+            if chrom_sizes_comps.len() < 2 {
+                panic!(
+                    "Invalid chrom size file formatting at line {}; expected 2 fields, got {}",
+                    i+1, chrom_sizes_comps.len()
+                )
+            }
+            let size: u64 = chrom_sizes_comps[1]
+                .parse::<u64>()
+                .expect(
+                    &format!(
+                        "Invalid chrom size file formatting at line {}; value in the second field is not a valid integer",
+                        chrom_sizes_comps[1]
+                    )
+                );
+            chrom_sizes.insert(chrom_sizes_comps[0].to_string(), size);
+        }
+    }
+
     // create an output file handle
     let mut output_file = match args.output.as_str() {
         "stdout" => {Box::new(stdout()) as Box<dyn Write>},
@@ -123,7 +182,9 @@ fn main() {
         }
     };
 
-    //then, read the Bed file 
+    // then, read the input Bed file; for each transcript encountered, 
+    // retrieve mutation entries if present, prepare decoration entries,
+    // and write them to the output file
     let bed_file = {
         let path = File::open(args.bed_file).unwrap();
         Box::new(BufReader::new(path)) as Box<dyn BufRead>
@@ -142,6 +203,9 @@ fn main() {
                 let strand: bool = bed_entry.strand().unwrap();
                 let strand_lit: char = if strand {'+'} else {'-'};
                 let tr_chrom: &str = bed_entry.chrom().unwrap();
+                let chrom_size: u64 = *chrom_sizes
+                    .get(tr_chrom)
+                    .expect(&format!("Chromsome {} is missing from the chromosome size file", tr_chrom));
                 let tr_start: &u64 = bed_entry.start().unwrap();
                 let tr_end: &u64 = bed_entry.end().unwrap();
                 let tr_coords: String = format!("{}:{}-{}:{}", tr_chrom, tr_start, tr_end, proj);
@@ -149,7 +213,7 @@ fn main() {
                     // point mutations have a total length of 1; 
                     // meanwhile, mutation files provided affected codon's coordinate;
                     // therefore, one has to first infer the exact coordinate
-                    let first_coord: u64 = match mutation.exon.contains('_') {
+                    let mut first_coord: u64 = match mutation.exon.contains('_') {
                         true => {
                             // mutation spans over multiple exons;
                             // acceptors should be mapped to mutation's end,
@@ -171,10 +235,15 @@ fn main() {
                             }
                         }
                     };
-                    let last_coord: u64 = first_coord + 1; // TODO: Chromosome size exceeding safeguard?
+                    let mut last_coord: u64 = first_coord + 1;
+                    if last_coord >= chrom_size {
+                        last_coord = chrom_size - 1;
+                        if first_coord == last_coord {first_coord -= 1}
+                    }
                     let shape = MUT2SHAPE.get(&mutation.mut_type).unwrap();
                     let mut_name: String = format!(
-                        "{}:{}:{}:{}", first_coord, last_coord, mutation.exon, mutation.mut_type
+                        "{}:{}-{}:{}:{}", 
+                        tr_chrom, first_coord, last_coord, mutation.exon, mutation.mut_type
                     );
                     let decorator_line: String = format!(
                         "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",

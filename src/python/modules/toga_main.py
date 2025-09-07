@@ -606,6 +606,9 @@ class TogaMain(CommandLineManager):
         self.summary: str = os.path.join(
             self.output, 'summary.txt'
         )
+        self.decoration_track: str = os.path.join(
+            self.ucsc_dir, f'{self.ucsc_prefix}.decorator.bb'
+        )
         self.cds_gzip: str = self.cds_fasta + '.gz'
         self.codon_gzip: str = self.codon_fasta + '.gz'
         self.exon_gzip: str = self.exon_fasta + '.gz'
@@ -649,6 +652,9 @@ class TogaMain(CommandLineManager):
         )
         self.UTR_PROJECTOR_SCRIPT: str = os.path.join(
             LOCATION, 'src', 'rust', 'target', 'release', 'utr_projector'  
+        )
+        self.DECORATOR_SCRIPT: str = os.path.join(
+            LOCATION, 'src', 'rust', 'target', 'release', 'add_decorations'
         )
         self.SCHEMA_FILE: str = os.path.join(
             LOCATION, 'supply', 'bb_schema_toga2.as'
@@ -1869,7 +1875,7 @@ class TogaMain(CommandLineManager):
         if self.toga1 and not self.toga1_plus_cesar:
             kwargs['toga1_compatible'] = True
         if self.toga1_plus_cesar:
-            kwargs['toga1_plus_cesar'] = True
+            kwargs['toga1_plus_corrected_cesar'] = True
         if self.cesar_memory_limit:
             kwargs['memory_limit'] = self.cesar_memory_limit
         if not self.disable_fragment_assembly and os.path.exists(self.fragmented_projection_list):
@@ -2304,7 +2310,8 @@ class TogaMain(CommandLineManager):
 
     def prepare_bigbed_track(self) -> None:
         """
-        Prepares a BigBed22 track suitable for further loading to UCSC browser
+        Prepares a BigBed track suitable for further loading to UCSC browser,
+        alongside with a decoration BigBed file for mutations
         """
         ## TODO: Import the class here
         from .make_ucsc_report import BigBedProducer
@@ -2324,6 +2331,17 @@ class TogaMain(CommandLineManager):
         if self.v:
             args.append('-v')
         BigBedProducer(args, standalone_mode=False)
+
+        ## prepare the decoration track
+        decor_bed_input: str = (
+            self.query_annotation_with_utrs if not self.skip_utr else 
+            self.query_annotation_final
+        )
+        decor_cmd: str = (
+            f'{self.DECORATOR_SCRIPT} -b {decor_bed_input} -m {self.mutation_report} '
+            f'-c {self.query_contig_size_file} -o {self.decoration_track}'
+        )
+        _ = self._exec(decor_cmd, 'Decoration track production failed:')
 
         for file in Constants.FINAL_UCSC_FILES:
             file = file.format(self.ucsc_prefix)
