@@ -187,7 +187,7 @@ def to_perc(numerator: int, denominator: int) -> float:
     Divides numerator by denominator, multiplies by 100, 
     and rounds to third digit after the dot
     """
-    return round(numerator / denominator * 100, 3)
+    return 0.0 if denominator == 0 else round(numerator / denominator * 100, 3)
 
 
 class ResultChecker(CommandLineManager):
