@@ -454,7 +454,7 @@ class FinalOrthologyResolver(CommandLineManager):
         """
         Writes the updated orthology inference results to the output file
         """
-        self.output.write(Headers.ORTHOLOGY_TABLE_HEADER + '\n')
+        self.output.write(Headers.ORTHOLOGY_TABLE_HEADER)
         for line in self.out_lines:
             self.output.write(line + '\n')
         if self.one2zero_file is not None and self.one2zero_genes:

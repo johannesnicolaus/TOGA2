@@ -296,7 +296,9 @@ class ProcessedSegment:
                 if base in (' ', '>') or j == curr_aln_len - 1:
                     if not exon_start_encountered:
                         continue
-                    rel_exon_stop: int = j + int(j == curr_aln_len - 1)
+                    rel_exon_stop: int = j + int(
+                        j == curr_aln_len - 1 and curr_exon not in self.unaligned_exons
+                    )
                     if rel_exon_start is None:
                         raise RuntimeError(f'Exon start missing for exon {curr_exon}')
                     self.rel_exon_coords[curr_exon] = Coords(rel_exon_start, rel_exon_stop)
@@ -2930,6 +2932,10 @@ class ProcessedSegment:
                     )
                 )
                 self.exon_presence[exon] = 'M'
+                if exon in self.unaligned_exons:
+                    start, end = 0, 0
+                else:
+                    start, end = self.abs_exon_coords[exon].tuple()
                 mutation: Mutation = Mutation(
                     self.transcript,
                     self.exon2chain[exon],
@@ -3006,6 +3012,10 @@ class ProcessedSegment:
                     ) % (exon, exon)
                 )
             self.exon_presence[exon] = 'M'
+            if exon in self.unaligned_exons:
+                start, end = 0, 0
+            else:
+                start, end = self.abs_exon_coords[exon].tuple()
             mutation: Mutation = Mutation(
                 self.transcript,
                 self.exon2chain[exon],
@@ -3013,7 +3023,8 @@ class ProcessedSegment:
                 f'{first_codon}_{last_codon}',
                 f'{first_ref_codon}_{last_ref_codon}',
                 self.exon2chrom[exon],
-                *self.abs_exon_coords[exon].tuple(),
+                start,
+                end,
                 MISS_EXON,
                 '-',
                 False, ## missing exon entries are not masked
@@ -3620,7 +3631,10 @@ class ProcessedSegment:
         for ex in range(1, self.exon_num + 1):
             chain: str = self.exon2chain[ex]
             chrom: str = self.exon2chrom[ex]
-            start, stop = self.abs_exon_coords[ex].tuple()
+            if ex in self.unaligned_exons:
+                start, stop = 'NA', 'NA'
+            else:
+                start, stop = self.abs_exon_coords[ex].tuple()
             strand: str = '+' if self._exon2strand(ex) else '-'
             was_aligned: bool = 'UNALIGNED' if ex in self.unaligned_exons else 'ALIGNED'
             has_gap: str = 'INTERSECTS_GAP' if self.intersects_gap[ex] else 'GAP_FREE'

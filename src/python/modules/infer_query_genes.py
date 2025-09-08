@@ -449,12 +449,12 @@ class QueryGeneCollapser(CommandLineManager):
             annotated_projections.add(proj)
             exon: int = int(data[1])
             chrom: str = data[3]
-            start: int = int(data[4])
-            end: int = int(data[5])
-            strand: bool = data[6] == '+'
             status: str = data[7]
             if status != 'I':
                 continue
+            start: int = 0 if data[4] == 'NA' else int(data[4])
+            end: int = 0 if data[4] == 'NA' else int(data[5])
+            strand: bool = data[6] == '+'
             gap_supported: bool = data[-3] == 'CHAIN_SUPPORTED'
             if not gap_supported:
                 continue

@@ -6,22 +6,21 @@ of respective transcripts in the query
 """
 
 import os
-import sys
 
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-sys.path.extend([LOCATION, PARENT])
+# LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+# PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
+# sys.path.extend([LOCATION, PARENT])
 
-from cesar_wrapper_constants import (
-    FI, I, PI, UL, M, L, PG, PP, N, 
+from .cesar_wrapper_constants import (
+    FI, I, PI, UL, M, L, PG, N, 
     MAX_QLEN_FOR_ORTH, MIN_COV_FOR_ORTH, 
     MIN_INTRON_COV_FOR_ORTH, CLASS_TO_NUM
 )
 from collections import defaultdict
-from constants import PHYLO_NOT_FOUND, PRE_CLEANUP_LINE
+from .constants import PHYLO_NOT_FOUND, PRE_CLEANUP_LINE
 from heapq import heappop, heappush
-from shared import (
-    CommandLineManager, CONTEXT_SETTINGS, flatten, get_proj2trans,
+from .shared import (
+    CommandLineManager, CONTEXT_SETTINGS, flatten, get_upper_dir,
     get_connected_components, SPLIT_JOB_HEADER
 )
 from shutil import which
@@ -37,7 +36,8 @@ __author__ = 'Yury V. Malovichko'
 __year__  = '2024'
 __credits__ = 'Bogdan M. Kirilenko'
 
-FINE_RESOLVER: str = os.path.join(LOCATION, 'fine_orthology_resolver.py')
+PYTHON_DIR: str = get_upper_dir(__file__, 2)
+FINE_RESOLVER: str = os.path.join(PYTHON_DIR, 'fine_orthology_resolver.py')
 
 Q_PREFIX: str = "#Q#"
 R_PREFIX: str = "#R#"
@@ -125,7 +125,7 @@ def ordered_edges(edges: Iterable[Tuple[Any]]) -> Iterable[Tuple[Any]]:
         if R_PREFIX in edge[0]:
             ordered.append(edge)
             continue
-        temp: str = edge[1]
+        # temp: str = edge[1]
         edge = (edge[1], edge[0], *edge[2:])
         ordered.append(edge)
     return ordered
@@ -1163,9 +1163,9 @@ class InitialOrthologyResolver(CommandLineManager):
         gene2status: Dict[str, str] = {}
         header: str = ''
         seq: str = ''
-        prev_gene: str = ''
+        # prev_gene: str = ''
         gene: str = ''
-        proj: str = ''
+        # proj: str = ''
         tr: str = ''
         prefix: str = ''
         with open(self.fasta_file, 'r') as h:

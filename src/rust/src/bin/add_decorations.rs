@@ -109,6 +109,7 @@ fn main() {
             // ignore mutations outside of the point mutation list§
             if !MUT2SHAPE.contains_key(mut_type) {continue};
             let mask_reason: &str = mut_comps[10];
+            println!("mask_reason={}", mask_reason);
             // ignore mutations corresponding to deleted and missing exons 
             if mask_reason == DELETED_REASON || mask_reason == MISSING_REASON {continue};
             let chrom: &str = mut_comps[4];

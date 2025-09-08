@@ -759,7 +759,7 @@ class ResultChecker(CommandLineManager):
         with open(self.orth_classes, 'r') as h:
             for i, line in enumerate(h, start=1):
                 data: List[str] = line.strip().split('\t')
-                if not data:
+                if not data or not data[0]:
                     continue
                 if data[0] == ORTH_CLASS_HEADER:
                     continue

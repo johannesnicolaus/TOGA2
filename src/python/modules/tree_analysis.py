@@ -73,8 +73,8 @@ def special_case(tree, bootthresh: float, iqtree: bool = False):
     attr: str = 'confidence' if iqtree else 'comment'
     # count number of S
     for clade in list(tree.find_clades()):
-        print(f'{clade=}, {clade.root=}')
-        print(f'{clade.name=}, {clade.is_terminal()=}, {clade.comment=}, {clade.confidence=}, {clade.__getattribute__(attr)=}, {iqtree=}, {bootthresh=}')
+        # print(f'{clade=}, {clade.root=}')
+        # print(f'{clade.name=}, {clade.is_terminal()=}, {clade.comment=}, {clade.confidence=}, {clade.__getattribute__(attr)=}, {iqtree=}, {bootthresh=}')
         if clade.name == 'S':
             count = count + 1
     # only checks for specific case
@@ -129,11 +129,12 @@ def can_resolve(
     res = []
     ## YM: And a final sanity check: Remove the resolved pairs involving duplicated projections
     ## TODO: Discuss with Michael
-    case_num: Dict[str, int] = Counter([get_tr(x) for i, x in enumerate(resols) if x % 2])
+    # print(f'{resols=}')
+    # case_num: Dict[str, int] = Counter([get_tr(x) for i, x in enumerate(resols) if x % 2])
     for i in range(0, len(resols), 2):
-        query_tr: str = get_tr(resols[i])
-        if case_num[query_tr] > 1:
-            continue
+        # query_tr: str = get_tr(resols[i])
+        # if case_num[query_tr] > 1:
+        #     continue
         res.append((resols[i], resols[i+1]))
     return res
 

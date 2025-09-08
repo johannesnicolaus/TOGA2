@@ -7,16 +7,16 @@ Resolves many2many orthologies with PRANK+RAxML pipeline
 import os
 import sys
 
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-sys.path.extend([LOCATION, PARENT])
+# LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+# PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
+# sys.path.extend([LOCATION, PARENT])
 
 from Bio import Phylo
 from collections import defaultdict
-from constants import IQTREE_ACCEPTED_MODELS, PHYLO_NOT_FOUND
-from shared import CommandLineManager, CONTEXT_SETTINGS
+from modules.constants import IQTREE_ACCEPTED_MODELS, PHYLO_NOT_FOUND
+from modules.shared import CommandLineManager, CONTEXT_SETTINGS
 from shutil import which
-from tree_analysis import can_resolve, make_cat_tree
+from modules.tree_analysis import can_resolve, make_cat_tree
 from typing import Dict, List, Optional, Tuple, Union
 
 import click

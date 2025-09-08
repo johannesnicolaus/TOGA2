@@ -2315,7 +2315,7 @@ class TogaMain(CommandLineManager):
         args: List[str] = [
             self.aggr_ucsc_stub, self.bed_file_copy, self.feature_table,
             self.pred_scores, self.query_contig_size_file, self.SCHEMA_FILE,
-            self.vis_input_dir, '-l', self.log_file, '--prefix', self.ucsc_prefix
+            self.vis_input_dir, '-ln', self.project_name, '--prefix', self.ucsc_prefix
         ]
         if self.ref_link_file:
             args.extend(['-i', self.ref_link_file])
@@ -2334,6 +2334,7 @@ class TogaMain(CommandLineManager):
             self.query_annotation_with_utrs if not self.skip_utr else 
             self.query_annotation_final
         )
+        self._to_log('Preparing decoration BigBed file')
         decor_cmd: str = (
             f'{self.DECORATOR_SCRIPT} -b {decor_bed_input} -m {self.mutation_report} '
             f'-c {self.query_contig_size_file} -o {self.decoration_track}'
