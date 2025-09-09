@@ -2,9 +2,8 @@ from Bio import Phylo
 from Bio.Phylo.TreeConstruction import DistanceTreeConstructor, DistanceMatrix
 from collections import Counter
 # from io import StringIO
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
-import matplotlib.pyplot as plt
 import os
 import sys
 
@@ -175,7 +174,7 @@ def do_dir(d, bootthresh):
             out_svg = msa_x + '_cat.svg'
 
             # make the visual
-            visualize_newick(tree, out_svg)
+            # visualize_newick(tree, out_svg)
 
             res = can_resolve(tree, bootthresh)
             out_name = msa_x + '_' + bootthresh + '_ensemblout.txt'
@@ -211,36 +210,6 @@ def main():
 #     make_cat_tree(tree)
 #     # Phylo.write(tree,"tmp.nwk", format='newick')
 #     can_resolve(tree)
-
-def visualize_newick(newick_file, out_file):
-    tree = newick_file
-    # Start with a reasonably large size
-    fig_width, fig_height = 14, 14
-    fig = plt.figure(figsize=(fig_width, fig_height))
-    ax = fig.add_subplot(1, 1, 1)
-    Phylo.draw(tree, do_show=False, axes=ax)
-
-    # Check if the content is fully visible
-    bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-    if not ax.get_autoscale_on() and bbox.width < fig_width and bbox.height < fig_height:
-        # Content is fully visible, save the figure and return
-        plt.savefig(out_file, format='svg')
-        plt.close(fig)
-        return
-
-    # If content is not fully visible, increase the figure size
-    while True:
-        fig_width *= 1.1
-        fig_height *= 1.1
-        fig.set_size_inches(fig_width, fig_height, forward=True)
-        bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-        if not ax.get_autoscale_on() and bbox.width >= fig_width and bbox.height >= fig_height:
-            break
-
-    # Save the figure
-    plt.savefig(out_file, format='svg')
-    plt.close(fig)
-
 
 def midpoint_root(unrooted_path, rooted_path):
     tree = Phylo.read(unrooted_path, "newick")
