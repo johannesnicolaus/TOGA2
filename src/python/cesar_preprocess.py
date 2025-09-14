@@ -349,7 +349,7 @@ MISSING: str = 'M'
     '-bw2w',
     type=click.Path(exists=True),
     metavar='BIGWIG2WIG_BINARY',
-    default=HL_BW2W_PATH,
+    default=None,
     help=(
         'A path to the UCSC bigWigToWig binary; default is set to Hiller Lab '
         'Delta cluster utility location'
