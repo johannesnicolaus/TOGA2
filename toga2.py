@@ -1738,6 +1738,8 @@ def postoga() -> None:
     postoga - Invoke Postoga for in-depth analysis of TOGA2 results
     NOTE: This mode is currently under development.
     """
+    from postoga.postoga import main
+    main()
 
 
 @toga2.command(

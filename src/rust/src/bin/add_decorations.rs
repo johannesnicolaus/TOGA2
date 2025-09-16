@@ -3,7 +3,6 @@ use cubiculum::extract::extract::parse_bed;
 use cubiculum::structs::structs::{BedEntry, Coordinates};
 use fxhash::FxHashMap;
 use phf::phf_map;
-use std::cmp::max;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write, stdout};
 use std::path::Path;
@@ -109,20 +108,33 @@ fn main() {
             // ignore mutations outside of the point mutation list§
             if !MUT2SHAPE.contains_key(mut_type) {continue};
             let mask_reason: &str = mut_comps[10];
-            println!("mask_reason={}", mask_reason);
             // ignore mutations corresponding to deleted and missing exons 
             if mask_reason == DELETED_REASON || mask_reason == MISSING_REASON {continue};
             let chrom: &str = mut_comps[4];
-            let start: u64 = mut_comps[5]
-                .parse::<u64>()
-                .expect(&format!(
-                    "Improper mutation file formatting at line {}: \"start\" field is not a valie integer", i+1
-                ));
-            let end: u64 = mut_comps[6]
-                .parse::<u64>()
-                .expect(&format!(
-                    "Improper mutation file formatting at line {}: \"end\" field is not a valie integer", i+1
-                ));
+            // let start: u64 = mut_comps[5]
+            //     .parse::<u64>()
+            //     .expect(&format!(
+            //         "Improper mutation file formatting at line {}: \"start\" field is not a valie integer", i+1
+            //     ));
+            let start: u64 = match mut_comps[5].parse::<u64>() {
+                Ok(s) => {s},
+                Err(_) => {
+                    println!("Improper mutation file formatting at line {}: \"start\" field is not a valid integer", i+1);
+                    continue
+                }
+            };
+            // let end: u64 = mut_comps[6]
+            //     .parse::<u64>()
+            //     .expect(&format!(
+            //         "Improper mutation file formatting at line {}: \"end\" field is not a valie integer", i+1
+            //     ));
+            let end: u64 = match mut_comps[6].parse::<u64>() {
+                Ok(e) => {e},
+                Err(_) => {
+                    println!("Improper mutation file formatting at line {}: \"end\" field is not a valied integer", i+1);
+                    continue
+                }
+            };
             let color: &str = match mut_comps[9] {
                 "MASKED" => {MASKED},
                 "NOT_MASKED" => {NOT_MASKED},
