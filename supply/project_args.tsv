@@ -86,6 +86,7 @@ legacy_chain_feature_extraction	False
 toga1_compatible	False
 toga1_plus_corrected_cesar	False
 output	None
+project_name	TOGA2
 keep_temporary_files	False
 verbose	True
 email	None
@@ -93,5 +94,6 @@ mailx_binary	None
 fatotwobit_binary	None
 twobittofa_binary	None
 bedtobigbed_binary	None
+ixixx_binary	None
 ucsc_prefix	HLTOGAAnnot
 ignore_crashed_parallel_batches	False

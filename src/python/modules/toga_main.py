@@ -163,7 +163,7 @@ class TogaMain(CommandLineManager):
     ) -> None:
         self.v: bool = verbose
         self.project_name: str = project_name
-        self.project_id: str = hex_dir_name()
+        self.project_id: str = hex_dir_name(self.project_name)
 
         ## internalized attributes
         self.ref_2bit: click.Path = self._abspath(ref_2bit)
@@ -973,6 +973,8 @@ class TogaMain(CommandLineManager):
                 self.annotate_utrs()
             self._to_log('Creating exon 2bit file for SLEASY')
             self.convert_exon_fasta()
+            self._to_log('Creating query nucleotide and protein Fasta files')
+            self.produce_final_sequence_files()
             self._to_log('Compressing FASTA files from the output')
             self.gzip_heavy_files()
             self._to_log('Finalizing naming notation for query genes')
@@ -1287,7 +1289,6 @@ class TogaMain(CommandLineManager):
                 jobs: List[str] = jobfiles_to_execute[i]
                 if not jobs:
                     continue
-                # print(f'{i=}, {joblist=}, {jobs=}')
                 if step == 'alignment':
                     c.write(f'{new_joblist_name}\t{i}\n')
                 else:
@@ -1494,6 +1495,7 @@ class TogaMain(CommandLineManager):
                 expected_path: str = os.path.join(BIN, default_name)
                 if os.path.exists(expected_path) and os.access(expected_path, os.X_OK):
                     self._to_log('Found %s at bin/%s' % (default_name, default_name))
+                    self.__setattr__(attr, expected_path)
                     continue
                 self._to_log(
                     '%s in inaccessible at bin/; looking for %s in $PATH' % (
@@ -1595,17 +1597,10 @@ class TogaMain(CommandLineManager):
         dest_file: str = (
             self.ref_contig_size_file if ref else self.query_contig_size_file
         )
-        twobit_cmd: str = (
-            f'{Constants.SETUP} {self.twobittofa_binary} {twobit_file} stdout | '
-            f'{self.CONTIG_SIZE_SCRIPT} - -o {dest_file}'
+        compress_check_cmd: str = f'{Constants.SETUP} file {twobit_file} | grep "compressed" || true'
+        is_compressed: bool = bool(
+            self._exec(compress_check_cmd, err_msg='Genome compression check failed')
         )
-        twobit_out: str = self._exec(
-            twobit_cmd, err_msg='', die=False
-        )
-        if 'is not a twoBit file' not in twobit_out:
-            return
-        compress_check_cmd: str = f'{Constants.SETUP} file {twobit_file} | grep -q "compressed"'
-        is_compressed: bool = bool(self._exec(compress_check_cmd), '')
         if is_compressed:
             gz_cmd: str = (
                 f'{Constants.SETUP} gzip -dc {twobit_file} | '
@@ -1615,6 +1610,15 @@ class TogaMain(CommandLineManager):
                 gz_cmd,
                 'Contig size retrieval from the gz-compressed genome file failed'
             )
+            return
+        twobit_cmd: str = (
+            f'{Constants.SETUP} {self.twobittofa_binary} {twobit_file} stdout | '
+            f'{self.CONTIG_SIZE_SCRIPT} - -o {dest_file}'
+        )
+        twobit_out: str = self._exec(
+            twobit_cmd, err_msg='Contig size retrieval failed:'
+        )
+        if 'is not a twoBit file' not in twobit_out:
             return
         txt_cmd: str = (
             f'{self.CONTIG_SIZE_SCRIPT} {twobit_file} -o {dest_file}'
@@ -2470,7 +2474,6 @@ class TogaMain(CommandLineManager):
                 cmd += ' --fixed-adjacent-regions'
             else:
                 cmd += ' --deduce-adjacent-regions'
-        print(f'{cmd=}')
         _ = self._exec(cmd, 'UTR annotation failed: ')
 
     def convert_exon_fasta(self) -> None:

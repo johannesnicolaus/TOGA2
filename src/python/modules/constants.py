@@ -179,8 +179,8 @@ class Constants:
     }
 
     DISCARDED_PROJECTION_FILES: Tuple[str] = (
-        'paralogous_projections_to_align.tsv', 
-        'processed_pseudogene_projections_to_align.tsv', 
+        'paralog_report', 
+        'processed_pseudogene_report', 
         'discarded_overextended_projections'
     )
 
@@ -620,7 +620,8 @@ TOGA2_SLOTS: Tuple[str] = (
     'max_number_of_retries', 'nextflow_config_dir',
     'max_parallel_time', 
     'keep_nextflow_log',
-    'output', 'project_name', 'keep_tmp', 
+    'output', 'keep_tmp',
+    'project_name', 'project_id', 
     'v', 'email', 'mailx_binary',
 
     'toga1', 'toga1_plus_cesar',
