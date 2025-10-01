@@ -26,7 +26,7 @@ import logging
 import os
 
 __author__ = 'Yury V. Malovichko'
-__version__ = '2.0.4'
+__version__ = '2.0.5'
 __year__ = '2024'
 __credits__ = ('Bogdan M. Kirilenko', 'Michael Hiller')
 
@@ -276,7 +276,7 @@ def toga2() -> None:
     '-mcs',
     type=click.IntRange(min=0, max=None),
     metavar='INT',
-    default=5000,
+    default=15000,
     show_default=True,
     help=(
         'Minimal score for chains to be considered for classification. Setting '
@@ -1119,6 +1119,19 @@ def toga2() -> None:
     default=None,
     show_default=False,
     help='A directory to store results into [default: toga2_run_<date_time>]'
+)
+@out_options.option(
+    '--project_name',
+    '-name',
+    type=str,
+    metavar='PROJECT_NAME',
+    default='TOGA2',
+    show_default=True,
+    help=(
+        'A name for the current TOGA2 project. This name will be used '
+        'as a prefix followed by run start date and time to name current runs\' '
+        'log and metadata files'
+    )
 )
 @out_options.option(
     '--keep_temporary_files',

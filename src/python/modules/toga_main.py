@@ -26,7 +26,7 @@ import os
 import sys
 
 __author__ = 'Yury V. Malovichko'
-__version__ = '2.0.4'
+__version__ = '2.0.5'
 __year__ = '2024'
 __credits__ = ('Bogdan M. Kirilenko', 'Michael Hiller')
 
@@ -428,7 +428,7 @@ class TogaMain(CommandLineManager):
             self.annot_dir, 'nucleotide.fa'
         )
         self.prot_fasta_tmp: str = os.path.join(
-            self.annot_dir, 'proteins.fa'
+            self.annot_dir, 'protein.fa'
         )
         self.orth_resolution_raw: str = os.path.join(
             self.annot_dir, 'orthology_classification.tsv'
@@ -1313,7 +1313,7 @@ class TogaMain(CommandLineManager):
         """
         Creates a stub file with a header for a given output file
         """
-        from constants import Headers
+        from .constants import Headers
         if file not in Constants.FILE2HEADER:
             return
         filepath: str = self.__getattribute__(file)
@@ -2528,6 +2528,12 @@ class TogaMain(CommandLineManager):
             self.orth_resolution_raw, self.query_genes_raw, self.finalized_output_dir,
             '-qb', self.query_genes_bed_raw, '-ln', self.project_id
         ]
+        if self.isoform_file is not None:
+            args.extend(('-i', self.isoform_file))
+        if os.path.exists(self.processed_pseudogene_report):
+            args.extend(('-pp', self.processed_pseudogene_report))
+        if os.path.exists(self.discarded_overextended_projections):
+            args.extend(('-d', self.discarded_overextended_projections))
         QueryGeneNamer(args, standalone_mode=False)
         for file in os.listdir(self.finalized_output_dir):
             filepath: str = os.path.join(self.finalized_output_dir, file)

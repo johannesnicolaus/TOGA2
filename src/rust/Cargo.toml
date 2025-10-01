@@ -1,7 +1,8 @@
 [package]
 name = "rust"
-version = "0.1.0"
+version = "2.0.5"
 edition = "2021"
+authors = ["Yury V. Malovichko <yury.malovichko@senckenberg.de>"]
 
 [dependencies]
 anyhow = "1.0.98"
@@ -10,6 +11,7 @@ bed2gtf = "1.9.3"
 bigtools = "0.5.6"
 chaintools = { git = "https://github.com/ReverendCasy/chaintools", version = "0.1.80" }
 clap = { version = "4.5.42", features = ["derive"] }
+colorconv = "0.1.1"
 cubiculum = "0.1.50"
 flate2 = "1.1.2"
 fontdb = "0.23.0"
@@ -22,6 +24,7 @@ quick-xml = "0.38.3"
 regex = "1.11.2"
 resvg = "0.45.1"
 serde = { version = "1.0.225", features = ["derive"] }
+serde_json = "1.0.145"
 svg = "0.18.0"
 svgdom = "0.18.0"
 tiny-skia = "0.11.4"
@@ -67,3 +70,8 @@ path = "src/bin/add_decorations.rs"
 edition = "2021"
 name = "plot_projections"
 path = "src/bin/plot_projection.rs"
+
+[[bin]]
+edition = "2021"
+name = "combine_plots"
+path = "src/bin/combine_plots.rs"

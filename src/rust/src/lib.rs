@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Error, Result};
 use chaintools::cmap::chain::Chain;
 use cubiculum::merge::merge::intersection;
 use cubiculum::structs::structs::{Coordinates, Interval, Named};

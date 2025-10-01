@@ -22,6 +22,10 @@ struct Args {
     #[arg(long, short = 'd')]
     deprecated: Option<String>,
 
+    /// A final Bed file to filter the Fasta file by
+    #[arg(long, short = 'b')]
+    bed_file: Option<String>,
+
     /// A path to save the results to; if no value provided or if set to "stdout",
     /// the results are printed to standard output stream
     #[arg(long, short = 'o', default_value_t = String::from("stdout"))]
@@ -32,11 +36,21 @@ fn main() {
     let args = Args::parse();
 
     // if a list of deprecated projections was provided, copy its contents to a set
-    let mut excluded_projs: FxHashSet<String> = FxHashSet::default();
-    if let Some(deprecated) = args.deprecated {
-        for line_ in read(deprecated).lines() {
+    // let mut excluded_projs: FxHashSet<String> = FxHashSet::default();
+    // if let Some(deprecated) = args.deprecated {
+    //     for line_ in read(deprecated).lines() {
+    //         if let Ok(line) = line_ {
+    //             excluded_projs.insert(line);
+    //         }
+    //     }
+    // }
+    let mut included_projs: FxHashSet<String> = FxHashSet::default();
+    if let Some(bed_file) = args.bed_file {
+        for line_ in read(bed_file).lines() {
             if let Ok(line) = line_ {
-                excluded_projs.insert(line);
+                let comps: Vec<&str> = line.split('\t').collect::<Vec<&str>>();
+                let name = comps[3].replace("#retro", "");
+                included_projs.insert(name.to_string());
             }
         }
     }
@@ -78,7 +92,8 @@ fn main() {
                 }
                 let proj = comps[0].replace('>', "");
                 // do not record the deprecated projection's sequence
-                if excluded_projs.contains(&proj) {record = false; continue}
+                // if excluded_projs.contains(&proj) {record = false; continue}
+                if included_projs.len() > 0 && !included_projs.contains(&proj) {continue}
                 header = comps[0].clone();
                 record = true;
                 // proceed to the next line

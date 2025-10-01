@@ -7,6 +7,8 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Write, stdout};
 use std::path::Path;
 
+use rust::read;
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 /// Given a Bed file and a TOGA2 mutation report file, prepare 
@@ -23,6 +25,10 @@ struct Args {
     ///  path to mutation file
     #[arg(long, short = 'm')]
     mutation_file: String,
+
+    /// path to exon metadata table
+    #[arg(long, short = 'e')]
+    exon_meta: String,
 
     /// path to chromosome (contig, scaffold, etc.) size table
     #[arg(long, short = 'c')]
@@ -44,6 +50,7 @@ const BLOCK_MUTS: (&str, &str) = ("BIG_DEL", "BIG_INS");
 
 const ACCEPTOR: &str = "SSMA";
 const DONOR: &str = "SSMD";
+const PROJECTION: &str = "projection";
 
 const REG_DEL: &str = "FS_DEL";
 const REG_INS: &str = "FS_INS";
@@ -90,6 +97,7 @@ struct PointMutation {
 
 fn main() {
     let args = Args::parse();
+    /// here go the sanity checks
     let mut proj2muts: FxHashMap<String, Vec<PointMutation>> = FxHashMap::default();
     // read the mutation file first
     let mutations = {
@@ -159,6 +167,29 @@ fn main() {
         }
     }
 
+    /// parse the exon meta file
+    let mut proj2exon2status: FxHashMap<String, FxHashMap<u16, bool>> = FxHashMap::default();
+    for (i, line_) in read(args.exon_meta).lines().enumerate() {
+        if let Ok(line) = line_ {
+            let comps: Vec<&str> = line.split('\t').collect::<Vec<&str>>();
+            if comps[0] == PROJECTION {continue}
+            let proj = comps[0];
+            let exon_num = comps[1].parse::<u16>().expect(
+                &format!(
+                    "Improper formatting at exon meta file line {}; \"{}\" is not a valid exon number",
+                    i + 1, comps[1]
+                )
+            );
+            let status = comps[7] == "I";
+            proj2exon2status
+                .entry(proj.to_string())
+                .and_modify(|x| {
+                    x.insert(exon_num, status);
+                })
+                .or_insert(FxHashMap::from_iter(vec![(exon_num, status)]));
+        }
+    }
+
     // parse the chromosome size table
     let mut chrom_sizes: FxHashMap<String, u64> = FxHashMap::default();
     let chrom_sizes_file = {
@@ -222,7 +253,46 @@ fn main() {
                 let tr_start: &u64 = bed_entry.start().unwrap();
                 let tr_end: &u64 = bed_entry.end().unwrap();
                 let tr_coords: String = format!("{}:{}-{}:{}", tr_chrom, tr_start, tr_end, proj);
-                for mutation in muts {
+                'outer: for mutation in muts {
+                    // ignore non-present exons
+                    match mutation.exon.contains('_') {
+                        true => {
+                            let affected_exons = mutation
+                                .exon
+                                .split('_')
+                                .map(|x| 
+                                    x.parse::<u16>().expect(&format!("Invalid mutation exon value: {}", mutation.exon))
+                                )
+                                .collect::<Vec<u16>>();
+                            for i in affected_exons[0]..*affected_exons.last().unwrap() {
+                                let status = *proj2exon2status
+                                    .get(proj)
+                                    .expect(
+                                        &format!("Unknown presence status for {}, exon {}", proj, i)
+                                    )
+                                    .get(&i)
+                                    .expect(
+                                        &format!("Unknown presence status for {}, exon {}", proj, i)
+                                    );
+                                if !status {continue 'outer;}
+                            }
+                        },
+                        false => {
+                            let exon = mutation.exon
+                                .parse::<u16>()
+                                .expect(&format!("Invalid mutation exon value: {}", mutation.exon));
+                            let status = *proj2exon2status
+                                .get(proj)
+                                .expect(
+                                    &format!("Unknown presence status for {}, exon {}", proj, exon)
+                                )
+                                .get(&exon)
+                                .expect(
+                                    &format!("Unknown presence status for {}, exon {}", proj, exon)
+                                );
+                            if !status {continue}
+                        }
+                    };
                     // point mutations have a total length of 1; 
                     // meanwhile, mutation files provided affected codon's coordinate;
                     // therefore, one has to first infer the exact coordinate

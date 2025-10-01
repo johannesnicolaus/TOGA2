@@ -4,19 +4,16 @@
 Assign the names based on referene gene IDs to query genes, finalising the orthology step 
 """
 
-import os
-import sys
-
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-sys.path.extend([LOCATION, PARENT])
-
 from collections import defaultdict
-from modules.constants import Headers
-from modules.shared import CommandLineManager, CONTEXT_SETTINGS
+from .constants import Headers
+from .shared import (
+    CommandLineManager, CONTEXT_SETTINGS, 
+    get_proj2trans, parse_single_column
+)
 from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 
 import click
+import os
 
 MANY2MANY: str = 'many2many'
 NONE: str = 'None'
@@ -46,6 +43,40 @@ T_GENE: str = 't_gene'
     type=click.File('r', lazy=True),
     metavar='QUERY_GENE_BED_FILE',
     help='A path to query gene BED file'
+)
+@click.option(
+    '--discarded_projections',
+    '-d',
+    type=click.File('r', lazy=True),
+    metavar='DISCARDED_PROJECTIONS_LIST',
+    default=None,
+    show_default=True,
+    help='A single-column file containing names of discarded projections'
+)
+@click.option(
+    '--processed_pseudogenes',
+    '-pp',
+    type=click.File('r', lazy=True),
+    metavar='PROCESSED_PSEUDOGENES_LIST',
+    default=None,
+    show_default=True,
+    help=(
+        'A single-column file containing names of processed pseudogene/retrogene projections. '
+        'Genes comprising of these projections get the "retro_" prefix'
+    )
+)
+@click.option(
+    '--reference_isoforms',
+    '-i',
+    type=click.File('r', lazy=True),
+    metavar='REF_ISOFORMS_FILE',
+    default=None,
+    show_default=True,
+    help=(
+        'A two-column tab-separate table containing gene-to-isoforms mapping for the reference. '
+        'This mapping is used for proper missing/lost loci naming; if not provided, '
+        'these non-functional loci will be assigned technical names with no orthology indication'
+    )
 )
 @click.option(
     '--log_file',
@@ -92,7 +123,9 @@ class QueryGeneNamer(CommandLineManager):
     """
     __slots__: Tuple[str] = (
         'log_file', 'orthology_file', 'query_gene_table', 
-        'query_gene_bed', 'gene2new_name'
+        'query_gene_bed', 'gene2new_name',
+        'ref_gene2tr', 'ref_tr2gene',
+        'discarded', 'ppgenes'
     )
 
     def __init__(
@@ -101,6 +134,9 @@ class QueryGeneNamer(CommandLineManager):
         query_gene_file: click.File,
         output_dir: click.Path,
         query_gene_bed_file: Optional[click.File],
+        discarded_projections: Optional[click.File],
+        processed_pseudogenes: Optional[click.File],
+        reference_isoforms: Optional[click.File],
         log_file: Optional[click.Path],
         log_name: Optional[str],
         verbose: Optional[bool]
@@ -115,6 +151,22 @@ class QueryGeneNamer(CommandLineManager):
         self.query_gene_table: str = os.path.join(output_dir, 'query_genes.tsv')
         self.query_gene_bed: str = os.path.join(output_dir, 'query_genes.bed')
 
+        self.ref_gene2tr: Dict[str, List[str]] = defaultdict(list)
+        self.ref_tr2gene: Dict[str, str] = {}
+        if reference_isoforms is not None:
+            self._to_log('Parsing the reference isoforms file')
+            self.parse_ref_isoforms(reference_isoforms)
+
+        self.discarded: Set[str] = set()
+        if discarded_projections is not None:
+            self._to_log('Parsing the discarded projections file')
+            self.discarded = parse_single_column(discarded_projections)
+
+        self.ppgenes: Set[str] = set()
+        if processed_pseudogenes is not None:
+            self._to_log('Parsing the processed pseudogene list file')
+            self.ppgenes = parse_single_column(processed_pseudogenes)
+
         self._to_log(
             'Inferring orthology-based query gene names '
             'and adding them to the orthology classification file'
@@ -126,6 +178,22 @@ class QueryGeneNamer(CommandLineManager):
         if query_gene_bed_file:
             self._to_log('Renaming query genes in the gene BED file')
             self.modify_gene_bed(query_gene_bed_file)
+
+    def parse_ref_isoforms(self, file: TextIO) -> None:
+        """Parses the reference isoforms file"""
+        for i, line in enumerate(file, start=1):
+            data: List[str] = line.strip().split('\t')
+            if not data or not data[0]:
+                continue
+            if len(data) != 2:
+                self._die(
+                    (
+                        'Improper formatting at isoforms file line %i; '
+                        'expected 2 fields, got %i'
+                    ) % (i, len(data))
+                )
+            gene, tr = data
+            self.ref_tr2gene[tr] = gene
 
     def modify_orthology_classification(self, file: TextIO) -> None:
         """
@@ -159,7 +227,6 @@ class QueryGeneNamer(CommandLineManager):
                         if line[0] not in ref_gene_names:
                             ref_gene_names.append(line[0])
                     status: str = lines[0][4]
-                    # ref_gene_names: Set[str] = {x[0] for x in lines}
                     upd_ref_gene_names: List[str] = []
                     for ref_gene in ref_gene_names:
                         if status == ONE2MANY:
@@ -172,24 +239,9 @@ class QueryGeneNamer(CommandLineManager):
                     if len(upd_ref_gene_names) == 1:
                         new_query_name: str = upd_ref_gene_names.pop()
                     elif len(upd_ref_gene_names) <= 3:
-                        # ref_gene_names = []
-                        # for line in sorted(lines, key=lambda x: int(x[3].split('#')[-1].split(',')[0])):
-                        #     if line[0] in ref_gene_names:
-                        #         continue
-                        #     ref_gene_names.append(line[0])
                         new_query_name: str = ','.join(upd_ref_gene_names)
                     else:
-                        # ref_gene_names = [
-                        #     x[0] for x in sorted(lines, key=lambda x: int(x[3].split('#')[-1].split(',')[0]))
-                        # ]
                         new_query_name: str = upd_ref_gene_names[0] + '+'
-                    # print(f'{status=}')
-                    # if status == ONE2MANY:
-                    #     one2many_naming[new_query_name] += 1
-                    #     new_query_name += f'_{chr(96 + one2many_naming[new_query_name])}'
-                    # elif status == MANY2MANY:
-                    #     many2many_naming[new_query_name] += 1
-                    #     new_query_name += f'_{many2many_naming[new_query_name]}'
                     self.gene2new_name[gene] = new_query_name
                 for line in lines:
                     line[2] = new_query_name
@@ -200,6 +252,8 @@ class QueryGeneNamer(CommandLineManager):
         Modifies the query gene-to-transcript mapping file, substituting reg_{x} 
         symbols with the corresponding orthology-based names
         """
+        gene2tr: Dict[str, List[str]] = defaultdict(list)
+        ppcount: int = 1
         with open(self.query_gene_table, 'w') as h:
             h.write(Headers.QUERY_GENE_HEADER)
             for i, line in enumerate(file, start=1):
@@ -211,7 +265,13 @@ class QueryGeneNamer(CommandLineManager):
                         'Line %i in the query gene mapping file has less than two columns' %i
                     )
                 old_name: str = data[0]
+                ## gene has no orthologs in the orthology classification file
                 if old_name not in self.gene2new_name:
+                    ## if reference mapping were provided, rename it later
+                    if self.ref_tr2gene:
+                        gene2tr[old_name].append(data[1])
+                        continue
+                    ## otherwise, report it as-is, retaining the technical "reg_X" name
                     self._to_log(
                         'Gene %s at line %i in the gene table has no proven orthologs in the reference' % (
                             old_name, i
@@ -223,6 +283,33 @@ class QueryGeneNamer(CommandLineManager):
                     gene_name: str = self.gene2new_name[old_name]
                 data[0] = gene_name
                 h.write('\t'.join(data) + '\n')
+            ## rename the remaining loci
+            for gene, projs in gene2tr.items():
+                ## check if any of the projections must be removed from the final file
+                projs = [x for x in projs if x not in self.discarded]
+                if not projs:
+                    continue
+                ## check if this is a processed pseudogene/retrogene locus
+                ppnum: int = sum(x in self.ppgenes for x in projs)
+                if ppnum == len(projs):
+                    new_query_name = f'retro_{ppcount}'
+                    ppcount += 1
+                else:
+                    projs = [x for x in projs if x not in self.ppgenes]
+                    if not projs:
+                        continue
+                    trs: List[str] = [get_proj2trans(x)[0] for x in projs]
+                    genes: Set[str] = {self.ref_tr2gene[x] for x in trs}
+                    if len(genes) == 1:
+                        new_query_name = genes.pop()
+                    elif len(genes) <= 3:
+                        new_query_name = ','.join(genes)
+                    else:
+                        new_query_name = genes.pop() + '+'
+                    new_query_name = f'pseudo_{new_query_name}'
+                self.gene2new_name[gene] = new_query_name
+                for proj in projs:
+                    h.write(new_query_name + '\t' + proj + '\n')
 
     def modify_gene_bed(self, file: TextIO) -> None:
         """

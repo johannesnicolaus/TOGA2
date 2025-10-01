@@ -1,17 +1,21 @@
 use bigtools::BigBedRead;
 use clap::Parser;
+use colorconv::Color as _Color;
 use fxhash::{FxHashMap, FxHashSet};
 use std::cmp::{max, min};
 use std::io::{BufRead, BufReader, Write, stdout};
 use std::fs::File;
-use std::sync::Arc;
+use std::path::Path;
+use std::str::FromStr;
+// use std::sync::Arc;
+// use tiny_skia::Pixmap;
 
 use svgdom::{
-    AttributeId, AttributeValue, Document, 
+    AttributeId, AttributeValue, Color, Document, 
     ElementId, Length, LengthList, LengthUnit, 
     Node, NodeType, ViewBox
 };
-use svg::write;
+// use svg::write;
 
 const STDOUT: &str = "stdout";
 const FREE_SPACE: f64 = 1.0;
@@ -123,6 +127,10 @@ struct Args{
     #[arg(long, short = 't', default_value_t = false)]
     transcripts: bool,
 
+    /// Background fill color; if not set, outputs the combined plot with transparent background
+    #[arg(long, short = 'c')]
+    fill_color: Option<String>,
+
     /// Path to output file; if no argument provided or if set to "stdout", the results 
     /// are printed to standard output
     #[arg(long, short = 'o', default_value_t = String::from(STDOUT))]
@@ -187,7 +195,7 @@ fn main() {
     combined_plot.root().append(svg.clone());
     let mut dims = Dimensions { height: 0.0, width: 0.0 };
     let mut plot_counter: u8 = 1;
-    let mut height_mod: f64 = 0.0;
+    let height_mod: f64 = 0.0;
     // for each requested projection, fetch its entry from the BigBed file
     if let Ok(mut bb) = BigBedRead::open_file(args.bigbed_file) {
         for (chrom, coords) in chrom2choords.iter() {
@@ -237,12 +245,30 @@ fn main() {
             AttributeValue::Length(Length::new(dims.width, LengthUnit::None)),
         )
     );
-    for child in combined_plot.root().descendants() {
-        // println!("root child: {:#?}", child);
-        for attr in child.attributes().iter() {
-            // println!("attr={:#?}", attr);
+    match args.fill_color {
+        Some(color) => {
+            let rgb = _Color::from_str(&color)
+                .expect(&format!("Invalid background color provided: {}", color))
+                .rgb;
+            svg.set_attribute(
+                (
+                    AttributeId::Fill,
+                    AttributeValue::Color(Color::new(rgb[0], rgb[1], rgb[2]))
+                )
+            );
+        },
+        None => {}
+    };
+
+    // save the results
+    let mut output_file = match args.output.as_str() {
+        "stdout" => {Box::new(stdout()) as Box<dyn Write>},
+        _ => {
+            let path = Path::new(&args.output);
+            Box::new(File::create(&path).unwrap()) as Box<dyn Write>
         }
+    };
+    if let Err(e) = output_file.write(combined_plot.to_string().as_bytes()) {
+        eprintln!("Failed to write the line: {}", e);
     }
-    // println!("The first SVG-tagged element: {:#?}", combined_plot.svg_element());
-    println!("Combined plot: \n{}\n", combined_plot.to_string());
 }

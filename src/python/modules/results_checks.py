@@ -31,7 +31,8 @@ ORTH_CLASS_HEADER: str = 't_gene'
 ORTH_CLASS_FIELDS: int = 5
 IGNORED_STATUSES: Tuple[str, str, str] = ('PG', 'PP', 'N')
 QUERY_ISOFORMS_HEADER: str = 'query_gene'
-REG: str = 'reg_'
+REG: str = 'pseudo_'
+RETRO: str = 'retro_'
 
 MIN_ORTH_PERCENTAGE: float = 50.0
 MAX_REJ_AT_PREPR_PERCENTAGE: float = (1 / 3) * 100
@@ -364,6 +365,8 @@ class ResultChecker(CommandLineManager):
                     )
                     sys.exit(1)
                 if data[0] == QUERY_ISOFORMS_HEADER:
+                    continue
+                if data[0].startswith(RETRO):
                     continue
                 all_query_genes.add(data[0])
 
