@@ -167,7 +167,7 @@ fn main() {
         }
     }
 
-    /// parse the exon meta file
+    // parse the exon meta file
     let mut proj2exon2status: FxHashMap<String, FxHashMap<u16, bool>> = FxHashMap::default();
     for (i, line_) in read(args.exon_meta).lines().enumerate() {
         if let Ok(line) = line_ {

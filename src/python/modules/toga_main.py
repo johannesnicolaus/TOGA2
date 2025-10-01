@@ -2426,12 +2426,17 @@ class TogaMain(CommandLineManager):
         #     f'{self.FASTA_FILTER_SCRIPT} -i {self.cds_fasta_tmp} '
         #     f'-o {self.cds_fasta}'
         # )
-        nuc_cmd: str = (
-            f'{self.FASTA_FILTER_SCRIPT} -b {self.query_annotation_final} '
-            f'-o {self.cds_fasta}'
+        print(f'{os.path.exists(self.query_annotation_final)=}, {os.path.exists(self.query_annotation_filt)=}')
+        bed_file: str = (
+            self.query_annotation_final if os.path.exists(self.query_annotation_final) 
+            else  self.query_annotation_filt
         )
-        if discarded_files:
-            nuc_cmd += f' -d {self.all_discarded_projections}'
+        nuc_cmd: str = (
+            f'{self.FASTA_FILTER_SCRIPT} -i {self.cds_fasta_tmp} '
+            f'-b {bed_file} -o {self.cds_fasta}'
+        )
+        # if discarded_files:
+        #     nuc_cmd += f' -d {self.all_discarded_projections}'
         _ = self._exec(
             nuc_cmd, 'Final nucleotide sequence file preparation failed:'
         )
@@ -2441,11 +2446,11 @@ class TogaMain(CommandLineManager):
         #     f'-o {self.prot_fasta}'
         # )
         prot_cmd: str = (
-            f'{self.FASTA_FILTER_SCRIPT} -b {self.query_annotation_final} '
-            f'-o {self.prot_fasta}'
+            f'{self.FASTA_FILTER_SCRIPT} -i {self.aa_fasta} '
+            f'-b {bed_file} -o {self.prot_fasta}'
         )
-        if discarded_files:
-            prot_cmd += f' -d {self.all_discarded_projections}'
+        # if discarded_files:
+        #     prot_cmd += f' -d {self.all_discarded_projections}'
         _ = self._exec(
             prot_cmd, 'Final protein sequence file preparation failed:'
         )
