@@ -907,6 +907,12 @@ class CesarPreprocessor(CommandLineManager):
                 self._to_log('Retrieving subchain for transcript %s' % tr)
                 codirected: bool = t_strand == q_strand
                 subchain_oriented: Dict[str, Tuple[int]] = subchains[tr]
+                if not len(subchain_oriented):
+                    self._die(
+                        'Undefined chain blocks in chain %s for transcript %s' % (
+                            chain_id, tr
+                        )
+                    )
                 self._to_log(f'Creating a mapper object for {tr}#{chain_id}')
                 mapper: Exon2BlockMapper = intersect_exons_to_blocks(
                     self.annot_entries[tr].exons,
