@@ -9,9 +9,6 @@ import os
 __author__ = 'Yury V. Malovichko'
 __credits__ = ('Bogdan M. Kirilenko')
 
-TOGA_DIR: str = os.path.dirname()
-
-
 class Constants:
     LOCATION = os.path.dirname(__file__)
 
