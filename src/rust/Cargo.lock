@@ -314,8 +314,8 @@ checksum = "9555578bc9e57714c812a1f84e4fc5b4d21fcb063490c624de019f7464c91268"
 
 [[package]]
 name = "chaintools"
-version = "0.1.80"
-source = "git+https://github.com/ReverendCasy/chaintools#967a756cda02804587e135f151dd56e035f85201"
+version = "0.1.82"
+source = "git+https://github.com/ReverendCasy/chaintools#6cc66cb27851701e06e4fb0cc3531841efa10437"
 dependencies = [
  "anyhow",
  "bincode",

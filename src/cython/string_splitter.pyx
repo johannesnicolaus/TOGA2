@@ -239,12 +239,6 @@ cpdef transcriptwise_subchains(str chain, list names, list starts, list stops):
                         # print(f'Updating counter: {tr}, {tr_end}, {coord_tuple}')
                         if curr_tr < tr_num:
                             abs_start = starts[curr_tr]
-                        ## TODO: Uncomment the following print tomorrow;
-                        ## according to it, excessive number of blocks is saved per transcript,
-                        ## but why???
-                        # print(f'{gap_num}, {tr2blocks[tr]}, {gap_num in tr2blocks[tr]}')
-                        # if gap_num and gap_num in tr2blocks[tr]:
-                        #     tr2blocks[tr][str(b_num)] = coord_tuple
                         if not tr2blocks[tr]:
                             # print(f'Adding emergency gap: {gap_coord_tuple}')
                             if not gap_coords_exist:
@@ -257,8 +251,9 @@ cpdef transcriptwise_subchains(str chain, list names, list starts, list stops):
                         # print(f'tr_start={tr_start}, block_end={coord_tuple[1]}')
                         ## somehow the transcript iterator moved downstream
                         ## to the current block; as long as transcripts are
-                        ## sorted properly, there is no need to check the remaining
-                        ## transcripts
+                        ## sorted properly, there is no need to check 
+                        ## the remainingtranscripts
+                        ## 
                         ## if none of the previous blocks were added, then for
                         ## the next block, we can start iterating from the
                         ## current transcript
@@ -274,7 +269,8 @@ cpdef transcriptwise_subchains(str chain, list names, list starts, list stops):
                     ## logic is essentially the same except for now the iterator
                     ## goes upstream along the chromosome
                     if tr_start >= coord_tuple[1]:
-                        curr_tr += 1
+                        if prev_end_exceeded:
+                            curr_tr += 1
                         ## TODO: Shift abs_start/abs_stop?
                         if curr_tr < tr_num:
                             abs_stop = stops[curr_tr]
@@ -324,7 +320,7 @@ cpdef transcriptwise_subchains(str chain, list names, list starts, list stops):
                 tr_end = stops[i]
                 # print(f'tr={tr}, tr_start={tr_start}, tr_end={tr_end}, gap_coord_tuple={gap_coord_tuple}')
                 if ref_strand:
-                  ## do not add gaps lying downstream to the transcript
+                    ## do not add gaps lying downstream to the transcript
                     if tr_end < gap_coord_tuple[0]:
                         # print(f'Gap {gap_num} ({gap_coord_tuple}) starts downstream to tr {tr} ({tr_start}, {tr_end})')
                         # curr_tr += 1

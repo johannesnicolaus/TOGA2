@@ -882,7 +882,6 @@ class CesarPreprocessor(CommandLineManager):
             self._to_log(f'Retrieving chain data for chain {chain_id}')
             chain_str: str = get_chain(self.chain_file, chain_id)
             # chain_meta: List[str] = chain_str.split('\n')[0].split()
-            # print(chain_meta)
             sorted_transcripts: List[str] = sorted(
                 self.annot_entries.keys(),
                 key=lambda x: (
@@ -902,9 +901,7 @@ class CesarPreprocessor(CommandLineManager):
             subchains, chain_meta = transcriptwise_subchains(
                 chain_str, sorted_transcripts, transcript_starts, transcript_stops
             )
-            # print(f'{subchains=}, {transcript_starts=}, {transcript_stops=}, {chain_meta=}')
             # chain_header = chain_str.split("\n")[0]
-            # print(f'{chain_header=}')
             # u = {x:len(y) for x,y in subchains.items()}
             t_chrom: str = chain_meta[0]
             q_chrom: str = chain_meta[1]
@@ -980,8 +977,6 @@ class CesarPreprocessor(CommandLineManager):
                 shared_exons: List[int] = [
                     x for x in prev_mapper.e2c if x in next_mapper.e2c
                 ]
-                # print(f'{prev_mapper.e2c=}, {prev_mapper.missing=}')
-                # print(f'{next_mapper.e2c=}, {next_mapper.missing=}')
                 if not shared_exons:
                     continue
                 prev_sole_exon: bool = len(prev_mapper.e2c) == 1
@@ -1142,7 +1137,6 @@ class CesarPreprocessor(CommandLineManager):
             return (None, None)
             # exit(0)
         # all_exons = [x for x in all_exons if x in self.universally_missing]
-        # print(f'{min(all_exons)=}, {max(all_exons)=}')
         return min(all_exons), max(all_exons)
 
     def get_group_boundaries(
@@ -1159,7 +1153,6 @@ class CesarPreprocessor(CommandLineManager):
         contain a chain mapper, all exons are expected to be found.
         2) Otherwise, extend exon boundaries to the last exon absent in all the groups
         """
-        # print(f'{self.universally_missing[tr]=}, {self.missing2chain[tr]=}, {max(self.universally_missing[tr]) + 1=}')
         if self.no_inference: ## TODO: Think how properly handle these cases in 'fragmented mode'
             return min_exon, max_exon
         if not self.fragmented or not chain_id:
@@ -1167,7 +1160,6 @@ class CesarPreprocessor(CommandLineManager):
         if not self.universally_missing[tr][group]:
             self._to_log(f'No universally missing exons for transcript {tr}')
             return min_exon, max_exon
-        # print(f'{self.found_exons[tr][group]=}')
         for emin in range(min_exon, max_exon + 1):
             if emin not in self.found_exons[tr][group]:
                 break
@@ -1176,7 +1168,6 @@ class CesarPreprocessor(CommandLineManager):
             if emax not in self.found_exons[tr][group]:
                 break
         max_exon = emax
-        # print(f'Inside get_group_boundaries, before inference: {min_exon=}, {max_exon=}')
         if min_exon == max_exon and min_exon in self.found_exons[tr][group]:
             return -1, -1
         f, l = 0, 0
@@ -1189,7 +1180,6 @@ class CesarPreprocessor(CommandLineManager):
                 break
             if f in self.universally_missing[tr][group]:
                 self.missing2chain[tr][f] = chain_id
-        # print(f'{f=}')
         f = f if f else min_exon
         for l in range(max_exon + 1, max(self.universally_missing[tr][group]) + 1):
             if l not in self.universally_missing[tr][group]:
@@ -1200,9 +1190,7 @@ class CesarPreprocessor(CommandLineManager):
                 break
             if l in self.universally_missing[tr][group]:
                 self.missing2chain[tr][l] = chain_id
-        # print(f'{l=}')
         l = l if l else max_exon
-        # print(f'Inside get_group_boundaries, after inference: {f=}, {l=}')
         return f, l
 
     def correct_projection_boundaries(
@@ -1218,7 +1206,6 @@ class CesarPreprocessor(CommandLineManager):
         chain: Exon2BlockMapper = self.chainmappers[tr].get(c_id, None)
         segment: Segment = self.segments[tr].get(s_id, None)
         min_exon, max_exon = self.get_min_max_exon(chain, segment, tr)
-        # print(f'{proj=}, {min_exon=}, {max_exon=}')
         if min_exon is None:
             return None
         chrom: str = chain.qchrom if chain else segment.chrom
@@ -1228,12 +1215,10 @@ class CesarPreprocessor(CommandLineManager):
         first_exon, last_exon = self.get_group_boundaries(
             min_exon, max_exon, c_id, tr, group
         )
-        # print(f'{proj=}, {min_exon=}, {max_exon=}, {first_exon=}, {last_exon=}')
         if first_exon == -1:
             return None
         for found_ex in range(first_exon, last_exon + 1):
             self.found_exons[tr][group].add(found_ex)
-        # print(f'{proj=}, {first_exon=}, {last_exon=}, {min_exon=}, {max_exon=}')
         strand: bool = (
             self.annot_entries[tr].strand == chain.qstrand if chain else segment.strand
         )
@@ -1328,7 +1313,6 @@ class CesarPreprocessor(CommandLineManager):
             True: {}, False: {}
         }
         for tr in self.transcripts:
-            # print(f'BEFORE: {self.groups[tr]=}')
             mappers_grouped: Dict[str, bool] = {
                 x:False for x in self.chainmappers[tr]
             }
@@ -1387,16 +1371,11 @@ class CesarPreprocessor(CommandLineManager):
                 group_num += 1
                 copy_num += 1
 
-            # print(f'AFTER: {self.groups[tr]=}')
-
             ## track exons missing from both mapper and segment in each group
             for copy, copy_groups in self.copy2groups[tr].items():
                 # for g, group in self.groups[tr].items():
                 for g in copy_groups:
                     group: Tuple[str, int] = self.groups[tr][g]
-                    # if any(map(lambda x: x is None, group)):
-                    #     continue
-                    # print(f'{group[0]=}')
                     if group[0] is not None:
                         exons_not_in_chain: Set[int] = (
                             self.chainmappers[tr][group[0]].missing
@@ -1417,14 +1396,12 @@ class CesarPreprocessor(CommandLineManager):
                     missing_in_projection: Set[int] = exons_not_in_chain.intersection(
                         exons_not_in_segment
                     )
-                    # print(f'{missing_in_projection=}')
                     if copy in self.universally_missing[tr] and missing_in_projection:
                         self.universally_missing[tr][copy] = self.universally_missing[tr][copy].intersection(
                             missing_in_projection
                         )
                     elif missing_in_projection:
                         self.universally_missing[tr][copy] = missing_in_projection
-                    # print(f'{self.universally_missing[tr][copy]=}')
 
             ## finally, prepare ProjectionGroup objects containing all the
             ## necessary information for CESAR run
@@ -1433,13 +1410,8 @@ class CesarPreprocessor(CommandLineManager):
                 for g in copy_groups:
                     group: Tuple[str, int] = self.groups[tr][g]
                     chain: Exon2BlockMapper = self.chainmappers[tr].get(group[0], None)
-                    # print(f'{group[0]=}')
-                    # print(f'{chain.e2c=}')
-                    # print(f'{chain.gap_located=}')
-                    # print(f'{chain.missing=}')
                     segment: Segment = self.segments[tr].get(group[1], None)
                     covered_space: ProjectionCoverageData = self.correct_projection_boundaries(group, tr, copy)
-                    # print(f'{covered_space=}')
                     ## a botched group with no defined exons has been encountered;
                     ## discard the current copy
                     if covered_space is None:
@@ -1455,12 +1427,10 @@ class CesarPreprocessor(CommandLineManager):
                                 seq_in_query: str = self.extract_query_sequence(
                                     chain.qchrom, query_start, query_end, chain.qstrand
                                 )
-                                # print(f'{seq_in_query=}')
                                 self._to_log(
                                     'Checking space gaps in the likely search space of unaligned projection'
                                 )
                                 space_gaps: bool = find_gaps(seq_in_query, self.assembly_gap_size)
-                                print(f'{query_start=}, {query_end=}, {space_gaps=}, {chain.tstart=}, {chain.tstop=}, {chain.qstart=}, {chain.qstop=}')
                                 status: str = MISSING if space_gaps else LOST
                             else:
                                 self._to_log(
@@ -1596,7 +1566,6 @@ class CesarPreprocessor(CommandLineManager):
                 prim_num: int = 0
                 groups_finished: int = 0
                 for p, proj in projections.items():
-                    # print(f'{tr=}, {proj.cesar_exon_grouping=}, {proj.group_coords=}')
                     for e, exon_group in enumerate(proj.cesar_exon_grouping):
                         exp_coords: Dict[int, Tuple[int]] = {}
                         exon_search_spaces: Dict[int, Tuple[int]] = {}
@@ -1635,7 +1604,6 @@ class CesarPreprocessor(CommandLineManager):
                         chrom_len: int = self.query_chrom_sizes.get(proj.chrom)
                         if chrom_len is None:
                             self._die('Unknown size value for query contig "%s"' % proj.chrom)
-                        # print(f'{group_start=}, {group_stop=}, {proj.missing=}, {proj.gap_located=}')
                         # if any(x not in proj.missing and x not in proj.gap_located for x in exon_group):
                         #     self._to_log(f'Adding exon flanks to search space of group {exon_group}')
                         #     group_start = group_start - self.exon_locus_flank
@@ -1795,11 +1763,6 @@ class CesarPreprocessor(CommandLineManager):
                         out_of_chain_line: str = ','.join(
                             str(x) for x in sorted(out_of_chain_exons)
                         )
-                        # print(f'{tr=}')
-                        # print(f'{exon_group=}')
-                        # print(f'{exp_coord_line=}')
-                        # print(f'{search_space_line=}')
-                        # print(f'{group_start=}, {group_stop=}')
 
                         hdf5_line: Tuple[str] = (
                             str(copy),
@@ -2026,9 +1989,7 @@ class CesarPreprocessor(CommandLineManager):
         res_str: str =  self._exec(cmd, self.bw2w_err, bed_file.encode('utf8'))
         key: str = 'acceptor' if acceptor else 'donor'
 
-        # print(f'{self.copy2proj=}')
         for line in res_str.split('\n'):
-            # print(f'{line=}')
             data: List[str] = line.rstrip().split('\t')
             if not data or not data[0]:
                 continue
@@ -2037,7 +1998,6 @@ class CesarPreprocessor(CommandLineManager):
             prob: float = float(data[2])
             for (tr, c, g), (chrom, start, stop) in bed_dict.items():
                 if chrom == chrom_ and start <= pos <= stop:
-                    # print(f'{chrom=}, {start=}, {stop=}, {tr=}, {c=}, {g=}')
                     self.copy2proj[tr][c][g].spliceai_sites[key][pos] = prob
 
     def _classify_unaligned_projection(self, tr: str, copy: int) -> str:

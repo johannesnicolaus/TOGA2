@@ -58,7 +58,7 @@ fn main() {
 
     let program_start = Instant::now();
 
-    // workflow
+    // negative strand benchmarking
 
     // 1) parse bed
     let mut chrom2trs: FxHashMap<String, Vec<BedEntry>> = FxHashMap::default();
@@ -170,12 +170,11 @@ fn main() {
             None => continue
         };
         // define which transcripts are intersected by the chain
-        let mut intersected = chain.intersect_to_cds_vector(transcripts, true);
+        let mut intersected = chain.intersect_to_cds_vector(
+            transcripts, true
+        );
         // let elapsed = now.elapsed();
         // println!("Transcript intersection duration time: {:?}", elapsed);
-        if *chain_id <= 10 {
-            println!("Intersected by chain {}: {}", chain_id, intersected.len());
-        }
         // if chain.refs.chr == "chr9" {
         //     println!("Number of transcritps for chr9: {}", transcripts.len());
         // }
@@ -455,9 +454,6 @@ fn main() {
         // skip chains which do not align at least one coding exon
         // unless the span over the complete cds
         if !overlaps_cds_exon && !spans_over_cds {continue}
-        // if *chain_id == 770539 {
-        //     println!("overlaps_cds_exon={}, spans_over_cds={}", overlaps_cds_exon, spans_over_cds)
-        // }
 
         // discretize the contents of `all_intervals`
         let all_interval_num: usize = all_intervals.len();
@@ -485,10 +481,6 @@ fn main() {
         let non_coding_chain: bool = (ref_clipped_end - ref_clipped_start) == 0;
         let ref_clipped_start = Some(ref_clipped_start);
         let ref_clipped_end = Some(ref_clipped_end);
-        
-        // if *chain_id <= 10 {
-        //     println!("clipped_coords_ref={:#?}, clipped_coords_query={:#?}", clipped_coords_ref, clipped_coords_query);
-        // }
 
         let mut tr2cov_exons: FxHashMap<String, &str> = FxHashMap::default();
         // TODO: Instead of two exons aligned, check for at least two exons spanned in the same transcript
@@ -613,11 +605,10 @@ fn main() {
         // for the latter, compute also the 'clipped' analogue; 
         // numerator is 'clipped' CDS + intron coverage, denominator is the CDS-clipped span in the query
         let clipped_exon_qlen = if multi_exon_chain {
-            if clipped_coords_query.length().unwrap() == 0 {0.0} else {cds_coverage as f64 / clipped_coords_query.length().unwrap() as f64}
+            if clipped_coords_query.length().unwrap() == 0 {0.0} else {
+                cds_coverage as f64 / clipped_coords_query.length().unwrap() as f64
+            }
         } else {0.0};
-        if *chain_id == 585326 {
-            println!("chain_id={}, multi_exon_chain={}", chain_id, multi_exon_chain);
-        }
 
         // then, summarize transcript features and write the resulting line to output
         for transcript in intersected{

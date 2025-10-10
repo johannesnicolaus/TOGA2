@@ -383,7 +383,7 @@ class ResultChecker(CommandLineManager):
         """
         if not os.path.exists(self.orth_probs):
             self.logger.critical(
-                'Orthology score fiel %i does not exist' % self.orth_probs
+                'Orthology score file %s does not exist' % self.orth_probs
             )
             sys.exit(1)
         messages: List[ElementaryCheckResult] = []

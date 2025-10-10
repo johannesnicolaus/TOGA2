@@ -214,27 +214,22 @@ class AnnotationFilter(CommandLineManager):
                 continue
             ## iterate over exon entries to infer the CDS length
             frame_length: int = 0
-            sizes: List[int] = list(map(int, data[10].split(',')[:-1]))
-            starts: List[int] = list(map(int, data[11].split(',')[:-1]))
+            sizes: List[int] = [int(x) for x in data[10].split(',') if x]#list(map(int, data[10].split(',')[:-1]))
+            starts: List[int] = [int(x) for x in data[11].split(',') if x]#list(map(int, data[11].split(',')[:-1]))
             for start, size in zip(starts, sizes):
                 start += thin_start
                 end: int = start + size
-                # print(f'{start=}, {size=}')
                 if start < cds_start:
                     if end > cds_start:
-                        # print(f'Partially coding 5-prime block; adding {end - cds_start} to the frame counter')
                         size -= (cds_start - start)
                     else:
                         continue
                 if end > cds_end:
                     if start < cds_end:
-                        # print(f'Partially coding 5-prime block; adding {cds_end - start} to the frame counter')
-                        # frame_length += (cds_end - start)
                         size -= (end - cds_end)
                     else:
                         continue
                 frame_length += size
-            # print(f'{frame_length=}')
             if frame_length % 3 and not self.no_frame_filter:
                 self.rejection_log.write(
                     FRAME_REJ_REASON.format(name) + '\n'

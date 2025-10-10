@@ -9,7 +9,7 @@ anyhow = "1.0.98"
 bed2gff = "0.1.5"
 bed2gtf = "1.9.3"
 bigtools = "0.5.6"
-chaintools = { git = "https://github.com/ReverendCasy/chaintools", version = "0.1.80" }
+chaintools = { git = "https://github.com/ReverendCasy/chaintools", version = "0.1.82" }
 clap = { version = "4.5.42", features = ["derive"] }
 colorconv = "0.1.1"
 cubiculum = "0.1.50"

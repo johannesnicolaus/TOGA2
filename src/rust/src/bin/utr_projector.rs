@@ -41,17 +41,34 @@ struct Args {
     #[arg(long, short = 'o', default_value_t = String::from("stdout"))]
     output: String,
 
-    /// Absolute elongation threshold, in base pairs; unaligned UTR exon ends will not be extended farther 
+    /// Absolute exon elongation threshold, in base pairs; 
+    /// unaligned UTR exon ends will not be extended farther 
     /// than this value
     #[arg(long, short = 'a', default_value_t = 3000)]
     abs_threshold: u64,
 
-    /// Relative elongation threshold, times the exon length; unaligned UTR exon ends will not be extended farther 
+    /// Relative exon elongation threshold, times the exon length; 
+    /// unaligned UTR exon ends will not be extended farther 
     /// than this value
     #[arg(long, short = 'R', default_value_t = 2.5)]
     rel_threshold: f64,
 
-    /// Deprecates unaligned sequence extrapolation
+    /// Absolute CDS distance threshold, in base pairs;
+    /// query UTR projection from the respective side stops 
+    /// once any of the resulting query UTR exons lies farther than 
+    /// this value from the query coding sequence
+    #[arg(long, default_value_t = 5000)]
+    abs_distance_threshold: u64,
+
+    /// Relative CDS distance threshold, times the distance in the reference; 
+    /// query UTR projection from the respective side stops 
+    /// once any of the resulting query UTR exons is annotated farther than 
+    /// its counterpart in the reference time this value
+    #[arg(long, default_value_t = 2.0)]
+    rel_distance_threshold: f64,
+    
+
+    /// Disables unaligned sequence extrapolation
     #[arg(long, action = clap::ArgAction::SetTrue, default_value_t = false)]
     no_extrapolation: bool,
 
@@ -111,8 +128,10 @@ fn main() {
     let mut ref_tr2utrs: FxHashMap<String, Vec<BedEntry>> = FxHashMap::default();
     // transcript-to-strand storage; useful for quick data access when grafting
     // let mut ref_tr2strand: FxHashMap<String, bool> = FxHashMap::default();
-    // UTR exon-to-maximal-relative-size storage; speeds up 
+    // UTR exon-to-maximal-relative-size storage; speeds up the relative size lookup
     let mut utr2rel_size: FxHashMap<String, u64> = FxHashMap::default();
+    // UTR exon-to-distance-from-cds storage; speeds up the standaway exon safeguard
+    let mut ref_utr2distance: FxHashMap<String, u64> = FxHashMap::default();
     // projection-to-bed-entry; stores the projection data for annotation and output
     let mut query_tr2bed: FxHashMap<String, BedEntry> = FxHashMap::default();
     // feature storage; likely better than UtrBlock storage
@@ -159,6 +178,7 @@ fn main() {
                 let utr_end = utr_record.end().expect("Failed to infer end coordinate for a UTR block");
                 let mut side: UtrSide = UtrSide::FivePrime;
                 let mut is_adjacent = false;
+                let utr_exon_name = format!("{}|{}", bed_record.name().unwrap(), i);
                 if *utr_end <= cds_start {
                     side = match utr_record.strand() {
                         Some(true) => {UtrSide::FivePrime},
@@ -176,7 +196,12 @@ fn main() {
                                 UtrSide::FivePrime => {tr2adj5.insert(tr.clone(), adj_utr_len);}
                             }
                         }
-                        // utr_record.set_adjacency(is_adjacent);
+                    } else {
+                        // record the distance from the coding sequence
+                        let rel_distance = (
+                            (cds_start - utr_end) as f64 * args.rel_distance_threshold 
+                        ) as u64;
+                        ref_utr2distance.insert(utr_exon_name.clone(), rel_distance);
                     }
                 } else if *utr_start >= cds_end {
                     side = match utr_record.strand() {
@@ -185,7 +210,6 @@ fn main() {
                         None => {continue} // TODO: Temporary workaround
                     };
                     if *utr_start == cds_end {
-                        // utr_record.set_adjacency(is_adjacent);
                         is_adjacent = true;
                         if args.deduce_adjacent_regions || args.fixed_adjacent_regions {
                             // record that the transcript has an upstream-adjacent UTR block
@@ -195,16 +219,20 @@ fn main() {
                                 UtrSide::FivePrime => {tr2adj5.insert(tr.clone(), adj_utr_len);}
                             }
                         }
+                    } else {
+                        let rel_distance = (
+                            (utr_start - cds_end) as f64 * args.rel_distance_threshold
+                        ) as u64;
+                        ref_utr2distance.insert(utr_exon_name.clone(), rel_distance);
                     }
                 }
                 // utr_record.set_adjacency(is_adjacent);
-                let utr_exon_name = format!("{}|{}", bed_record.name().unwrap(), i);
                 ref_utr2features.insert(
                     utr_exon_name.clone(),
                     (is_adjacent, side)
                 );
                 // utr_record.set_side(side);
-                utr_record.update_name(&format!("{}|{}", bed_record.name().unwrap(), i));
+                utr_record.update_name(&utr_exon_name);
                 ref_tr2utrs
                     .entry( tr.clone())
                     .and_modify(|x| x.push(utr_record.clone()))
@@ -347,9 +375,6 @@ fn main() {
                 .last()
                 .unwrap(); // TODO: Does not look safe
             let proj_name = &format!("{}#{}", tr_name, chain_id);
-            if proj_name == "XM_059874414#LOC132342188#8" {
-                println!("utr_proj={:#?}", utr_proj);
-            }
             let query_strand = query_tr2bed.get(proj_name).unwrap().strand().unwrap();
             let (is_adjacent, side) = ref_utr2features.get(utr_name).unwrap();
             // do not add 5'-UTRs if the first exon was not annotated
@@ -362,6 +387,42 @@ fn main() {
                 .get(proj_name)
                 .expect(&format!("Projection {} is missing from exon metadata file", proj_name));
             if *side == UtrSide::ThreePrime && !*last_exon_present {continue}
+            // do not add the non-adjacent exon if the distance thresholds was exceeded
+            if !*is_adjacent {
+                let rel_distance = ref_utr2distance
+                    .get(utr_name)
+                    .expect(
+                        &format!("Unknown distance to coding sequence for UTR exon {}", utr_name)
+                    );
+                let upstream_block = match (side, query_strand) {
+                    (UtrSide::FivePrime, true) => {true},
+                    (UtrSide::FivePrime, false) => {false},
+                    (UtrSide::ThreePrime, true) => {false},
+                    (UtrSide::ThreePrime, false) => {true}
+                };
+                let distance_in_query = match upstream_block {
+                    true => {
+                        let cds_start = query_tr2bed
+                            .get(proj_name)
+                            .unwrap()
+                            .thick_start()
+                            .unwrap();
+                        cds_start - utr_proj.end().unwrap()
+                    },
+                    false => {
+                        let cds_end = query_tr2bed
+                            .get(proj_name)
+                            .unwrap()
+                            .thick_end()
+                            .unwrap();
+                        utr_proj.start().unwrap() - cds_end
+                    }
+                };
+                if tr_name == "NM_001354347.2#OSGEPL1" {
+                    println!("utr_name={}, rel_distance={}, abs_distance={}, distance_in_query={}", utr_name, rel_distance, args.abs_distance_threshold, distance_in_query)
+                }
+                if distance_in_query > *rel_distance && distance_in_query > args.abs_distance_threshold {continue}
+            }
             let (append_upstream, append_downstream) = match (is_adjacent, side, query_strand) {
                 (false, _, _) => {(false, false)},
                 (true, UtrSide::FivePrime, true) =>  {(true, false)},
@@ -393,7 +454,7 @@ fn main() {
                     .unwrap_or(0);
                 if downstream_extend > args.abs_threshold && downstream_extend > *rel_size {continue}
             }
-            if proj_name == "XM_059874414#LOC132342188#8" {
+            if proj_name == "XM_036160658#Tagap1#58" {
                 println!("append_upstream={:?}, append_downstream={:?}", append_upstream, append_downstream);
             }
             query_tr2bed

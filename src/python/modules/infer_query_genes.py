@@ -356,7 +356,7 @@ class QueryGeneCollapser(CommandLineManager):
         self.intersecting_ref_genes: Dict[str, Set[str]] = defaultdict(set)
         self.ref_isoform2gene: Dict[str, str] = {}
         if ref_isoform_file is None and ref_bed is None:
-            pass
+            self.create_mock_isoform_dict()
         elif ref_isoform_file is not None and ref_bed is not None:
             self._to_log('Parsing reference annotation and reference isoforms files')
             self.get_intersections_in_ref(ref_isoform_file, ref_bed)
@@ -471,6 +471,16 @@ class QueryGeneCollapser(CommandLineManager):
         for proj in annotated_projections:
             if proj not in self.tr2chrom.keys():
                 self.discarded_overextensions.add(proj)
+
+    def create_mock_isoform_dict(self) -> None:
+        """
+        If an isoform file was not provided, 
+        create a mock {transcript: transcript} dictionary
+        """
+        for proj in self.tr2exons:
+            tr: str = '#'.join(proj.split('#')[:-1])
+            self.ref_isoform2gene[tr] = tr
+
 
     def parse_loss_file(self, file: TextIO) -> None:
         """Parses loss summary file, recording data on missing projections"""

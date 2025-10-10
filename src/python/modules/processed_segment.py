@@ -227,7 +227,6 @@ class ProcessedSegment:
         ## TODO: Move the code below into a separate method
         phase: int = 0
         for i, aln_portion in enumerate(sorted(cesar_output, key=lambda x: x.exons)):
-            # print(f'>portion {i}, ref\n{aln_portion.reference}\n>portion {i}, query\n{aln_portion.query}\n{len(aln_portion.reference)=}, {len(aln_portion.query)=}, {self.exon2portion=}')
             prev_aln_len: int = len(self.reference)
             self.reference += aln_portion.reference
             self.query += aln_portion.query
@@ -328,6 +327,10 @@ class ProcessedSegment:
                 self.introns_gained = {**self.introns_gained, **aln_portion.subexon_coordinates}
 
         self.exon_num: int = max(self.exon2portion) ## contains the exon number in the reference
+        # last_aligned_exon: int = max(
+        #     [x for x in range(1, self.exon_num + 1) if x not in self.unaligned_exons]
+        # )
+        # self.last_aligned_base: int = self.rel_exon_coords[last_aligned_exon].stop
         self.last_aligned_base: int = self.rel_exon_coords[self.exon_num].stop
         self.has_spliceai_data: bool = has_spliceai_data(self.spliceai_sites)
         self.donor_site_prob: Dict[int, float] = {x: 0.0 for x in range(1, self.exon_num + 1)}
@@ -1304,7 +1307,6 @@ class ProcessedSegment:
                                 frameshifts[x][1].exon, frameshifts[x][1].codon
                             ) for x in fs_group
                         )
-                    print(f'{spliceai_mitigated=}, {same_correction_event=}, {spliceai_corr_migrated=}')
                     if not STOPS.intersection(alt_frame) or spliceai_mitigated: 
                         ## create a mutation object and add it to the global pool
                         start_id: str = frameshifts[fs_group[0]][1].mutation_id
@@ -2513,6 +2515,8 @@ class ProcessedSegment:
 
     def _rescue_alternative_stop(self) -> int:
         """Searches for an alternative downstream stop codon for the last exon"""
+        if self.exon_num in self.unaligned_exons:
+            return
         last_codon_stop: int = self.rel_exon_coords[self.exon_num].stop
         last_query_triplet: str = self.query[last_codon_stop-3:last_codon_stop]
         if last_query_triplet in STOPS:

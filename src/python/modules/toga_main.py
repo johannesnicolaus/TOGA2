@@ -614,7 +614,7 @@ class TogaMain(CommandLineManager):
             self.output, 'processed_pseudogenes.bed'
         )
         self.prot_fasta: str = os.path.join(
-            self.output, 'proteins.fa'
+            self.output, 'protein.fa'
         )
         self.query_genes: str = os.path.join(
             self.output, 'query_genes.tsv'
@@ -2428,7 +2428,6 @@ class TogaMain(CommandLineManager):
         #     f'{self.FASTA_FILTER_SCRIPT} -i {self.cds_fasta_tmp} '
         #     f'-o {self.cds_fasta}'
         # )
-        print(f'{os.path.exists(self.query_annotation_final)=}, {os.path.exists(self.query_annotation_filt)=}')
         bed_file: str = (
             self.query_annotation_final if os.path.exists(self.query_annotation_final) 
             else  self.query_annotation_filt
