@@ -13,11 +13,13 @@ class Constants:
     LOCATION = os.path.dirname(__file__)
 
     BINARIES_TO_CHECK: Dict[str, str] = {
+        'bigbedtobed_binary': 'bigBedToBed',
         'bedtobigbed_binary': 'bedToBigBed',
         'bigwig2wig_binary': 'bigWigToWig',
         'fatotwobit_binary': 'faToTwoBit',
         'twobittofa_binary': 'twoBitToFa',
         'ixixx_binary': 'ixIxx',
+        'prank_binary': 'prank',
         'mailx_binary': 'mailx'
     }
 
@@ -91,7 +93,7 @@ class Constants:
         'all', 'setup', 'feature_extraction', 'classification', 
         'preprocessing', 'aggregate_preprocessing_res',
         'alignment', 'aggregate_cesar_res',
-        'loss_summary', 'orthology', 'summarize_trees',
+        'gene_inference', 'loss_summary', 'orthology', 'summarize_trees',
         'finalize', 'ucsc_report'
     ]
 
@@ -132,14 +134,19 @@ class Constants:
             'codon_gzip', 'exon_gzip', 'prot_gzip', 'cds_gzip',
             'splice_sites_gzip', 'exon_meta_gzip', 'transcript_meta_gzip',
             'alignment_rejection_log', 'gained_intron_summary', 
-            'splice_site_shifts', 'selenocysteine_codons'
+            'splice_site_shifts', 'selenocysteine_codons',
+        ),
+        'gene_inference': (
+            'all_deprecated_projs', 'final_rejection_log',
+            'query_genes_raw', 'query_genes_bed_raw',
+            'discarded_overextended_projections'
         ),
         'loss_summary': (
-            'final_rejection_log', 'gene_loss_summary', 'pseudogene_annotation'
+            'gene_loss_summary', 
+            'pseudogene_annotation', 'loss_summary_extended'
         ),
         'orthology': (
-            'query_genes_raw', 'query_genes_bed_raw', 'orthology_resolution_dir', 
-            'discarded_overextended_projections', 
+            'orthology_resolution_dir', 
             'rejected_by_graph', 'weak_ortholog_names',
             'orthology_job_dir', 'orthology_input_dir', 'orthology_res_dir',
             'resolved_leaves_file', 'orth_resolution_report', 'one2zero_genes',
@@ -152,7 +159,8 @@ class Constants:
             'query_annotation_final', 'query_annotation_with_utrs', 
             'processed_pseudogene_annotation', 'finalized_output_dir', 
             'query_genes', 'query_genes_bed', 'summary',
-            'all_discarded_projections'
+            'all_discarded_projections',
+            'query_genes_for_gtf', 'query_gtf', 'gtf_gzip'
             # 'cds_gzip', 'codon_gzip', 'exon_gzip', 'prot_gzip',
             # 'splice_sites_gzip', 'exon_meta_gzip', 'transcript_meta_gzip'
         ),
@@ -207,11 +215,12 @@ class Constants:
         'pbs', 'pbspro', 'sge', 'slurm'
     )
     ALL_PARALLEL_EXECS: Tuple[str] = (*NEXTFLOW_SUPPORTED_EXECS, 'para', 'custom')
+    NF_EXEC_SCRIPT_NAME: str = 'execute_joblist.nf'
     UNIQUE_CONFIGS: Dict[str, str] = {
-        'preprocessing': 'preprocessing.nf', 
-        'orthology': 'orthology.nf' 
+        'preprocessing': 'preprocessing.config', 
+        'orthology': 'orthology.config' 
     }
-    ALN_CONFIG: str = 'alignment_{}.nf'
+    ALN_CONFIG: str = 'alignment_{}.config'
     NEXTFLOW_STUB: str = """#!/usr/bin/env nextflow
 
 nextflow.enable.dsl=2
@@ -651,19 +660,21 @@ TOGA2_SLOTS: Tuple[str] = (
     'alignment_rejection_log', 'gene_inference_rejection_log',
     'redundant_paralogs', 'redundant_ppgenes', 'discarded_proj_bed', 'orth_resolution_raw',
 
-    'transcript_meta', 'query_annotation_raw', 'query_annotation_filt', 
-    'final_rejection_log', 'gene_loss_summary',
+    'transcript_meta', 'query_annotation_raw', 
+    'query_annotation_filt', 'query_gtf', 
+    'final_rejection_log', 'gene_loss_summary', 'loss_summary_extended',
     'query_exon_meta', 'tree_summary_table',
     'aa_fasta', 'cds_fasta', 'codon_fasta', 
     'exon_fasta', 'prot_fasta', 'exon_2bit',
-    'query_genes_raw', 'query_genes_bed_raw', 
+    'query_genes_raw', 'query_genes_bed_raw', 'query_genes_for_gtf',
     'query_genes', 'query_genes_bed',
     'one2zero_genes', 'orth_resolution_report',
+    'rejected_at_tree_step',
     'mutation_report', 'splice_sites', 
     'gained_intron_summary', 'splice_site_shifts', 'selenocysteine_codons',
     'pseudogene_annotation', 'aa_hdf5',
     'aa_gzip', 'cds_gzip', 'codon_gzip', 'exon_gzip', 'prot_gzip',
-    'splice_sites_gzip', 'exon_meta_gzip', 'transcript_meta_gzip',
+    'splice_sites_gzip', 'exon_meta_gzip', 'transcript_meta_gzip', 'gtf_gzip',
     'query_annotation_final', 'query_annotation_with_utrs',
     'processed_pseudogene_annotation', 'summary', 'decoration_track',
 
@@ -689,7 +700,7 @@ TOGA2_SLOTS: Tuple[str] = (
     'CONTIG_SIZE_SCRIPT', 
     'FEATURE_EXTRACTOR',
     'MODEL_TRAINER', 'FINAL_RESOLVER_SCRIPT', 'FASTA_FILTER_SCRIPT',
-    'UTR_PROJECTOR_SCRIPT', 'DECORATOR_SCRIPT', 
+    'UTR_PROJECTOR_SCRIPT', 'DECORATOR_SCRIPT', 'GTF_SCRIPT',
     'SCHEMA_FILE', 'DECOR_SCHEMA_FILE'
 )
 

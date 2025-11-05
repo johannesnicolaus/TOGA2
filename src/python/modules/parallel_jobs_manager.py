@@ -76,8 +76,6 @@ class NextflowStrategy(ParallelizationStrategy):
     """
     Concrete strategy for parallelization using Nextflow.
     """
-    CESAR_CONFIG_TEMPLATE_FILENAME = "call_cesar_config_template.nf"
-    CHAIN_CONFIG_TEMPLATE_FILENAME = "extract_chain_features_config.nf"
     CHAIN_JOBS_PREFIX = "chain_feats__"
     CESAR_JOBS_PREFIX = "cesar_jobs__"
     CESAR_CONFIG_MEM_TEMPLATE = "${_MEMORY_}"
@@ -166,7 +164,7 @@ class NextflowStrategy(ParallelizationStrategy):
         if self.use_local_executor:
             return
         ## define a path to the configuration file
-        config_path: str = os.path.join(self.nextflow_config_dir, self.label + '.nf')
+        config_path: str = os.path.join(self.nextflow_config_dir, self.label + '.config')
         ## populate the stub
         config_body: str = NEXTFLOW_CONFIG_STUB.format(
             self.executor, self.queue_name, 

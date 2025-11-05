@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 
 """
-Filters TOGA2 output BED files
+Filters TOGA2 output BED files and adds the necessary postfixes
 """
 
-import os
-import sys
-
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-sys.path.extend([LOCATION, PARENT])
-
-from .shared import CommandLineManager, CONTEXT_SETTINGS, parse_single_column
+from .shared import (
+    base_proj_name, CommandLineManager, 
+    CONTEXT_SETTINGS, parse_single_column
+)
 from typing import List, Optional, Set, TextIO, Union
 
 import click
@@ -50,6 +46,18 @@ I_COL: str = '0,0,200'
     show_default=True,
     help=(
         'A path to write BED entries for deprecated projections to'
+    )
+)
+@click.option(
+    '--paralog_list',
+    '-pi',
+    type=click.File('r', lazy=True),
+    metavar='PARALOG_LIST_FILE',
+    default=None,
+    show_default=True,
+    help=(
+        'A single-column list of paralogous projections '
+        'fo filter out from the input file'
     )
 )
 @click.option(
@@ -95,7 +103,7 @@ I_COL: str = '0,0,200'
 class OutputBedFilter(CommandLineManager):
     __slots__ = (
         'discarded_projs', 'discarded_bed_lines', 'discarded_file', 
-        'ppgene_projs', 'ppgene_bed_lines', 'ppgene_file'
+        'paralog_projs', 'ppgene_projs', 'ppgene_bed_lines', 'ppgene_file'
     )
 
     def __init__(
@@ -104,6 +112,7 @@ class OutputBedFilter(CommandLineManager):
         output_bed: click.File,
         deprecated_projection_list: Optional[Union[click.File, None]],
         deprecated_projection_bed: Optional[Union[click.File, None]],
+        paralog_list: Optional[Union[click.File, None]],
         processed_pseudogene_list: Optional[Union[click.File, None]],
         processed_pseudogene_bed: Optional[Union[click.File, None]],
         log_name: Optional[str],
@@ -116,6 +125,7 @@ class OutputBedFilter(CommandLineManager):
         self.discarded_bed_lines: List[str] = []
         self.discarded_file: Union[click.File, None] = deprecated_projection_bed
 
+        self.paralog_projs: Set[str] = parse_single_column(paralog_list)
         self.ppgene_projs: Set[str] = parse_single_column(processed_pseudogene_list)
         self.ppgene_bed_lines: List[str] = []
         self.ppgene_file: Union[click.File, None] = processed_pseudogene_bed
@@ -134,15 +144,21 @@ class OutputBedFilter(CommandLineManager):
             if not data or not data[0]:
                 continue
             name: str = data[3]
-            if name in self.discarded_projs:
+            basename: str = base_proj_name(name)
+            if name in self.discarded_projs or basename in self.discarded_projs:
                 self.discarded_bed_lines.append(line)
                 continue
-            if name in self.ppgene_projs:
+            if name in self.ppgene_projs or basename in self.ppgene_projs:
                 self.ppgene_bed_lines.append(line)
                 if data[8] not in (FI_COL, I_COL):
                     continue
-                data[3] = f'{data[3]}#retro'
+                if '#retro' not in data[3]:
+                    data[3] = f'{data[3]}#retro'
                 line = '\t'.join(data) +'\n'
+            elif name in self.paralog_projs or basename in self.paralog_projs:
+                if '#paralog' not in data[3]:
+                    data[3] = f'{data[3]}#paralog'
+                line = '\t'.join(data) + '\n'
             output.write(line)
 
     def write_discarded_projections(self) -> None:

@@ -173,6 +173,8 @@ fn main() {
         .expect("Failed to read the JSON file");
     // bigBed2projections mapper
     let mut path2projs: FxHashMap<String, Vec<String>> = FxHashMap::default();
+    // bigBed2species mapper
+    let mut path2species: FxHashMap<String, String> = FxHashMap::default();
     // bed2projections mapper
     let mut bed2projs: FxHashMap<String, Vec<String>> = FxHashMap::default();
     // proj2plot mapper
@@ -180,7 +182,7 @@ fn main() {
     // proj2path mapper
     let mut proj2path: FxHashMap<String, String> = FxHashMap::default();
     // species names
-    let mut proj2species: FxHashMap<String, String> = FxHashMap::default();
+    // let mut proj2species: FxHashMap<String, String> = FxHashMap::default();
     // output plots
     let mut plots: FxHashMap<String, Plot> = FxHashMap::default();
     // first level iteration: individual plots
@@ -223,6 +225,8 @@ fn main() {
                     &format!("\"projections\" field for species \"{}\" (plot \"{}\") is not a valid array"
                     , species, plot_name)
                 );
+            // save BigBed-to-species mapping; this allows to bypass identical projection names between the queries
+            path2species.insert(path.clone(), species.clone());
             // parse the Bed files as well
             for projection in projections {
                 path2projs
@@ -243,10 +247,10 @@ fn main() {
                 if !proj2path.contains_key(projection.as_str().unwrap()) {
                     proj2path.insert(projection.as_str().unwrap().to_string(), path.clone());
                 }
-                if proj2species.contains_key(projection.as_str().unwrap()) {
-                    panic!("Projection {} is attributed to more than one species!", projection.as_str().unwrap());
-                }
-                proj2species.insert(projection.as_str().unwrap().to_string(), species.clone());
+                // if proj2species.contains_key(projection.as_str().unwrap()) {
+                //     panic!("Projection {} is attributed to more than one species!", projection.as_str().unwrap());
+                // }
+                // proj2species.insert(projection.as_str().unwrap().to_string(), species.clone());
             }   
         }
         plots.insert(
@@ -326,7 +330,7 @@ fn main() {
         let projections = path2projs
             .get(&bigbed)
             .expect(&format!("BigBed file {} does not contain any assigned projections", bigbed));
-        if let Ok(mut bb) = BigBedRead::open_file(bigbed) {
+        if let Ok(mut bb) = BigBedRead::open_file(&bigbed) {
             // iterate over chromosome intervals
             for (chrom, coords) in proj_data {
                 if let Ok(entry_inter) = bb.get_interval(&chrom, coords.start, coords.end) {
@@ -341,8 +345,8 @@ fn main() {
                             // parse the SVG string as a document
                             let tree = Document::from_str(plot).unwrap();
                             // get the species name
-                            let species = proj2species
-                                .get(name)
+                            let species = path2species//proj2species
+                                .get(&bigbed)//.get(name)
                                 .expect(&format!("No species attribution found for projection {}", name));
                             // add the projection data to each of the plots it belongs to
                             for plot_name in proj2plots.get(name).unwrap() {

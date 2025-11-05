@@ -6,13 +6,16 @@ __pycache__/
 # temporary, legacy, and lab-internal code
 _toga2.py
 patch_scripts/
-/extra/
-/_extra/
+extra/
+_extra/
 src/python/modules/final_orthology_aggregator_old.py
 src/python/modules/_run_postoga.py
 
+# current Conda configuration attempts
+meta.yaml
+
 # compiled Rust code
-src/rust/target/*
+src/rust/target
 
 # C extensions
 *.so

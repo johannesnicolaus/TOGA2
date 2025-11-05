@@ -7,7 +7,7 @@ Assign the names based on referene gene IDs to query genes, finalising the ortho
 from collections import defaultdict
 from .constants import Headers
 from .shared import (
-    CommandLineManager, CONTEXT_SETTINGS, 
+    base_proj_name, CommandLineManager, CONTEXT_SETTINGS, 
     get_proj2trans, parse_single_column
 )
 from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
@@ -45,6 +45,17 @@ T_GENE: str = 't_gene'
     help='A path to query gene BED file'
 )
 @click.option(
+    '--loss_summary',
+    '-l',
+    type=click.File('r', lazy=True),
+    metavar='LOSS_SUMMARY_FILE',
+    help=(
+        'A path to loss summary file. '
+        'Projection loss statuses are used to discriminate between '
+        'lost and missing orthologous loci'
+    )
+)
+@click.option(
     '--discarded_projections',
     '-d',
     type=click.File('r', lazy=True),
@@ -52,6 +63,18 @@ T_GENE: str = 't_gene'
     default=None,
     show_default=True,
     help='A single-column file containing names of discarded projections'
+)
+@click.option(
+    '--paralogs',
+    '-p',
+    type=click.File('r', lazy=True),
+    metavar='PROCESSED_PSEUDOGENES_LIST',
+    default=None,
+    show_default=True,
+    help=(
+        'A single-column file containing names of paralogous projections. '
+        'Genes comprising of these projections get the "paralog_" prefix'
+    )
 )
 @click.option(
     '--processed_pseudogenes',
@@ -80,7 +103,7 @@ T_GENE: str = 't_gene'
 )
 @click.option(
     '--log_file',
-    '-l',
+    '-lf',
     type=click.Path(exists=False),
     metavar='LOG_FILE',
     default=None,
@@ -125,7 +148,8 @@ class QueryGeneNamer(CommandLineManager):
         'log_file', 'orthology_file', 'query_gene_table', 
         'query_gene_bed', 'gene2new_name',
         'ref_gene2tr', 'ref_tr2gene',
-        'discarded', 'ppgenes'
+        'discarded', 'paralogs', 'ppgenes',
+        'loss_status'
     )
 
     def __init__(
@@ -134,7 +158,9 @@ class QueryGeneNamer(CommandLineManager):
         query_gene_file: click.File,
         output_dir: click.Path,
         query_gene_bed_file: Optional[click.File],
+        loss_summary: Optional[click.File],
         discarded_projections: Optional[click.File],
+        paralogs: Optional[click.File],
         processed_pseudogenes: Optional[click.File],
         reference_isoforms: Optional[click.File],
         log_file: Optional[click.Path],
@@ -166,6 +192,15 @@ class QueryGeneNamer(CommandLineManager):
         if processed_pseudogenes is not None:
             self._to_log('Parsing the processed pseudogene list file')
             self.ppgenes = parse_single_column(processed_pseudogenes)
+        self.paralogs: Set[str] = set()
+        if paralogs is not None:
+            self._to_log('Parsing the paralog list file')
+            self.paralogs = parse_single_column(paralogs)
+
+        self.loss_status: Dict[str, str] = {}
+        if loss_summary is not None:
+            self._to_log('Extracting loss status for query gene naming')
+            self.parse_loss_summary(loss_summary)
 
         self._to_log(
             'Inferring orthology-based query gene names '
@@ -194,6 +229,25 @@ class QueryGeneNamer(CommandLineManager):
                 )
             gene, tr = data
             self.ref_tr2gene[tr] = gene
+
+    def parse_loss_summary(self, file: TextIO) -> None:
+        """Extracts loss statuses for query projections"""
+        for i, line in enumerate(file, start=1):
+            data: List[str] = line.strip().split('\t')
+            if not data or not data[0]:
+                continue
+            if len(data) != 3:
+                self._die(
+                    (
+                        'Improper formatting at loss summary file line %i; '
+                        'expected 3 fields, got %i'
+                    ) % (i, len(data))
+                )
+            if data[0] != 'PROJECTION':
+                continue
+            name: str = data[1]
+            status: str = data[2]
+            self.loss_status[name] = status
 
     def modify_orthology_classification(self, file: TextIO) -> None:
         """
@@ -253,7 +307,6 @@ class QueryGeneNamer(CommandLineManager):
         symbols with the corresponding orthology-based names
         """
         gene2tr: Dict[str, List[str]] = defaultdict(list)
-        ppcount: int = 1
         with open(self.query_gene_table, 'w') as h:
             h.write(Headers.QUERY_GENE_HEADER)
             for i, line in enumerate(file, start=1):
@@ -264,49 +317,73 @@ class QueryGeneNamer(CommandLineManager):
                     self._die(
                         'Line %i in the query gene mapping file has less than two columns' %i
                     )
+                proj: str = data[1]
+                if proj in self.discarded:
+                    self._to_log(
+                        'Removing projection %s from the final isoform file' % proj,
+                        'warning'
+                    )
+                    continue
                 old_name: str = data[0]
                 ## gene has no orthologs in the orthology classification file
                 if old_name not in self.gene2new_name:
-                    ## if reference mapping were provided, rename it later
-                    if self.ref_tr2gene:
-                        gene2tr[old_name].append(data[1])
-                        continue
-                    ## otherwise, report it as-is, retaining the technical "reg_X" name
-                    self._to_log(
-                        'Gene %s at line %i in the gene table has no proven orthologs in the reference' % (
-                            old_name, i
-                        ),
-                        'warning'
-                    )
-                    gene_name: str = old_name
+                    # ## if reference mapping were provided, rename it later
+                    # if self.ref_tr2gene:
+                    #     gene2tr[old_name].append(data[1])
+                    #     continue
+                    # ## otherwise, report it as-is, retaining the technical "reg_X" name
+                    # self._to_log(
+                    #     'Gene %s at line %i in the gene table has no proven orthologs in the reference' % (
+                    #         old_name, i
+                    #     ),
+                    #     'warning'
+                    # )
+                    # gene_name: str = old_name
+                    gene2tr[old_name].append(data[1])
+                    continue
                 else:
                     gene_name: str = self.gene2new_name[old_name]
                 data[0] = gene_name
                 h.write('\t'.join(data) + '\n')
             ## rename the remaining loci
             for gene, projs in gene2tr.items():
+                # projs = [base_proj_name(x) for x in projs]
                 ## check if any of the projections must be removed from the final file
-                projs = [x for x in projs if x not in self.discarded]
+                projs = [x for x in projs if base_proj_name(x) not in self.discarded]
                 if not projs:
                     continue
-                ## check if this is a processed pseudogene/retrogene locus
-                ppnum: int = sum(x in self.ppgenes for x in projs)
-                if ppnum == len(projs):
-                    new_query_name = f'retro_{ppcount}'
-                    ppcount += 1
+                trs: List[str] = [get_proj2trans(x)[0] for x in projs]
+                genes: Set[str] = {
+                    self.ref_tr2gene.get(base_proj_name(x), base_proj_name(x)) for x in trs
+                }
+                if len(genes) == 1:
+                    new_query_name = genes.pop()
+                elif len(genes) <= 3:
+                    new_query_name = ','.join(genes)
                 else:
-                    projs = [x for x in projs if x not in self.ppgenes]
+                    new_query_name = genes.pop() + '+'
+                ## check if this is a processed pseudogene/retrogene locus
+                ppnum: int = sum(base_proj_name(x) in self.ppgenes for x in projs)
+                if ppnum == len(projs):
+                    new_query_name = f'retro_{new_query_name}'
+                else:
+                    projs = [x for x in projs if base_proj_name(x) not in self.ppgenes]
                     if not projs:
                         continue
-                    trs: List[str] = [get_proj2trans(x)[0] for x in projs]
-                    genes: Set[str] = {self.ref_tr2gene[x] for x in trs}
-                    if len(genes) == 1:
-                        new_query_name = genes.pop()
-                    elif len(genes) <= 3:
-                        new_query_name = ','.join(genes)
+                    paralog_num: int = sum(base_proj_name(x) in self.paralogs for x in projs)
+                    if paralog_num == len(projs):
+                        new_query_name = f'paralog_{new_query_name}'
                     else:
-                        new_query_name = genes.pop() + '+'
-                    new_query_name = f'pseudo_{new_query_name}'
+                        projs = [x for x in projs if base_proj_name(x) not in self.paralogs]
+                        if not projs:
+                            continue
+                        statuses: List[str] = [
+                            self.loss_status.get(base_proj_name(x), 'L') for x in self.loss_status
+                        ]
+                        if all(x == 'M' for x in statuses):
+                            new_query_name = f'missing_{new_query_name}'
+                        else:
+                            new_query_name = f'lost_{new_query_name}'
                 self.gene2new_name[gene] = new_query_name
                 for proj in projs:
                     h.write(new_query_name + '\t' + proj + '\n')

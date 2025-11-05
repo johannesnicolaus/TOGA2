@@ -253,6 +253,10 @@ def intersect_exons_to_blocks( ## TODO: clearly must be moved to Exon2BlockMappe
         extra_flank: int = int(exon.length() * extra_flank_modifier)
         coords: Tuple[int, int] = exon.coords()
         min_coord, max_coord = 0, 0
+        ## TODO: Ideally, min_/max_coord should be set to None to eliminate the necessity of
+        ## introducing separate boolean flags; this was the original implementation, and cannot
+        ## recall why I switched to initializing coordinates with zeros
+        min_upd, max_upd = False, False
         init_cov: int = 0
         for b_pointer, b_num in enumerate(sorted_block_keys[curr_block:], start=curr_block):
             this_block: List[str] = blocks[b_num]
@@ -323,6 +327,7 @@ def intersect_exons_to_blocks( ## TODO: clearly must be moved to Exon2BlockMappe
                 trim_down: int = up_block[1] - exon.stop
                 min_coord += trim_up if codirected else trim_down
                 max_coord -= trim_down if codirected else trim_up
+                min_upd, max_upd = True, True
                 if trim_up >= 0 and trim_down >= 0:
                     logger.info(
                         f'Exon {exon.num} is fully enclosed within '
@@ -357,7 +362,7 @@ def intersect_exons_to_blocks( ## TODO: clearly must be moved to Exon2BlockMappe
                     continue
                 inter_size: int =  intersection(*coords, *sorted(blocks[_block][:2]))
                 init_cov += inter_size if inter_size > 0 else 0
-            ## case 2.1: any of two marginal blocks are unaligned gaps gaps
+            ## case 2.1: any of two marginal blocks are unaligned chain gaps
             ## in this case, extend the exon coordinate to the next block
             if new_up_block_name:
                 side: str = 'Left' if codirected else 'Right'
@@ -372,8 +377,10 @@ def intersect_exons_to_blocks( ## TODO: clearly must be moved to Exon2BlockMappe
                 extra_flank_up: int = extra_flank * dangling_up
                 if codirected:
                     min_coord = max(0, next_up_block[2] - trim_up - extra_flank_up)
+                    min_upd = True
                 else:
                     max_coord = next_up_block[3] + trim_up + extra_flank_up
+                    max_upd = True
             if new_down_block_name:
                 side: str = 'Right' if codirected else 'Left'
                 logger.info(
@@ -388,8 +395,10 @@ def intersect_exons_to_blocks( ## TODO: clearly must be moved to Exon2BlockMappe
                 extra_flank_down: int = extra_flank * dangling_down
                 if codirected:
                     max_coord = max(0, next_down_block[3] - trim_down + extra_flank_down)
+                    max_upd = True
                 else:
                     min_coord = next_down_block[2] + trim_down - extra_flank_down
+                    min_upd = True
             ## case 2.2: at least one of the marginal blocks is a true
             ## aligned block; trim the coordinates by the exon coordinates
             ## from the reference annotation
@@ -414,7 +423,7 @@ def intersect_exons_to_blocks( ## TODO: clearly must be moved to Exon2BlockMappe
 
                     # print(f'{blocks[down_block_name][2]=}, {blocks[up_block_name][3]=}')
                 # print(f'{exon.start = }, {exon.stop = }, {trim_up = }, {trim_down = }')
-                if not min_coord:
+                if not min_upd:
                     side: str = 'left' if codirected else 'right'
                     logger.info(
                         f'Trimming exon {exon.num} coordinates '
@@ -424,7 +433,7 @@ def intersect_exons_to_blocks( ## TODO: clearly must be moved to Exon2BlockMappe
                         up_block[2] - trim_up if codirected else
                         down_block[2] + trim_down, 0
                     )
-                if not max_coord:
+                if not max_upd:
                     side: str = 'right' if codirected else 'left'
                     logger.info(
                         f'Trimming exon {exon.num} coordinates '

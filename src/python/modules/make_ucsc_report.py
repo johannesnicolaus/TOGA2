@@ -7,7 +7,11 @@ prepares a complete UCSC BigBed report file
 
 from collections import defaultdict
 from ucsc_report import REF_LINK_PLACEHOLDER
-from shared import CommandLineManager, CONTEXT_SETTINGS, parse_single_column
+from .shared import (
+    base_proj_name, CommandLineManager, 
+    CONTEXT_SETTINGS, get_proj2trans, 
+    parse_single_column
+)
 from typing import Any, Dict, List, Optional, Set, TextIO, Tuple, Union
 
 import click
@@ -102,15 +106,30 @@ FRAGM_PROJ_ADD_STUB: str = (
     )   
 )
 @click.option(
+    '--paralogs',
+    '-p',
+    type=click.File('r', lazy=True),
+    metavar='PARALOG_LIST_FILE',
+    default=None,
+    show_default=True,
+    help=(
+        'A path to a single-column file containing names '
+        'of annotated paralogous projections; those will get '
+        'the "#paralog" suffix in the BigBed file'
+    )
+)
+@click.option(
     '--processed_pseudogenes',
     '-pp',
     type=click.File('r', lazy=True),
+    metavar='PPGENE_LIST_FILE',
     default=None,
     show_default=None,
     help=(
         'A path to a single-column file containing names  '
-        'of processed pseudogene projections; those with loss statuses lower than FI/I '
-        'will be excluded from the final annotation'
+        'of processed pseudogene projections; those with loss statuses of FI/I '
+        'will get the "#retro" suffix in the BigBed file, '
+        'with the rest being excluded from the final annotation'
     )   
 )
 # @click.option(
@@ -123,6 +142,26 @@ FRAGM_PROJ_ADD_STUB: str = (
 #         'If set, creates a separate set of UCSC files for processed pseudogenes'
 #     )
 # )
+@click.option(
+    '--bedtobigbed_binary',
+    type=click.Path(exists=True),
+    metavar='BEDTOBIGBED_PATH',
+    default=None,
+    show_default=True,
+    help=(
+        'A path to UCSC bedToBigBed executable. '
+    )
+)
+@click.option(
+    '--ixixx_binary',
+    type=click.Path(exists=True),
+    metavar='IXIXX_PATH',
+    default=None,
+    show_default=True,
+    help=(
+        'A path to UCSC ixIxx executable. '
+    )
+)
 @click.option(
     '--prefix',
     '-p',
@@ -176,7 +215,8 @@ class BigBedProducer(CommandLineManager):
         'out_bed_file', 'bigbed_file', 
         'bed_index', 'bigbed_index', 'bigbed_ixx', 'longest_word',
         # 'make_pp_track', '', '', '',
-        'deprecated_projs', 'ppgenes',
+        'deprecated_projs', 'paralogs', 'ppgenes',
+        'bedtobigbed_binary', 'ixixx_binary',
         'log_file'
     )
 
@@ -192,8 +232,11 @@ class BigBedProducer(CommandLineManager):
         alternative_bed_track: Optional[Union[click.File, None]],
         link_file: Optional[Union[click.File, None]],
         deprecated_projections: Optional[Union[click.File, None]],
+        paralogs: Optional[Union[click.File, None]],
         processed_pseudogenes: Optional[Union[click.File, None]],
         # make_processed_pseudogene_track: Optional[bool],
+        bedtobigbed_binary: Optional[click.Path],
+        ixixx_binary: Optional[click.Path],
         prefix: Optional[str],
         # pseudogene_prefix: Optional[str],
         log_file: Optional[click.Path],
@@ -229,10 +272,13 @@ class BigBedProducer(CommandLineManager):
             self._to_log('Parsing alternative Bed track')
             self.parse_alt_bed(alternative_bed_track)
         self.deprecated_projs: Set[str] = parse_single_column(deprecated_projections)
+        self.paralogs: Set[str] = parse_single_column(paralogs)
         self.ppgenes: Set[str] = parse_single_column(processed_pseudogenes)
         self.chrom_sizes: click.Path = chrom_sizes
         self.schema: click.Path = schema
         self.output_dir: click.Path = output_dir
+        self.bedtobigbed_binary: click.Path = bedtobigbed_binary
+        self.ixixx_binary: click.Path = ixixx_binary
         # self.make_pp_track: bool = make_processed_pseudogene_track
         self.out_bed_file: str = os.path.join(self.output_dir, 'query_annotation.for_ucsc.bed34')
         self.bigbed_file: str = os.path.join(self.output_dir, f'{prefix}.bb')
@@ -272,13 +318,15 @@ class BigBedProducer(CommandLineManager):
         with open(self.out_bed_file, 'w') as h:
             for chain, backbone in sorted_projs:
                 proj: str = backbone[3]
-                if self.deprecated_projs and proj in self.deprecated_projs:
+                basename: str = base_proj_name(proj)
+                if self.deprecated_projs and basename in self.deprecated_projs:
                     continue
-                if proj in self.ppgenes and backbone[8] not in INTACT_COLORS:
+                if basename in self.ppgenes and backbone[8] not in INTACT_COLORS:
                     continue
                 if ',' not in proj and proj in self.alt_bed_track:
                     backbone[:12] = self.alt_bed_track[proj]
-                tr: str = '#'.join(proj.split('#')[:-1])
+                # tr: str = '#'.join(proj.split('#')[:-1])
+                tr: str = get_proj2trans(proj)[0]
                 ref_coords: str = self.ref2coords.get(tr, '')
                 if not ref_coords:
                     self._die('Transcript %s is missing from the reference BED file' % tr)
@@ -301,8 +349,8 @@ class BigBedProducer(CommandLineManager):
                     orth_score: str = self.proj2score.get(_proj, '')
                     proj_features: List[str] = self.proj2features.get(_proj, [])
                 else:
-                    orth_score: str = self.proj2score.get(proj, '')
-                    proj_features: List[str] = self.proj2features.get(proj, [])
+                    orth_score: str = self.proj2score.get(basename, '')
+                    proj_features: List[str] = self.proj2features.get(basename, [])
                     query_coords: str = f'{backbone[0]}:{backbone[1]}-{backbone[2]}'
                 if not orth_score:
                     self._die(
@@ -313,8 +361,10 @@ class BigBedProducer(CommandLineManager):
                         'Projection %s is missing from the projection feature file' % proj
                     )
                 link: str = self.ref2link.get(tr, REF_LINK_PLACEHOLDER)
-                if proj in self.ppgenes:
+                if basename in self.ppgenes and '#retro' not in proj:
                     backbone[3] = backbone[3] + "#retro"
+                elif basename in self.paralogs and '#paralog' not in proj:
+                    backbone[3] = backbone[3] + '#paralog'
                 out_line: List[Any] = [
                     *backbone[:4], '1000', *backbone[5:12], tr, 
                     ref_coords, query_coords, orth_score, *proj_features,
@@ -326,7 +376,7 @@ class BigBedProducer(CommandLineManager):
             sort_cmd: str = f'sort -k1,1 -k2,2n -o {self.out_bed_file} {self.out_bed_file}'
             _ = self._exec(sort_cmd, 'Browser report Bed file sorting failed')
         bigbed_cmd: str = (
-            f'bedToBigBed -type=bed12+26 {self.out_bed_file} {self.chrom_sizes} {self.bigbed_file} '
+            f'{self.bedtobigbed_binary} -type=bed12+26 {self.out_bed_file} {self.chrom_sizes} {self.bigbed_file} '
             f'-tab -extraIndex=name -as={self.schema}'
         )
         _ = self._exec(bigbed_cmd, 'bedToBigBed failed')
@@ -335,7 +385,7 @@ class BigBedProducer(CommandLineManager):
         bed_ix_cmd: str = f'{MAKE_IX_SCRIPT} {self.out_bed_file} | sort -u > {self.bed_index}'
         _ = self._exec(bed_ix_cmd, 'BED file indexing failed')
         bigbed_ix_cmd: str = (
-            f'ixIxx {self.bed_index} {self.bigbed_index} {self.bigbed_ixx} '
+            f'{self.ixixx_binary} {self.bed_index} {self.bigbed_index} {self.bigbed_ixx} '
             f'-maxWordLength={self.longest_word}'
         )
         self._exec(bigbed_ix_cmd, 'BigBED file indexing failed')
@@ -392,7 +442,7 @@ class BigBedProducer(CommandLineManager):
                         'expected 12 lines, got %i'
                     ) % (i, len(data))
                 )
-            name: str = data[3].replace('#retro', '')
+            name: str = base_proj_name(data[3])
             self.alt_bed_track[name] = data
 
     def parse_projection_features(self, file: TextIO) -> None:

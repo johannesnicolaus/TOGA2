@@ -64,7 +64,7 @@ struct Args {
     /// query UTR projection from the respective side stops 
     /// once any of the resulting query UTR exons is annotated farther than 
     /// its counterpart in the reference time this value
-    #[arg(long, default_value_t = 2.0)]
+    #[arg(long, default_value_t = 5.0)]
     rel_distance_threshold: f64,
     
 
@@ -255,7 +255,7 @@ fn main() {
             ).expect("Failed to parse the BED record in the query annotation");
             let comps: Vec<&str> = query_bed.name().unwrap().split('#').collect();
             let last_field: usize = comps.len() - 1;
-            let chain_field: usize = if comps[last_field] == "retro" {last_field - 1} else {last_field};
+            let chain_field: usize = if comps[last_field] == "retro" || comps[last_field] == "paralog" {last_field - 1} else {last_field};
             let chain_num = match comps[chain_field].parse::<u32>(){ // NOTE: picking the third rather than the last item to accommodate for `#retro` and other postfixes
                 Ok(num) => {num},
                 Err(_) => {
@@ -407,7 +407,7 @@ fn main() {
                             .unwrap()
                             .thick_start()
                             .unwrap();
-                        cds_start - utr_proj.end().unwrap()
+                        cds_start.checked_sub(*utr_proj.end().unwrap()).unwrap_or(0)
                     },
                     false => {
                         let cds_end = query_tr2bed
@@ -415,11 +415,11 @@ fn main() {
                             .unwrap()
                             .thick_end()
                             .unwrap();
-                        utr_proj.start().unwrap() - cds_end
+                        utr_proj.start().unwrap().checked_sub(cds_end).unwrap_or(0)
                     }
                 };
-                if tr_name == "NM_001354347.2#OSGEPL1" {
-                    println!("utr_name={}, rel_distance={}, abs_distance={}, distance_in_query={}", utr_name, rel_distance, args.abs_distance_threshold, distance_in_query)
+                if *chain_id == 8083 && tr_name == "ENST00000307845.8#HPCAL1" {
+                    println!("abs_distance={}, rel_distance={}, distance_in_query={}", args.abs_distance_threshold, rel_distance, distance_in_query);
                 }
                 if distance_in_query > *rel_distance && distance_in_query > args.abs_distance_threshold {continue}
             }
@@ -493,6 +493,9 @@ fn main() {
         if name.contains("#retro") {
             name = name.replace("#retro", "");
         }
+        if name.contains("#paralog") {
+            name = name.replace("#paralog", "");
+        }
         if args.deduce_adjacent_regions || args.fixed_adjacent_regions {
             let tr_name = get_tr(&name);
             let chain_id = get_chain_id(&name);
@@ -500,7 +503,9 @@ fn main() {
                 Ok(x) => {*query_chr2size.get(&x).unwrap()},
                 Err(..) => {0}
             };
-            if tr2adj3.contains_key(&tr_name) && !adj3_appended.contains(&name) {
+            if tr2adj3.contains_key(&tr_name) && 
+            !adj3_appended.contains(&name) && 
+            *proj2last_exon.get(&name).unwrap() {
                 println!("Adding an unprojected 3'-adjacent UTR to projection {}", name);
                 let utr_size = match args.deduce_adjacent_regions {
                     true => {
@@ -541,7 +546,9 @@ fn main() {
                     );
                 }
             }
-            if tr2adj5.contains_key(&tr_name) && !adj5_appended.contains(&name) {
+            if tr2adj5.contains_key(&tr_name) && 
+            !adj5_appended.contains(&name) && 
+            *proj2first_exon.get(&name).unwrap() {
                 println!("Adding an unprojected 5'-adjacent UTR to projection {}", name);
                 // let utr_size = tr2adj5
                 //     .get(&tr_name)

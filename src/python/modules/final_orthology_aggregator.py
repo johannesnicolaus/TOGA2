@@ -7,7 +7,9 @@ orthology resolution steps
 
 from .constants import Headers
 from collections import defaultdict
-from .shared import CommandLineManager, CONTEXT_SETTINGS
+from .shared import (
+    base_proj_name, CommandLineManager, CONTEXT_SETTINGS
+)
 
 from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 
@@ -53,7 +55,7 @@ def restore_fragmented_proj_id(proj: str) -> str:
 
 def get_tr(proj: str) -> str:
     """Strips the projection name of the chain identifier(s) and returns the progenitor transcript's name"""
-    return '#'.join(proj.split('#')[:-1])
+    return '#'.join(base_proj_name(proj).split('#')[:-1])
 
 
 @click.command(context_settings=CONTEXT_SETTINGS, no_args_is_help=True)
@@ -97,11 +99,19 @@ def get_tr(proj: str) -> str:
 )
 @click.option(
     '--rejection_log',
-    type=click.File('w', lazy=True),
-    metavar='REJECTED_TRANSCRIPTS',
+    type=click.File('a', lazy=True),
+    metavar='REJECTION_LOG',
     default=None,
     show_default=True,
-    help='A path to write the rejected transcript items to'
+    help='A path to write the rejection report to'
+)
+@click.option(
+    '--rejected_list',
+    type=click.File('w', lazy=True),
+    metavar='REJECTED_TRANSCRPIPT',
+    default=None,
+    show_default=True,
+    help='A path to write rejected projections\' names to'
 )
 @click.option(
     '--loss_summary',
@@ -145,7 +155,7 @@ class FinalOrthologyResolver(CommandLineManager):
     __slots__ = (
         'ref_gene2tr', 'ref_tr2gene', 'query_gene2tr', 'query_tr2gene',
         'tr2proj', 'proj2tr', 'r2q', 'q2r', 'removed_genes', 'one2zero_genes', 
-        'rejected_items', 'rejection_log',
+        'rejected_items', 'rejection_log', 'rejected_list',
         'loss_file', 'proj2loss',
         'out_lines', 'output', 'one2zero_file', 'log_file'
     )
@@ -159,6 +169,7 @@ class FinalOrthologyResolver(CommandLineManager):
         output: Optional[click.File],
         one2zero_file: Optional[Union[click.File, None]],
         rejection_log: Optional[Union[click.File, None]],
+        rejected_list: Optional[Union[click.File, None]],   
         loss_summary: Optional[Union[click.File, None]],
         log_file: Optional[click.Path],
         log_name: Optional[str],
@@ -183,6 +194,7 @@ class FinalOrthologyResolver(CommandLineManager):
         self.one2zero_file: Union[click.File, None] = one2zero_file
         self.rejected_items: List[str] = []
         self.rejection_log: Union[click.File, None] = rejection_log
+        self.rejected_list: Union[click.File, None] = rejected_list
         self.proj2loss: Dict[str, str] = {}
         self.loss_file: Union[click.File, None] = loss_summary
         self.output: click.File = output
@@ -218,13 +230,13 @@ class FinalOrthologyResolver(CommandLineManager):
     def parse_init_results(self, file: TextIO) -> None:
         """
         Parses initial orthology resolution results. The logic goes as follows:
-        * Lines referring to orthology relationships other than 'many2many' are
-          added to the output as-is;
-        * Lines referring to 'many2many' cliques are processed
-          to save the following information:
-          * reference gene-to-query gene mapping;
-          * gene-to-transcript mapping for both reference and query;
-          * transcript-to-gene mapping for both reference and query
+        *   Lines referring to orthology relationships other than 'many2many' are
+            added to the output as-is;
+        *   Lines referring to 'many2many' cliques are processed
+            to save the following information:
+            *    reference gene-to-query gene mapping;
+            *    gene-to-transcript mapping for both reference and query;
+            *    transcript-to-gene mapping for both reference and query
         """
         for line in file:
             if line == Headers.ORTHOLOGY_TABLE_HEADER:
@@ -337,6 +349,9 @@ class FinalOrthologyResolver(CommandLineManager):
                 ## might have come from a gene other than the newly established ortholog;
                 ## pick the one used for the tree reconstruction only if the established 
                 ## ortholog has no projection in the query gene
+                v = ref_tr == 'XM_047425712.1#OTUD7B'
+                if v:
+                    print(f'{ref_tr=}, {query_tr=}')
                 progenitor_tr: str = get_tr(query_tr)
                 if progenitor_tr not in self.ref_tr2gene:
                     self._die('Transcript %s is missing from the reference gene-to-transcript mapping' % progenitor_tr)
@@ -356,13 +371,13 @@ class FinalOrthologyResolver(CommandLineManager):
                     # self.out_lines.append(out_line)
                     recorded_lines: bool = True
                 for other_query_tr in self.query_gene2tr[query_gene]:
-                    other_ref_tr: str = '#'.join(other_query_tr.split('#')[:-1])
+                    other_ref_tr: str = get_tr(other_query_tr)#'#'.join(other_query_tr.split('#')[:-1])
+                    if v:
+                        print(f'{other_ref_tr=}, {other_query_tr=}, {ref_gene=}, {self.ref_tr2gene[other_ref_tr]=}')
                     ## projections from other genes are counted as rejected
                     if self.ref_tr2gene[other_ref_tr] != ref_gene:
                         self._to_log(f'Skipping {other_query_tr} since it does not belong to the original reference gene')
-                        loss_status: str = self.proj2loss.get(other_query_tr, 'N')
-                        rej_line: str = ORTH_REJ_TEMPLATE.format(other_query_tr, loss_status)
-                        self.rejected_items.append(rej_line)
+                        self.rejected_items.append(other_query_tr)
                         continue
                     out_line: str = '\t'.join(
                         (ref_gene, other_ref_tr, query_gene, other_query_tr, ONE2ONE)
@@ -460,9 +475,14 @@ class FinalOrthologyResolver(CommandLineManager):
         if self.one2zero_file is not None and self.one2zero_genes:
             for gene in self.one2zero_genes:
                 self.one2zero_file.write(gene + '\n')
-        if self.rejection_log is not None and self.rejected_items:
-            for line in self.rejected_items:
-                self.rejection_log.write(line + '\n')
+        if self.rejected_items:
+            for item in self.rejected_items:
+                if self.rejected_list is not None:
+                    self.rejected_list.write(item + '\n')
+                if self.rejection_log is not None:
+                    loss_status: str = self.proj2loss.get(item, 'N')
+                    rej_line: str = ORTH_REJ_TEMPLATE.format(item, loss_status)
+                    self.rejection_log.write(rej_line + '\n')
 
     def _restore_original_clique(self, start: str) -> List[str]:
         """

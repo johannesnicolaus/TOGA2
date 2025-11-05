@@ -1,3 +1,7 @@
 [submodule "postoga"]
 	path = postoga
 	url = https://github.com/alejandrogzi/postoga
+
+[submodule "bed2gtf"]
+    path = bed2gtf
+	url = https://github.com/alejandrogzi/bed2gtf

@@ -1,5 +1,5 @@
 use clap::Parser;
-use fxhash::FxHashSet;
+use fxhash::{FxHashSet};
 use rust::read;
 use std::io::{BufRead, stdout, Write};
 use std::fs::File;
@@ -45,12 +45,22 @@ fn main() {
     //     }
     // }
     let mut included_projs: FxHashSet<String> = FxHashSet::default();
+    let mut paralogs: FxHashSet<String> = FxHashSet::default();
+    let mut ppgenes: FxHashSet<String> = FxHashSet::default();
     if let Some(bed_file) = args.bed_file {
         for line_ in read(bed_file).lines() {
             if let Ok(line) = line_ {
                 let comps: Vec<&str> = line.split('\t').collect::<Vec<&str>>();
-                let name = comps[3].replace("#retro", "");
-                included_projs.insert(name.to_string());
+                let name = comps[3]
+                    .split('$') // for fragmented projections, ignore the the fragment number
+                    .collect::<Vec<&str>>()
+                    .first()
+                    .unwrap()
+                    .replace("#retro", "")// remove the retrogene postfix
+                    .replace("#paralog", ""); // remove the paralog postfix
+                included_projs.insert(name.clone());
+                if comps[3].contains("#paralog") {paralogs.insert(name.clone());}
+                if comps[3].contains("#retro") {ppgenes.insert(name.clone());}
             }
         }
     }
@@ -95,6 +105,8 @@ fn main() {
                 // if excluded_projs.contains(&proj) {record = false; continue}
                 if included_projs.len() > 0 && !included_projs.contains(&proj) {continue}
                 header = comps[0].clone();
+                if paralogs.contains(&proj) {header += "#paralog"}
+                if ppgenes.contains(&proj) {header += "#retro"}
                 record = true;
                 // proceed to the next line
                 continue

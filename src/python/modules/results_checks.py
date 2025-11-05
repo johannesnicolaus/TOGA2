@@ -248,7 +248,7 @@ class ResultChecker(CommandLineManager):
             output, 'tmp', 'rejection_logs', 'rejected_at_preprocessing.tsv'
         )
         self.loss_summary: str = os.path.join(
-            output, 'loss_summary.tsv'
+            output, 'meta', 'loss_summary_extended.tsv'
         )
         self.orth_classes: str = os.path.join(
             output, 'tmp', 'annotation_raw', 'orthology_classification.tsv'
@@ -618,7 +618,7 @@ class ResultChecker(CommandLineManager):
         self._parse_non_orthologous()
 
         if not os.path.exists(self.loss_summary):
-            self.logger.critical('Gene loss summary file %s does not')
+            self.logger.critical('Gene loss summary file %s does not exist' % self.loss_summary)
             sys.exit(1)
         messages: List[ElementaryCheckResult] = []
         with open(self.loss_summary, 'r') as h:

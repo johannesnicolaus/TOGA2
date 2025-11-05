@@ -442,6 +442,9 @@ class TogaMain(CommandLineManager):
         self.query_genes_bed_raw: str = os.path.join(
             self.annot_dir, 'query_genes.bed'
         )
+        self.query_genes_for_gtf: str = os.path.join(
+            self.annot_dir, 'query_genes.for_gtf.tsv'
+        )
 
         ## joblists
         self.feature_extraction_joblist: str = os.path.join(
@@ -469,6 +472,12 @@ class TogaMain(CommandLineManager):
         )
         self.class_rejection_log: str = os.path.join(
             self.rejection_dir, 'rejected_at_classification.tsv'
+        )
+        self.preprocessing_rejection_log: str = os.path.join(
+            self.rejection_dir, 'rejected_at_preprocessing.tsv'
+        )
+        self.all_deprecated_projs: str = os.path.join(
+            self.rejection_dir, 'all_deprecated_projections.txt'
         )
         self.fragmented_projection_list: str = os.path.join(
             self.meta, 'fragmented_projections.tsv'
@@ -500,11 +509,11 @@ class TogaMain(CommandLineManager):
         self.temporary_orth_report: str = os.path.join(
             self.orthology_resolution_dir, 'orthology_classification.tsv'
         )
-        self.one2zero_genes: str = os.path.join(
-            self.orthology_resolution_dir, 'one2zero_genes.txt'
+        self.rejected_at_tree_step: str = os.path.join(
+            self.meta, 'rejected_at_orthology_step.tsv'
         )
-        self.preprocessing_rejection_log: str = os.path.join(
-            self.rejection_dir, 'rejected_at_preprocessing.tsv'
+        self.one2zero_genes: str = os.path.join(
+            self.meta, 'one2zero_genes.txt'
         )
         self.spanning_chain_coords: str = os.path.join(
             self.meta, 'spanning_chain_ref_coords.tsv'
@@ -539,8 +548,8 @@ class TogaMain(CommandLineManager):
         self.decor_stub: str = os.path.join(
             self.vis_input_dir, 'decorator.bb'
         )
-        self.all_deprecated_projs: str = os.path.join(
-            self.vis_input_dir, 'all_deprecated_projections.txt'
+        self.loss_summary_extended: str = os.path.join(
+            self.meta, 'loss_summary_extended.tsv'
         )
         
 
@@ -582,6 +591,9 @@ class TogaMain(CommandLineManager):
         )
         self.query_annotation_with_utrs: str = os.path.join(
             self.output, 'query_annotation.with_utrs.bed'
+        )
+        self.query_gtf: str = os.path.join(
+            self.output, 'query_annotation.gtf'
         )
         self.aa_fasta: str = os.path.join(
             self.output, 'protein_aln.fa'
@@ -636,6 +648,7 @@ class TogaMain(CommandLineManager):
         self.codon_gzip: str = self.codon_fasta + '.gz'
         self.exon_gzip: str = self.exon_fasta + '.gz'
         self.prot_gzip: str = self.prot_fasta + '.gz'
+        self.gtf_gzip: str = self.query_gtf + '.gz'
         self.splice_sites_gzip: str = self.splice_sites + 'gz'
         self.exon_meta_gzip: str = self.query_exon_meta + '.gz'
         self.transcript_meta_gzip: str = self.transcript_meta + '.gz'
@@ -654,7 +667,7 @@ class TogaMain(CommandLineManager):
         )
         self.CDS_TRACK_SCRIPT: str = os.path.join(
             LOCATION, 'src', 'rust', 'target', 'release', 'bed12ToFraction'
-        ) ## TODO: Replace with the cubiculum code
+        )
         self.REF_BED_TO_HDF5: str = os.path.join(
             PYTHON_DIR, 'modules', 'bed_hdf5_index.py'
         )
@@ -681,6 +694,9 @@ class TogaMain(CommandLineManager):
         )
         self.DECORATOR_SCRIPT: str = os.path.join(
             LOCATION, 'src', 'rust', 'target', 'release', 'add_decorations'
+        )
+        self.GTF_SCRIPT: str = os.path.join(
+            LOCATION, 'bed2gtf', 'target', 'release', 'bed2gtf'
         )
         self.SCHEMA_FILE: str = os.path.join(
             LOCATION, 'supply', 'bb_schema_toga2.as'
@@ -865,14 +881,14 @@ class TogaMain(CommandLineManager):
         else:
             if self.halt_at == 'aggregate_cesar_res':
                 self.notify_on_completion('aggregate_cesar_res')
-                self._exit('Finishing pipeline before alignment results aggregation step as suggested')
+                self._exit(
+                    'Finishing pipeline before alignment results aggregation step as suggested'
+                )
             self._to_log('Skipping alignment results aggregation step as suggested')
 
-        ## Step 6: Summarise ortholog presence status on projection, transcript,
-        ## and (if requested) gene levels
-
-        ## 6a: Aggregate rejection reports from all the previous steps
-        if self._execute_step('loss_summary'):
+        ## Step 6: Infer query gene structure
+        if self._execute_step('gene_inference'):
+            ## 6a: Aggregate rejection reports from all the previous steps
             self._to_log('Aggregating rejection reports')
             self.aggregate_rejection_reports()
             self._to_log(
@@ -881,13 +897,10 @@ class TogaMain(CommandLineManager):
                 ),
                 'info'
             )
-
-            ## 6b: Summarise loss data
-            self._to_log('Summarizing transcript/gene conservation data')
-            self.loss_status_summary()
-            # self._echo('Conservation data successfully summarized')
-            self._to_log('Conservation data successfully summarized')
-
+            ## 6b: Infer query genes as the step name suggests
+            self._to_log('Inferring query genes')
+            self.infer_query_genes()
+            self._to_log('Query genes successfully inferred')
             ## 6c: If processed pseudogenes were not considered in the previous steps,
             ## prepare a simple BED9 track
             if not self.annotate_ppgenes:
@@ -895,20 +908,30 @@ class TogaMain(CommandLineManager):
                 self.prepare_pseudogene_track()
                 self._to_log('Pseudogene track successfully produced')
         else:
+            if self.halt_at == 'gene_inference':
+                self.notify_on_completion('gene_inference')
+                self._exit(
+                    'Finishing pipeline before query gene inference step as suggested'
+                )
+            self._to_log('Skipping gene loss summary step as suggested')
+
+        ## Step 6: Summarise ortholog presence status on projection, transcript,
+        ## and (if requested) gene levels
+        if self._execute_step('loss_summary'):
+            ## 6b: Summarise loss data
+            self._to_log('Summarizing transcript/gene conservation data')
+            self.loss_status_summary()
+            # self._echo('Conservation data successfully summarized')
+            self._to_log('Conservation data successfully summarized')
+        else:
             if self.halt_at == 'loss_summary':
                 self.notify_on_completion('loss_summary')
                 self._exit('Finishing pipeline before gene loss summary step as suggested')
             self._to_log('Skipping gene loss summary step as suggested')
         self._sanity_check(self.result_checker.check_loss_summary())
 
-
         ## Step 7: Resolve orthology status for all reference genes
-        ## collapse projections to genes
         if self._execute_step('orthology'):
-            self._to_log('Inferring query genes')
-            self.infer_query_genes()
-            self._to_log('Query genes successfully inferred')
-
             ## resolve orthology relationships with a graph-based method
             if not self.skip_tree_resolver:
                 self._to_log('Converting protein annotation FASTA file into HDF5 format')
@@ -964,7 +987,7 @@ class TogaMain(CommandLineManager):
             # self._to_log('Creating exon FASTA HDF5 storage for SLEASY')
             self._to_log('Aggregatig deprecated projection lists')
             self.deprecated_projection_file()
-            self._to_log('Renaming & filtering final output files')
+            self._to_log('Filtering output BED file')
             self.filter_final_bed_files()
             if self.skip_utr:
                 self._to_log('Skipping the UTR annotation step as suggested')
@@ -977,10 +1000,14 @@ class TogaMain(CommandLineManager):
             self.produce_final_sequence_files()
             self._to_log('Compressing FASTA files from the output')
             self.gzip_heavy_files()
+            self._to_log('Filtering final gene loss summary file')
+            self.filter_loss_file()
             self._to_log('Finalizing naming notation for query genes')
             self.rename_query_genes()
+            self._to_log('Creating GTF version of the final annotation')
+            self.create_gtf()
             ## before moving to the final steps, record the failed batches 
-            self._to_log('Recording failed batches')
+            self._to_log('Recording failed batches if any found')
             self.write_failed_batches()
         else:
             if self.halt_at == 'finalize':
@@ -1491,8 +1518,13 @@ class TogaMain(CommandLineManager):
         """
         ## check bigWigToWig binary
         for attr, default_name in Constants.BINARIES_TO_CHECK.items():
+            if attr not in self.__slots__:
+                continue
             if self.__getattribute__(attr) is None:
-                expected_path: str = os.path.join(BIN, default_name)
+                if default_name == 'prank':
+                    expected_path: str = os.path.join(BIN, default_name, default_name)
+                else:
+                    expected_path: str = os.path.join(BIN, default_name)
                 if os.path.exists(expected_path) and os.access(expected_path, os.X_OK):
                     self._to_log('Found %s at bin/%s' % (default_name, default_name))
                     self.__setattr__(attr, expected_path)
@@ -1551,7 +1583,7 @@ class TogaMain(CommandLineManager):
         if self.parallel_strategy in ('para', 'custom'):
             return
         nf_contents: str = Constants.NEXTFLOW_STUB.format(self.max_number_of_retries)
-        nf_file: str = os.path.join(self.nextflow_dir, 'execute_joblist.nf')
+        nf_file: str = os.path.join(self.nextflow_dir, Constants.NF_EXEC_SCRIPT_NAME)
         self.nextflow_exec_script = nf_file
         with open(nf_file, 'w') as h:
             h.write(nf_contents + '\n')
@@ -1962,7 +1994,12 @@ class TogaMain(CommandLineManager):
         # if not self.enable_spanning_chains:
         self._create_output_stub('spanning_chain_coords')
         has_dirs: bool = False
-        for dir_name in os.listdir(self.preprocessing_res_dir):
+        preprocessing_batch_dirs: List[str] = os.listdir(self.preprocessing_res_dir)
+        if not preprocessing_batch_dirs:
+            self._die(
+                'All preprocessing step jobs died'
+            )
+        for dir_name in preprocessing_batch_dirs:
             dir_path: str = os.path.join(self.preprocessing_res_dir, dir_name)
             ok_file: str = os.path.join(dir_path, Constants.OK_FILE)
             if not os.path.exists(ok_file):
@@ -2085,6 +2122,8 @@ class TogaMain(CommandLineManager):
         Aggregates the results of CESAR alignment step
         """
         batch_dirs: List[str] = os.listdir(self.alignment_res_dir)
+        if not batch_dirs:
+            self._die('All alignment step jobs dies')
         for dir_name in batch_dirs:
             dir_path: str = os.path.join(self.alignment_res_dir, dir_name)
             ok_file: str = os.path.join(dir_path, Constants.OK_FILE)
@@ -2118,30 +2157,6 @@ class TogaMain(CommandLineManager):
         cmd: str = f'cat {self.rejection_dir}/* >> {self.final_rejection_log}'
         _ = self._exec(cmd, 'Final rejection log aggregation failed')
 
-    def loss_status_summary(self) -> None:
-        """
-        Summarizes sequence loss in the query on projection, 
-        reference transcript, and reference gene levels
-        """
-        self._to_log(
-            'Loss statuses considered for orthology annotation are: %s' % self.accepted_loss_symbols
-        )
-        from .conservation_summary import main
-        ## TODO: Needs a class representation for sure
-        args: List[str] = [
-            self.transcript_meta, '-r', self.final_rejection_log,
-            '-o', self.gene_loss_summary
-        ]
-        if self.isoform_file is not None:
-            args.extend(('-i', self.isoform_file))
-        if os.path.exists(self.spanning_chain_coords):
-            args.extend(('--spanning_chains_precedence_file', self.spanning_chain_coords))
-        if os.path.exists(self.paralog_report):
-            args.extend(('-p', self.paralog_report))
-        if self.annotate_ppgenes:
-            args.extend(('-pp', self.processed_pseudogene_report))
-        main(args, standalone_mode=False)
-
     def prepare_pseudogene_track(self) -> None:
         """Prepares a BED9 track of projections classified as processed pseudogenes"""
         from .prepare_pseudogene_track import PseudogeneTrackBuilder
@@ -2161,7 +2176,8 @@ class TogaMain(CommandLineManager):
             #self.query_annotation_filt, 
             self.query_exon_meta, self.query_genes_raw, 
             '-b', self.query_genes_bed_raw, '-ln', self.project_id,
-            '-l', self.gene_loss_summary, 
+            # '-l', self.gene_loss_summary, ## REPLACE WITH transcript_meta.tsv
+            '-tr', self.transcript_meta,
             '-d', self.redundant_paralogs, '-dpp', self.redundant_ppgenes,
             '-pf', self.feature_table, '-op', self.pred_scores,
             '--insufficiently_covered_orthologs', self.discarded_overextended_projections,
@@ -2188,6 +2204,36 @@ class TogaMain(CommandLineManager):
         else:
             self._to_log('No items were rejected at gene inference step')
 
+    def loss_status_summary(self) -> None:
+        """
+        Summarizes sequence loss in the query on projection, 
+        reference transcript, and reference gene levels
+        """
+        self._to_log(
+            'Loss statuses considered for orthology annotation are: %s' % self.accepted_loss_symbols
+        )
+        from .conservation_summary import main
+        ## TODO: Needs a class representation for sure
+        args: List[str] = [
+            self.transcript_meta, '-r', self.final_rejection_log,
+            '-o', self.loss_summary_extended
+        ]
+        if self.isoform_file is not None:
+            args.extend(('-i', self.isoform_file))
+        if os.path.exists(self.spanning_chain_coords):
+            args.extend(('--spanning_chains_precedence_file', self.spanning_chain_coords))
+        if os.path.exists(self.paralog_report):
+            args.extend(('-p', self.paralog_report))
+        if self.annotate_ppgenes:
+            args.extend(('-pp', self.processed_pseudogene_report))
+        ## TODO: Add rejection log support
+        if os.path.exists(self.redundant_paralogs):
+            args.extend(('-rp', self.redundant_paralogs))
+        main(args, standalone_mode=False)
+        halt_step: int = Constants.RESUME_ORDER[self.halt_at]
+        if self.halt_at != 'all' and halt_step < Constants.RESUME_ORDER['finalize']:
+            self._cp(self.loss_summary_extended, self.gene_loss_summary)
+
     def convert_fasta_to_hdf5(self) -> None:
         """Converts TOGA2 output FASTA file into an HDF5 storage"""
         in_file: str = self.aa_fasta
@@ -2208,7 +2254,7 @@ class TogaMain(CommandLineManager):
 
         from .initial_orthology_resolver import InitialOrthologyResolver
         args: List[str] = [
-            self.bed_file_copy, self.query_annotation_filt, self.gene_loss_summary,
+            self.bed_file_copy, self.query_annotation_filt, self.loss_summary_extended,
             self.pred_scores, self.orthology_resolution_dir,
             '-qi', self.query_genes_raw, '-l', self.accepted_loss_symbols,
             '-mr', self.preprocessing_report, '-ln', self.project_id,
@@ -2278,7 +2324,12 @@ class TogaMain(CommandLineManager):
         """
         num_res_files: int = 0
         num_unres_files: int = 0
-        for batch in os.listdir(self.orthology_res_dir):
+        orth_batch_dirs: List[str] = os.listdir(self.orthology_res_dir)
+        if not orth_batch_dirs:
+            self._die(
+                'All gene-tree orthology resolution batches died'
+            )
+        for batch in orth_batch_dirs:
             ok_file: str = os.path.join(self.orthology_res_dir, batch, Constants.OK_FILE)
             if not os.path.exists(ok_file):
                 self._to_log(
@@ -2318,7 +2369,10 @@ class TogaMain(CommandLineManager):
             self.temporary_orth_report, self.resolved_leaves_file,
             '-o', self.orth_resolution_raw,
             '-o2z', self.one2zero_genes,
-            '--loss_summary', self.gene_loss_summary
+            '--loss_summary', self.loss_summary_extended,
+            '--rejection_log', self.final_rejection_log,
+            '--rejected_list', self.rejected_at_tree_step,
+            '-ln', self.project_id
         ]
         FinalOrthologyResolver(args, standalone_mode=False)
 
@@ -2347,6 +2401,8 @@ class TogaMain(CommandLineManager):
             deprecated_lists.append(self.redundant_paralogs)
         if os.path.exists(self.redundant_ppgenes):
             deprecated_lists.append(self.redundant_ppgenes)
+        if os.path.exists(self.rejected_at_tree_step):
+            deprecated_lists.append(self.rejected_at_tree_step)
         if not deprecated_lists:
             return
         deprecated_aggr_cmd: str = 'cat ' + '\t'.join(deprecated_lists) + f' > {self.all_deprecated_projs}'
@@ -2357,12 +2413,13 @@ class TogaMain(CommandLineManager):
         Prepares a BigBed track suitable for further loading to UCSC browser,
         alongside with a decoration BigBed file for mutations
         """
-        ## TODO: Import the class here
         from .make_ucsc_report import BigBedProducer
         args: List[str] = [
             self.aggr_ucsc_stub, self.bed_file_copy, self.feature_table,
             self.pred_scores, self.query_contig_size_file, self.SCHEMA_FILE,
-            self.vis_input_dir, '-ln', self.project_id, '--prefix', self.ucsc_prefix
+            self.vis_input_dir, '-ln', self.project_id, '--prefix', self.ucsc_prefix,
+            '--bedtobigbed_binary', self.bedtobigbed_binary,
+            '--ixixx_binary', self.ixixx_binary,
         ]
         if self.ref_link_file:
             args.extend(['-i', self.ref_link_file])
@@ -2525,38 +2582,81 @@ class TogaMain(CommandLineManager):
         args: List[str] = [
             self.query_annotation_filt, self.query_annotation_final
         ]
-        if os.path.exists(self.discarded_overextended_projections):
+        if os.path.exists(self.all_deprecated_projs):
             discarded_proj_args: List[str] = [
                 '-di', self.all_deprecated_projs,
                 '-do', self.discarded_proj_bed
             ]
             args.extend(discarded_proj_args)
-        if self.annotate_ppgenes:
+        if self.annotate_ppgenes and os.path.exists(self.processed_pseudogene_report):
             ppgene_args: List[str] = [
                 '-ppi', self.processed_pseudogene_report,
                 '-ppo', self.processed_pseudogene_annotation
             ]
             args.extend(ppgene_args)
+        if os.path.exists(self.paralog_report):
+            args.extend(
+                ('-pi', self.paralog_report)
+            )
         OutputBedFilter(args, standalone_mode=False)
+
+    def filter_loss_file(self) -> None:
+        """Filters loss file, leaving only projections from the final annotation in"""
+        from .filter_loss_file import LossFileFilter
+        args: List[str] = [
+            self.loss_summary_extended, self.query_annotation_final, self.gene_loss_summary
+        ]
+        if os.path.exists(self.paralog_report):
+            args.extend(('--paralogs', self.paralog_report))
+        if os.path.exists(self.processed_pseudogene_report):
+            args.extend(('--processed_pseudogenes', self.processed_pseudogene_report))
+        LossFileFilter(args, standalone_mode=False)
 
     def rename_query_genes(self) -> None:
         """Establishes query gene naming notation and renames gene entries in the final files"""
         from .finalise_orthology_files import QueryGeneNamer
         args: List[str] = [
             self.orth_resolution_raw, self.query_genes_raw, self.finalized_output_dir,
-            '-qb', self.query_genes_bed_raw, '-ln', self.project_id
+            '-qb', self.query_genes_bed_raw, '-ln', self.project_id,
+            '-l', self.gene_loss_summary
         ]
         if self.isoform_file is not None:
             args.extend(('-i', self.isoform_file))
+        if os.path.exists(self.paralog_report):
+            args.extend(('-p', self.paralog_report))
         if os.path.exists(self.processed_pseudogene_report):
             args.extend(('-pp', self.processed_pseudogene_report))
-        if os.path.exists(self.discarded_overextended_projections):
-            args.extend(('-d', self.discarded_overextended_projections))
+        if os.path.exists(self.all_deprecated_projs):
+            args.extend(('-d', self.all_deprecated_projs))
         QueryGeneNamer(args, standalone_mode=False)
         for file in os.listdir(self.finalized_output_dir):
             filepath: str = os.path.join(self.finalized_output_dir, file)
             cmd: str = f'mv {filepath} {self.output}/'
             _ = self._exec(cmd, 'Moving final orthology file failed')
+
+    def create_gtf(self) -> None:
+        """Converts final annotation BED file into GTF format"""
+        input_bed: str = (
+            self.query_annotation_with_utrs if os.path.exists(self.query_annotation_with_utrs)
+            else self.query_annotation_final
+        )
+        ## prepare a provisional isoform file
+        from .isoforms_for_gtf import ProvisionalIsoformMapper
+        ProvisionalIsoformMapper(
+            [
+                self.query_genes, 
+                input_bed, 
+                self.query_genes_for_gtf,
+                '-ln', self.project_id
+            ],
+            standalone_mode=False
+        )
+        ## create a GTF file and compress it
+        gtf_cmd: str = (
+            f'{self.GTF_SCRIPT} -b {input_bed} -i {self.query_genes_for_gtf} -o {self.query_gtf} && '
+            f'gzip -5 {self.query_gtf}'
+        )
+        _ = self._exec(gtf_cmd, 'GTF file preparation failed')
 
     def write_failed_batches(self) -> None:
         """

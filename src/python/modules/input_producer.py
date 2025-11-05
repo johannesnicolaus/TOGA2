@@ -447,7 +447,7 @@ class InputProducer(CommandLineManager):
             self._to_log(
                 'Found intronIC instance at %s; checking the execution permissions' % intronic_in_path
             )
-            if os.access(binary, os.X_OK):
+            if os.access(intronic_in_path, os.X_OK):
                 self._to_log(
                     'The found binary is executable; using the stated intronIC instance'
                 )

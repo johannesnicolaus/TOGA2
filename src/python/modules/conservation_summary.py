@@ -5,7 +5,9 @@ Summarises projection classification data based on TOGA results
 """
 from collections import defaultdict
 from .constants import Headers
-from .shared import CONTEXT_SETTINGS, parse_single_column
+from .shared import (
+    base_proj_name, CONTEXT_SETTINGS, parse_single_column
+)
 from .cesar_wrapper_constants import CLASS_TO_NUM
 from sys import stdout
 from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
@@ -19,28 +21,21 @@ __email__ = 'yury.malovichko@senckenberg.de'
 __credits__ = ('Bogdan Kirilenko', 'Michael Hiller', 'Virag Sharma', 'David Jebb')
 
 ## define local constants
-##
-# NUM_TO_CLASS: Dict[int, str] = {
-#     -1: 'N', 0: 'PP', 1: 'PG', 2: 'PM', 3: 'M', 4: 'L', 5: 'UL', 6: 'PI', 7: 'I', 8: 'FI'
-# }
 PROJECTION: str = 'PROJECTION'
 TRANSCRIPT: str = 'TRANSCRIPT'
 GENE: str = 'GENE'
-# CLASS_TO_NUM: Dict[str, int] = {v: k for k, v in NUM_TO_CLASS.items()}
-# ## set color code for the HTML report
-# CLASS_TO_COL: Dict[str, str] = {
-#     N_: BLACK,
-#     PG: BROWN,
-#     PM: GREY,
-#     L: LIGHT_RED,
-#     M: GREY,
-#     UL: SALMON,
-#     PI: LIGHT_BLUE,
-#     I: BLUE,
-# }
 CESAR_STEP_REJECT: str = 'No exons were aligned'
 NO_EXONS: str = 'NO_EXONS_FOUND'
 LOW_COV: str = 'INSUFFICIENT_SEQ_COVERAGE'
+REDUNDANT_PARALOG: str = 'REDUNDANT_PARALOG'
+REDUNDANT_PPGENE: str = 'REDUNDANT_PPGENE'
+SECOND_BEST: str = 'SECOND_BEST'
+IGNORED_ITEMS: Tuple[str] = (
+    'REDUNDANT_PARALOG', 'REDUNDANT_PPGENE', 'SECOND_BEST'
+)
+OUTCOMPETED_PARALOG_REASON: str = (
+    'TRANSCRIPT\t{}\t0\tAll paralogous projections outcompeted by orthologous predictions of other items\tALL_PARALOGS_REDUNDANT\tM'
+)
 
 def parse_precedence_file(file: TextIO) -> Dict[str, str]:
     """
@@ -73,7 +68,8 @@ def transcript_meta_to_report(
     file: Union[str, TextIO],
     precedence: Optional[Dict[str, str]] = {},
     paralogs: Optional[Set[str]] = set(),
-    ppgenes: Optional[Set[str]] = set()
+    ppgenes: Optional[Set[str]] = set(),
+    discarded_paralogs: Optional[Set[str]] = set()  
 ) -> Tuple[Dict[str, str], Dict[str, str]]:
     """
     Parses transcript_meta.tsv output file of TOGA, inferring projection
@@ -81,29 +77,50 @@ def transcript_meta_to_report(
     """
     proj2status: Dict[str, str] = {}
     tr2status: Dict[str, Set[str]] = defaultdict(set)
+    potentially_missing_paralogs: Set[str] = set()
+    confirmed_missing_paralogs: Set[str] = set()
     if not isinstance(file, str):
         lines: List[str] = file.readlines()
     else:
         with open(file, 'r') as h:
             lines: List[str] = h.readlines()
+    ## extract the projection loss statuses
     for line in lines:
         data: List[str] = line.strip().split('\t')
         if data[0] == 'projection':
             continue
         proj: str = data[0]
+        basename: str = base_proj_name(proj)
         tr: str = '#'.join(proj.split('#')[:-1])
         status: str = data[1]
         proj2status[proj] = status
         ## do not propagate paralog and ppgene loss status to downstream levels
-        if proj in ppgenes:
+        if proj in ppgenes or basename in ppgenes:
             continue
+        ## for paralogs, do not count the discarded projections towards the transcript classification
         if proj in paralogs:
+            if proj in discarded_paralogs or basename in discarded_paralogs:
+                potentially_missing_paralogs.add(tr)
+                continue
             status = 'PG'
         tr2status[tr].add(status)
+    ## for paralog-only transcripts, assign the Missing status to those 
+    ## that have all their projections discarded
+    for tr in potentially_missing_paralogs:
+        if tr in tr2status:
+            continue
+        tr2status[tr] = 'M'
+        confirmed_missing_paralogs.add(tr)
+    ## infer the transcript level loss statuses and add them to output
     for tr in tr2status:
+        ## if transcript has an established precedence order (e.g., nested spanning chains),
+        ## use the top projection's status as the transcript's status estimate
         if tr in precedence:
             preferred_proj: str = precedence[tr]
-            if preferred_proj in proj2status and preferred_proj not in ppgenes:
+            basename: str = base_proj_name(preferred_proj)
+            if preferred_proj in proj2status and (
+                preferred_proj not in ppgenes and basename not in ppgenes
+            ):
                 preferred_loss_status: str = proj2status[preferred_proj]
                 tr2status[tr] = preferred_loss_status
                 continue
@@ -111,7 +128,7 @@ def transcript_meta_to_report(
         max_status: str = max(all_classes, key=lambda x: CLASS_TO_NUM[x])
         tr2status[tr] = max_status
 
-    return (proj2status, tr2status)
+    return (proj2status, tr2status, confirmed_missing_paralogs)
 
 
 # def rejection_file_to_report( ## LEGACY FORMAT
@@ -205,6 +222,9 @@ def rejection_file_to_report(
         if level != PROJECTION:
             raise ValueError(f'An ambiguous entry found: {line}')
         tr: str = '#'.join(name.split('#')[:-1])
+        reason: str = data[4]
+        if reason in IGNORED_ITEMS:
+            continue
         proj2status[name] = status
         tr2all_statuses[tr].add(status)
     for tr in tr2all_statuses:
@@ -299,7 +319,7 @@ def gene_loss_report(
 @click.option(
     '--rejected_projections',
     '-r',
-    type=click.File('r', lazy=True),
+    type=click.Path(exists=True),
     metavar='TSV',
     default=None,
     show_default=True,
@@ -350,6 +370,19 @@ def gene_loss_report(
     )
 )
 @click.option(
+    '--discarded_paralogs',
+    '-rp',
+    type=click.File('r', lazy=True),
+    metavar='DISCARDED_PARALOG_FILE',
+    default=None,
+    show_default=True,
+    help=(
+        'A single-column file containing names of discarded paralogous projections. '
+        'For transcripts which are annotated with paralogous projections alone, '
+        'only those which retain at least one non-discarded projections are '
+    )
+)
+@click.option(
     '--output',
     '-o',
     type=click.File('w'),
@@ -365,6 +398,7 @@ def main(
     paralogs: Optional[Union[click.File, None]],
     processed_pseudogenes: Optional[Union[click.File, None]],
     spanning_chains_precedence_file: Optional[Union[click.File, None]],
+    discarded_paralogs: Optional[Union[click.File, None]],
     output: Optional[click.File]
 ) -> None:
     """
@@ -378,17 +412,22 @@ def main(
         spanning_status: Dict[str, str] = {}
     paralogs: Set[str] = parse_single_column(paralogs)
     ppgenes: Set[str] = parse_single_column(processed_pseudogenes)
-    proj2status, tr2status = transcript_meta_to_report(
+    discarded_paralogs: Set[str] = parse_single_column(discarded_paralogs)
+    proj2status, tr2status, confirmed_rejected_paralogs = transcript_meta_to_report(
         transcript_meta, 
         spanning_status, 
         paralogs=paralogs, 
-        ppgenes=ppgenes
+        ppgenes=ppgenes,
+        discarded_paralogs=discarded_paralogs
     )
-    if rejected_projections:
-        r_proj2status, r_tr2status = rejection_file_to_report(rejected_projections)
-        proj2status, tr2status = add_rejection_data(
-            proj2status, tr2status, r_proj2status, r_tr2status, spanning_status
-        )
+    print(f'{tr2status.get("ENST00000315491.12#TUBB3")=}')
+    if rejected_projections is not None:
+        with open(rejected_projections, 'r') as h:
+            r_proj2status, r_tr2status = rejection_file_to_report(h)
+            proj2status, tr2status = add_rejection_data(
+                proj2status, tr2status, r_proj2status, r_tr2status, spanning_status
+            )
+    print(f'{tr2status.get("ENST00000315491.12#TUBB3")=}')
     output.write(Headers.LOSS_FILE_HEADER)
     for proj, status in proj2status.items():
         output.write('\t'.join((PROJECTION, proj, status)) + '\n')
@@ -399,6 +438,10 @@ def main(
         gene2status: Dict[str, str] = gene_loss_report(isoform_file, tr2status)
         for gene, status in gene2status.items():
             output.write('\t'.join((GENE, gene, status)) + '\n')
+    if confirmed_rejected_paralogs and rejected_projections is not None:
+        with open(rejected_projections, 'a') as h:
+            for transcript in confirmed_rejected_paralogs:
+                h.write(OUTCOMPETED_PARALOG_REASON.format(transcript) + '\n')
 
 if __name__ == '__main__':
     main()

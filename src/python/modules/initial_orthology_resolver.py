@@ -20,8 +20,10 @@ from collections import defaultdict
 from .constants import PHYLO_NOT_FOUND, PRE_CLEANUP_LINE
 from heapq import heappop, heappush
 from .shared import (
-    CommandLineManager, CONTEXT_SETTINGS, flatten, get_upper_dir,
-    get_connected_components, SPLIT_JOB_HEADER
+    base_proj_name, CommandLineManager, CONTEXT_SETTINGS, 
+    get_proj2trans, flatten, 
+    get_upper_dir, get_connected_components, 
+    segment_base, SPLIT_JOB_HEADER
 )
 from shutil import which
 from typing import (
@@ -86,7 +88,7 @@ def extract_names_from_bed(file: TextIO) -> List[str]:
         if not data:
             continue
         try:
-            output.append(data[3])
+            output.append(segment_base(data[3]))
         except IndexError:
             raise Exception('BED file provided was improperly formatted')
     return output
@@ -110,7 +112,7 @@ def parse_isoforms(
     for line in file:
         data: List[str] = line.rstrip().split('\t')
         gene: str = f'{prefix}{data[0]}'
-        tr: str = data[1]
+        tr: str = segment_base(data[1])
         if allowed_names and tr not in allowed_names:
             continue
         gene2tr[gene].append(tr)
@@ -306,6 +308,16 @@ def undefined_only(record: str) -> bool:
     """
     seq: str = record.split('\n')[-1]
     return all(x in ('X', 'x', '*') for x in seq)
+
+
+def is_homopolymer(record: str) -> bool:
+    """
+    Checks if sequence field in an amino acid FASTA record
+    comprises of a single repetitive residue. A workaround for known PRANK behavior 
+    in the presence of homopolymer sequences 
+    """
+    seq: str = record.split('\n')
+    return len(set(seq)) < 2
 
 
 @click.command(context_settings=CONTEXT_SETTINGS, no_args_is_help=True)
@@ -943,21 +955,26 @@ class InitialOrthologyResolver(CommandLineManager):
                 ]
                 if not projs:
                     continue
-                projs.sort(key=lambda x: -self.proj2prob.get(x, 0.0))
+                projs.sort(key=lambda x: -self.proj2prob.get(base_proj_name(x), 0.0))
                 top_proj: str = projs[0]
-                top_proj_status: str = self.loss_status.get(top_proj[0], N)
-                top_proj_prob: float = self.proj2prob.get(top_proj, 0.0)
+                top_basename: str = base_proj_name(top_proj)
+                # top_proj_status: str = self.loss_status.get(top_proj[0], N)
+                top_proj_status: str = self.loss_status.get(top_basename, N)
+                # top_proj_prob: float = self.proj2prob.get(top_proj, 0.0)
+                top_proj_prob: float = self.proj2prob.get(top_basename, 0.0)
                 if not top_proj_prob:
                     continue
-                top_proj_features: FilteringFeatures = self.proj2filt_features[top_proj]
+                # top_proj_features: FilteringFeatures = self.proj2filt_features[top_proj]
                 for other_proj in projs[1:]:
-                    if other_proj in self.paralogs:
+                    other_basename: str = base_proj_name(other_proj)
+                    if other_proj in self.paralogs or other_basename in self.paralogs:
                         continue
-                    if other_proj in self.processed_pseudogenes:
+                    if other_proj in self.processed_pseudogenes or other_basename in self.processed_pseudogenes:
                         continue
                     if ',' in other_proj:
                         continue
-                    other_proj_status: str = self.loss_status.get(other_proj, N)
+                    # other_proj_status: str = self.loss_status.get(other_proj, N)
+                    other_proj_status: str = self.loss_status.get(other_basename, N)
                     if CLASS_TO_NUM[other_proj_status] > CLASS_TO_NUM[top_proj_status]:
                         continue
                     other_proj_prob: float = self.proj2prob[other_proj]
@@ -981,7 +998,7 @@ class InitialOrthologyResolver(CommandLineManager):
         Populates a {reference_transcript:[projections]}
         """
         for proj in self.tr2gene_que:
-            tr: str = '#'.join(proj.split('#')[:-1])
+            tr: str = get_proj2trans(proj)[0]## '#'.join(proj.split('#')[:-1])
             self.tr2proj[tr].append(proj)
             self.proj2tr[proj] = tr
 
@@ -1000,24 +1017,25 @@ class InitialOrthologyResolver(CommandLineManager):
                 ## and iterate over all the recorded projections
                 # trusted_projections: List[str] = []
                 for proj in self.tr2proj.get(ref_tr, []):
+                    basename: str = base_proj_name(proj)
                     # v = proj == 'ENST00000322861.12#MYL11#325045'
-                    if self.loss_status.get(proj, N) not in self.accepted_losses:
+                    if self.loss_status.get(basename, N) not in self.accepted_losses:
                         # if v:
                         #     print('ENST00000322861.12#MYL11#325045 is lost')
                         continue
-                    if proj in self.paralogs:
+                    if proj in self.paralogs or basename in self.paralogs:
                         # if v:
                         #     print('ENST00000322861.12#MYL11#325045 is a paralog')
                         continue
-                    if proj in self.processed_pseudogenes:
+                    if proj in self.processed_pseudogenes or basename in self.processed_pseudogenes:
                         # if v:
                         #     print('ENST00000322861.12#MYL11#325045 is a ppgene')
                         continue
                     # trusted_projections.append(proj)
                     # if v:
                     #     print('ENST00000322861.12#MYL11#325045 is in the graph')
-                    query_g: str = self.tr2gene_que[proj]
-                    prob: float = self.proj2prob.get(proj, 0.0)
+                    query_g: str = self.tr2gene_que[basename]#self.tr2gene_que[proj]
+                    prob: float = self.proj2prob.get(basename, 0.0)#self.proj2prob.get(proj, 0.0)
                     query_g_scores[query_g] = max(query_g_scores[query_g], prob)
             ## once all possible query genes have been captured,
             ## add the respective edges to the graph
@@ -1063,28 +1081,14 @@ class InitialOrthologyResolver(CommandLineManager):
         with open(self.orthology_file, 'w') as h:
             h.write(HEADER)
             for (ref_genes, query_genes, status) in self.orthology_report:
-                # for r_gene in ref_genes:
-                #     _r_gene: str = r_gene[3:]
-                #     for q_gene in query_genes:
-                #         _q_gene: str = q_gene[3:]
-                #         projections: List[str] = self.gene2tr_que[q_gene]
-                #         for proj in projections:
-                #             tr, _ = get_proj2trans(proj)
-                #             projected_transcripts.add(tr)
-                #             l: str = f'{_r_gene}\t{tr}\t{_q_gene}\t{proj}\t{status}\n'
-                #             h.write(l)
-                #     if status == ONE2ZERO:
-                #         for tr in self.gene2tr_ref[r_gene]:
-                #             l: str = f'{_r_gene}\t{tr}\tNone\tNone\t{status}\n'
-                #             h.write(l)
                 for r_gene in ref_genes:
                     _r_gene: str = r_gene[3:]
                     ref_trs: List[str] = self.gene2tr_ref[r_gene]
                     for tr in ref_trs:
                         if status == ONE2ZERO:
                             projected_transcripts.add(tr)
-                            l: str = f'{_r_gene}\t{tr}\tNone\tNone\t{status}\n'
-                            h.write(l)
+                            line: str = f'{_r_gene}\t{tr}\tNone\tNone\t{status}\n'
+                            h.write(line)
                         else:
                             projections: List[str] = self.tr2proj[tr]
                             for proj in projections:
@@ -1102,8 +1106,8 @@ class InitialOrthologyResolver(CommandLineManager):
                                     continue
                                 projected_transcripts.add(tr)
                                 _q_gene: str = q_gene[3:]
-                                l: str = f'{_r_gene}\t{tr}\t{_q_gene}\t{proj}\t{status}\n'
-                                h.write(l)
+                                line: str = f'{_r_gene}\t{tr}\t{_q_gene}\t{proj}\t{status}\n'
+                                h.write(line)
         non_projected_transcripts: Set[str] = set(self.tr2gene_ref.keys()).difference(
             projected_transcripts
         )
@@ -1217,10 +1221,10 @@ class InitialOrthologyResolver(CommandLineManager):
                     prefix: str = R_PREFIX if source == 'REFERENCE' else Q_PREFIX
                     ## check if gene is in the gene name list
                     if source == 'REFERENCE':
-                        ref_tr = '#'.join(tr.split('#')[:-1])
+                        ref_tr = get_proj2trans(tr)[0]#'#'.join(tr.split('#')[:-1])
                         gene = self.tr2gene_ref.get(ref_tr, None)
                     elif source == 'QUERY':
-                        gene = self.tr2gene_que.get(tr, None)
+                        gene = self.tr2gene_que.get(base_proj_name(tr), None)#self.tr2gene_que.get(tr, None)
                     if gene not in names:
                         gene = ''
                         tr = ''
@@ -1262,10 +1266,10 @@ class InitialOrthologyResolver(CommandLineManager):
                 if is_ref:
                     projs: List[str] = [
                         x.rstrip(postfix) for x in f.keys() 
-                        if postfix in x and '#'.join(x.split('#')[:-1]) in trs
+                        if postfix in x and get_proj2trans(x)[0] in trs
                     ]
                     projs = [
-                        x for x in projs if x in self.tr2proj['#'.join(x.split('#')[:-1])]
+                        x for x in projs if x in self.tr2proj[get_proj2trans(x)[0]]
                     ]
                     best_status: str = max(
                         [
@@ -1451,6 +1455,15 @@ class InitialOrthologyResolver(CommandLineManager):
                             (
                                 'Clique %i in job %i has at least one sequence containing '
                                 'only undefined symbols; skipping'
+                            ) % (n, j), 
+                            'warning'
+                        )
+                        continue
+                    if any(is_homopolymer(x) for x in fasta_seqs):
+                        self._to_log(
+                            (
+                                'Clique %i in job %i has at least one sequence as '
+                                'amino acid homopolymer; skipping'
                             ) % (n, j), 
                             'warning'
                         )

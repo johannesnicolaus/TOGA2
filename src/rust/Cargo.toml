@@ -12,7 +12,7 @@ bigtools = "0.5.6"
 chaintools = { git = "https://github.com/ReverendCasy/chaintools", version = "0.1.82" }
 clap = { version = "4.5.42", features = ["derive"] }
 colorconv = "0.1.1"
-cubiculum = "0.1.50"
+cubiculum = "0.1.51"
 flate2 = "1.1.2"
 fontdb = "0.23.0"
 fxhash = "0.2.1"
@@ -66,11 +66,6 @@ path = "src/bin/utr_projector.rs"
 edition = "2021"
 name = "add_decorations"
 path = "src/bin/add_decorations.rs"
-
-[[bin]]
-edition = "2021"
-name = "plot_projections"
-path = "src/bin/plot_projection.rs"
 
 [[bin]]
 edition = "2021"

@@ -26,8 +26,8 @@ import logging
 import os
 
 __author__ = 'Yury V. Malovichko'
-__version__ = '2.0.5'
-__year__ = '2024'
+__version__ = '2.0.6'
+__year__ = '2025'
 __credits__ = ('Bogdan M. Kirilenko', 'Michael Hiller')
 
 logging.basicConfig(level=logging.INFO)
@@ -179,6 +179,7 @@ def toga2() -> None:
         aggregate_preprocessing_res: data aggregation and summary across independent preprocessing batches;\b\n
         alignment: CESAR alignment, mutation check, and loss inference for each projection; parallel step;\b\n
         aggregate_cesar_res: data aggregation and summary across independent alignment batches;\b\n
+        gene_inference: annotate query genes based on the transcript-level annotation results;\b\n
         loss_summary: gene loss data summary;\b\n
         orthology: orthology relationship resolution; if "-st" flag is set, gene tree orthology batches are run at this step;\b\n
         summarize_trees: if "-st" flag was set, individual gene tree batch results are summarized and added to the original orthology data at this step;\b\n
@@ -1738,6 +1739,160 @@ def spliceai(**kwargs) -> None:
     """
     from src.python.modules.spliceai_manager import SpliceAiManager
     SpliceAiManager(**kwargs)
+
+@toga2.command(
+    context_settings=CONTEXT_SETTINGS,
+    no_args_is_help=True,
+    short_help='Merge complementing TOGA2 results for the same reference and query'
+)
+def merge(**kwargs) -> None:
+    """
+    \b
+    MMP""MM""YMM   .g8""8q.     .g8\"""bgd      db          `7MMF'`7MMF'
+    P'   MM   `7 .dP'    `YM. .dP'     `M     ;MM:           MM    MM  
+         MM     dM'      `MM dM'       `     ,V^MM.          MM    MM  
+         MM     MM        MM MM             ,M  `MM          MM    MM  
+         MM     MM.      ,MP MM.    `7MMF'  AbmmmqMA         MM    MM  
+         MM     `Mb.    ,dP' `Mb.     MM   A'     VML        MM    MM  
+       .JMML.     `"bmmd"'     `"bmmmdPY .AMA.   .AMMA.    .JMML..JMML.
+
+    \b
+    merge - Merge complementing TOGA2 results for the same reference and query
+    NOTE: This mode is currently under development
+    """
+
+@toga2.command(
+    context_settings=CONTEXT_SETTINGS,
+    no_args_is_help=True,
+    short_help=(
+        'Prepare an integrated TOGA2 annotation '
+        'by combining annotation with different references'
+    )
+)
+@click.argument(
+    'ref_data',
+    type=click.Path(exists=True),
+    metavar='INPUT_JSON'
+)
+@click.option(
+    '--output',
+    '-o',
+    type=click.Path(exists=False),
+    default=None,
+    show_default=True,
+    help=(
+        'A path to a directory to save the results to'
+    )
+)
+@click.option(
+    '--accepted_statuses',
+    '-l',
+    type=str,
+    metavar='ACCEPTED_LOSS_STATUSES',
+    default=','.join(Constants.DEFAULT_LOSS_SYMBOLS),
+    show_default=True,
+    help=(
+        (
+            'A comma-separated list of preferential loss status symbols. '
+            'Projections corresponding to these loss statuses will have preference '
+            'for query gene inference and final annotation content unless no projection '
+            'of these statuses occurs in a query locus. '
+            'Supported symbols are: %s. Keyword ALL lets all possible statuses in.'
+        ) % ",".join(Constants.ALL_LOSS_SYMBOLS)
+    )
+)
+@click.option(
+    '--prefix',
+    '-p',
+    type=str,
+    metavar='UCSC_PREFIX',
+    default='HLTOGA2combined',
+    show_default=True,
+    help='A prefix to use in UCSC browser file names for integrated annotation'
+)
+@click.option(
+    '--skip_ucsc',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help=(
+        'If set, skips the integrated UCSC BigBed preparation step altogether, '
+        'even if the reference-wise UCSC files were provided'
+    )
+)
+@click.option(
+    '--chrom_sizes',
+    type=click.Path(exists=True),
+    metavar='CHROM_SIZES_FILE',
+    default=None,
+    show_default=True,
+    help=(
+        'A path to two-column, tab-separated file containing query chromosome '
+        '(contig, scaffold, etc.) sizes, in bp. Required if UCSC BigBed file '
+        'preparation is requested'
+    )
+)
+@click.option(
+    '--bigbedtobed_binary',
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    help=(
+        'A path to UCSC bigBedToBed binary. '
+        'If none provided, the code will look for the binary in bin/ directory '
+        'and then for an available executable in $PATH'
+    )
+)
+@binary_options.option(
+    '--bedtobigbed_binary',
+    type=click.Path(exists=True),
+    metavar='BEDTOBIGBED_PATH',
+    default=None,
+    show_default=True,
+    help=(
+        'A path to UCSC bedToBigBed executable. '
+        'If none provided, the code will look for the binary in bin/ directory '
+        'and then for an available executable in $PATH'
+    )
+)
+@binary_options.option(
+    '--ixixx_binary',
+    type=click.Path(exists=True),
+    metavar='IXIXX_PATH',
+    default=None,
+    show_default=True,
+    help=(
+        'A path to UCSC ixIxx executable. '
+        'If none provided, the code will look for the binary in bin/ directory '
+        'and then for an available executable in $PATH'
+    )
+)
+@click.option(
+    '--verbose',
+    '-v',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='Controls execution verbosity'
+)
+
+def integrate(**kwargs) -> None:
+    """
+    \b
+    MMP""MM""YMM   .g8""8q.     .g8\"""bgd      db          `7MMF'`7MMF'
+    P'   MM   `7 .dP'    `YM. .dP'     `M     ;MM:           MM    MM  
+         MM     dM'      `MM dM'       `     ,V^MM.          MM    MM  
+         MM     MM        MM MM             ,M  `MM          MM    MM  
+         MM     MM.      ,MP MM.    `7MMF'  AbmmmqMA         MM    MM  
+         MM     `Mb.    ,dP' `Mb.     MM   A'     VML        MM    MM  
+       .JMML.     `"bmmd"'     `"bmmmdPY .AMA.   .AMMA.    .JMML..JMML.
+
+    \b
+    integrate - Prepare an integrated TOGA2 annotation by combining annotation with different references
+    NOTE: This mode is currently under development
+    """
+    from src.python.modules.integrate import AnnotationIntegrator
+    AnnotationIntegrator(**kwargs).run()
 
 @toga2.command(
     context_settings=CONTEXT_SETTINGS,

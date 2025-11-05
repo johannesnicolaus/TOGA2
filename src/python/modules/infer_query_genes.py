@@ -5,17 +5,20 @@ Infers proxies for query genes based on coding sequence intersection between
 the projections
 """
 
-import os
-import sys
+# import os
+# import sys
 
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-sys.path.extend([LOCATION, PARENT])
+# LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+# PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
+# sys.path.extend([LOCATION, PARENT])
 
 from collections import defaultdict
 from dataclasses import dataclass
-from modules.cesar_wrapper_executables import AnnotationEntry, Exon, ExonDict
-from modules.shared import CommandLineManager, CONTEXT_SETTINGS, intersection
+from .cesar_wrapper_executables import AnnotationEntry, Exon, ExonDict
+from .shared import (
+    base_proj_name, CommandLineManager, CONTEXT_SETTINGS, 
+    get_proj2trans, intersection, segment_base
+)
 from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 
 import click
@@ -34,8 +37,9 @@ if len(v_split) > 1:
 else:
     NX_VERSION: float = float(v_split[0])
 PROJECTION: str = 'PROJECTION'
+TR_META_HEADER: str = 'projection'
 MISSING: Tuple[str, str] = ('M', 'N')
-EXTENDED_HIGH_CONFIDENCE: Tuple[str, str] = ('FI', 'PI')
+EXTENDED_HIGH_CONFIDENCE: Tuple[str, str] = ('FI', 'I') ## NOTE: Previously ('FI', 'I') => likely a bug
 MIN_RELIABLE_EXON_COV: float = 0.6
 
 REJ_ORTH_REASON: str = '\t'.join(
@@ -140,6 +144,19 @@ class Coords:
     )
 )
 @click.option(
+    '--transcript_meta',
+    '-tr',
+    type=click.File('r', lazy=True),
+    metavar='TRANSCRIPT_META_FILE',
+    default=None,
+    show_default=True,
+    help=(
+        'TOGA2 transcript meta file containing at least three columns; '
+        'if provided, missing and lost transcripts will be excluded '
+        'from gene inference'
+    )
+)
+@click.option(
     '--loss_summary_file',
     '-l',
     type=click.File('r', lazy=True),
@@ -147,8 +164,9 @@ class Coords:
     default=None,
     show_default=True,
     help=(
-        'TOGA2 loss summary file containing at least three columns; '
-        'if provided, missing transcripts will be excluded from gene inference'
+        'DEPRECATED: TOGA2 loss summary file containing at least three columns; '
+        'if provided, missing  and lost transcripts will be excluded '
+        'from gene inference'
     )
 )
 @click.option( ## TODO: Move to query gene inference code
@@ -315,7 +333,8 @@ class QueryGeneCollapser(CommandLineManager):
         ref_isoform_file: Optional[Union[click.File, None]],
         bed6_output: Optional[Union[click.File, None]],
         ref_bed: Optional[Union[click.File, None]],
-        loss_summary_file: Optional[Union[click.File, None]],
+        transcript_meta: Optional[Union[click.File, None]],
+        loss_summary_file: Optional[Union[click.File, None]], # DEPRECATED
         feature_file: Optional[Union[click.File, None]],
         orthology_probabilities: Optional[Union[click.File, None]],
         orthology_threshold: Optional[float],
@@ -375,7 +394,8 @@ class QueryGeneCollapser(CommandLineManager):
         self.proc_pseudogene_list: Set[str] = parse_single_column(processed_pseudogene_list)
         self.lost_projections: Set[str] = set()
         self.proj2status: Dict[str, str] = {}
-        self.parse_loss_file(loss_summary_file)
+        # self.parse_loss_file(loss_summary_file)
+        self.parse_transcript_meta(transcript_meta)
         self.orthology_threshold: float = orthology_threshold
         self.parse_orthology_file(orthology_probabilities)
         self.discarded_paralogs: Set[str] = set()
@@ -445,7 +465,7 @@ class QueryGeneCollapser(CommandLineManager):
                 continue
             if data[0] == 'projection':
                 continue
-            proj: str = data[0]
+            proj: str = segment_base(data[0])
             annotated_projections.add(proj)
             exon: int = int(data[1])
             chrom: str = data[3]
@@ -480,6 +500,30 @@ class QueryGeneCollapser(CommandLineManager):
         for proj in self.tr2exons:
             tr: str = '#'.join(proj.split('#')[:-1])
             self.ref_isoform2gene[tr] = tr
+
+    def parse_transcript_meta(self, file: TextIO) -> None:
+        """Extracts projection loss statuses from the transcript meta file"""
+        if file is None:
+            return
+        for i, line in enumerate(file):
+            data: List[str] = line.strip().split('\t')
+            if not data or not data[0]:
+                continue
+            if data[0] == TR_META_HEADER:
+                continue
+            if len(data) < 2:
+                self._die(
+                    (
+                        'Improper transcript meta file formatting at line %i; '
+                        'expected at least 2 fields, got %i'
+                    ) % (i, len(data))
+                )
+            proj: str = data[0]
+            status: str = data[1]
+            self.proj2status[proj] = status
+            if status not in MISSING:
+                continue
+            self.lost_projections.add(proj)
 
 
     def parse_loss_file(self, file: TextIO) -> None:
@@ -567,11 +611,15 @@ class QueryGeneCollapser(CommandLineManager):
         1) it is not the most probable ortholog according to the TOGA2 orthology classsifier, AND
         2) it has initial exon coverage less than 60%
         """
+        ## overextension filter is not applied to fragmented projections
         if ',' in proj:
             return False
-        if proj in self.paralog_list or proj in self.proc_pseudogene_list:
+        basename: str = base_proj_name(proj)
+        ## overextension is not applied to paralogs and processed pseudogenes
+        if basename in self.paralog_list or basename in self.proc_pseudogene_list:
             return False
-        tr: str = '#'.join(proj.split('#')[:-1])
+        # tr: str = '#'.join(proj.split('#')[:-1])  
+        tr: str = get_proj2trans(basename)[0]
         max_prob: float = self.tr2max_prob.get(tr, -1)
         if max_prob < 0:
             return False
@@ -635,7 +683,7 @@ class QueryGeneCollapser(CommandLineManager):
         """
         Creates a graph of exon intersections between the projections.
         An edge is traversed between two projection nodes if any of their exons
-        intersect by 90% of their length.
+        intersect by at least one coding base.
         After that, infers all connected components from the projection
         intersection graph. The resulting components are treated as proxies
         for query genes.
@@ -649,13 +697,16 @@ class QueryGeneCollapser(CommandLineManager):
             for i, proj_out in enumerate(chrom_trs):
                 # if proj_out.name in self.lost_projections:
                 #     continue
-                if proj_out.name in self.discarded_paralogs:
+                basename_out: str = base_proj_name(proj_out.name)
+                if basename_out in self.discarded_paralogs:
                     continue
-                if proj_out.name in self.discarded_ppgenes:
+                if basename_out in self.discarded_ppgenes:
                     continue
-                out_is_paralog: bool = proj_out.name in self.paralog_list
-                out_is_pseudo: bool = proj_out.name in self.proc_pseudogene_list
-                out_is_lost: bool = proj_out.name in self.lost_projections
+                graph_name_out: str = segment_base(proj_out.name)
+                out_is_paralog: bool = basename_out in self.paralog_list
+                out_is_pseudo: bool = basename_out in self.proc_pseudogene_list
+                out_is_lost: bool = basename_out in self.lost_projections
+                out_is_intact: bool = self.proj2status[basename_out] in EXTENDED_HIGH_CONFIDENCE
                 out_non_orth: bool = out_is_paralog or out_is_pseudo
                 if ',' in proj_out.name:
                     sufficient_exon_cov_out: bool = True
@@ -670,23 +721,25 @@ class QueryGeneCollapser(CommandLineManager):
                 for j, proj_in in enumerate(chrom_trs[i+1:]):
                     if was_discarded:
                         break
-                    if proj_in.name in self.discarded_paralogs:
+                    basename_in: str = base_proj_name(proj_in.name)
+                    if basename_in in self.discarded_paralogs:
                         continue
-                    if proj_in.name in self.discarded_ppgenes:
+                    if basename_in in self.discarded_ppgenes:
                         continue
                     ## do not overlap lost projections and (putatively) intact projections
-                    if proj_in.name in self.lost_projections and not out_is_lost:
+                    if basename_in in self.lost_projections and not out_is_lost:
                         continue
                     if proj_out.end < proj_in.start:
                         # print('Not reached')
                         continue
+                    graph_name_in: str = segment_base(proj_in.name)
                     ## if the `out` projection has not been discarded by that point,
                     ## edges starting in it can be safely added to the graph
                     if proj_out.start > proj_in.end:
                         ## retrogenes/processed pseudogenes do not participate in gene inference
-                        if not out_is_pseudo:# and not was_discarded:
-                            if proj_out.name not in graph.nodes:
-                                graph.add_node(proj_out.name)
+                        if not out_is_pseudo or out_is_intact:# and not was_discarded:
+                            if graph_name_out not in graph.nodes:
+                                graph.add_node(graph_name_out)
                             for _out, _in in edges:
                                 graph.add_edge(_out, _in)
                         edges_added: bool = True
@@ -757,25 +810,32 @@ class QueryGeneCollapser(CommandLineManager):
                         ## discarded any of the two current projections if the following applies
                         ## processed pseudogenes cannot overlap orthologs/paralogs
                         if out_is_pseudo and not in_is_pseudo:
-                            self.discarded_ppgenes.add(proj_out.name)
+                            self.discarded_ppgenes.add(basename_out)
                             was_discarded = True
                             continue
                         if in_is_pseudo and not out_is_pseudo:
-                            self.discarded_ppgenes.add(proj_in.name)
+                            self.discarded_ppgenes.add(basename_in)
                             continue
                         ## paralogs cannot overlap orthologs
                         if out_is_paralog and not in_is_paralog:
-                            self.discarded_paralogs.add(proj_out.name)
+                            self.discarded_paralogs.add(basename_out)
                             was_discarded = True
                             continue
                         if in_is_paralog and not out_is_paralog:
-                            self.discarded_paralogs.add(proj_in.name)
+                            self.discarded_paralogs.add(basename_in)
                             continue
-                        edges.add((proj_out.name, proj_in.name))
+                        ## no e
+                        if out_is_pseudo and in_is_pseudo:
+                            if not out_is_intact:
+                                continue
+                            in_is_intact: bool = self.proj2status[basename_in] in EXTENDED_HIGH_CONFIDENCE
+                            if not in_is_intact:
+                                continue
+                        edges.add((graph_name_out, graph_name_in))
                         # graph.add_edge(proj_out.name, proj_in.name)
-                if not was_discarded and not out_is_pseudo:
-                    if proj_out.name not in graph.nodes:
-                        graph.add_node(proj_out.name)
+                if not was_discarded and (not out_is_pseudo or out_is_intact):
+                    if graph_name_out not in graph.nodes:
+                        graph.add_node(graph_name_out)
                     for _out, _in in edges:
                         graph.add_edge(_out, _in)
 
@@ -892,6 +952,10 @@ class QueryGeneCollapser(CommandLineManager):
         for i, c in enumerate(self.sorted_components, start=1):
             name: str = f'reg_{i}'
             for tr in self.component2trs[c]:
+                if tr in self.paralog_list:
+                    tr += '#paralog'
+                elif tr in self.proc_pseudogene_list:
+                    tr += '#retro'
                 self.output.write(f'{name}\t{tr}\n')
 
     def write_bed6_output(self) -> None:

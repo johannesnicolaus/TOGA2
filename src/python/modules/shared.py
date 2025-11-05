@@ -123,9 +123,14 @@ def base_proj_name(projection: str) -> str:
     return projection.split('$')[0].replace('#paralog', '').replace('#retro', '')
 
 
+def segment_base(projection: str) -> str:
+    """Returns the fragmented projection's name, ignoring the fragment number"""
+    return projection.split('$')[0]
+
+
 def get_proj2trans(projection: str) -> Tuple[str, str]:
     """Safely extract transcript name from the chain projection name"""
-    data: List[str] = projection.split('#')
+    data: List[str] = projection.split('$')[0].split('#')
     if data[-1] == 'retro' or data[-1] == 'paralog':
         data = data[:-1]
     return '#'.join(data[:-1]), data[-1]
@@ -548,11 +553,19 @@ class CommandLineManager:
         except FileNotFoundError:
             pass
 
+    def _mv(self, file: str, dest: str) -> None:
+        """Moves a file or directory to a new location"""
+        os.replace(file, dest)
+
     def _abspath(self, path: str) -> str:
         """Checks whether a path is absolute, prepends root prefix if not"""
         if os.path.isabs(path):
             return path
         return os.path.abspath(path)
+
+    def _cp(self, file: str, dest: str) -> None:
+        """Copies a file to a new destination"""
+        copy2(file, dest)
 
     def _exec(
         self,

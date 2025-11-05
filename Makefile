@@ -38,6 +38,7 @@ build_cython:
 build_rust:
 	cd src/rust && cargo build --release
 	echo ${DELIM}
+        cd ../../bed2gtf && cargo build
 
 check_essentials:
 	./${CHECK_DEPS} essentials

@@ -310,7 +310,7 @@ class ProcessedSegment:
                             clipped_stop is not None and clipped_stop != j - 1
                         ) else rel_exon_stop
                     )
-                    if clipped_stop - clipped_start < 3:
+                    if clipped_stop - clipped_start < 3 or curr_exon in aln_portion.subexon_coordinates:
                         clipped_start, clipped_stop = rel_exon_start, rel_exon_stop
                     self.clipped_rel_coords[curr_exon] = Coords(clipped_start, clipped_stop)
                     abs_exon_start: int = self._abs_coord(clipped_start, portion=i)
@@ -3390,7 +3390,12 @@ class ProcessedSegment:
             exon_alns: List[str] = [
                 self._exon_aln_for_browser(exon) for exon in range(1, self.exon_num + 1)
             ]
-        for chain in self.chains:
+        chains: List[str] = sorted(
+            self.chains, key=lambda x: min([y for y,z in self.exon2chain.items() if z == x ])
+        )
+        fragmented: bool = len(chains) > 1
+        fragment_id: int = 1
+        for chain in chains:#self.chains:
             exons: List[int] = [
                 exon for exon in range(1, self.exon_num + 1) if self.exon2chain[exon] == chain
             ]
@@ -3464,9 +3469,17 @@ class ProcessedSegment:
             lengths = ','.join(map(str, lengths)) + ','
             starts = ','.join(map(str, starts)) + ','
             score: str = str(chain) if browser else '0'
+            name: str = self.name
+            if fragmented:
+                name += f'${fragment_id}'
+                fragment_id += 1
+            if self.is_paralog:
+                name += '#paralog'
+            if self.is_processed_pseudogene and self.loss_status in (FI, I):
+                name += '#retro'
             output: List[Any] = [
                 chrom, cds_start, cds_stop,
-                f'{self.name}', score,
+                name, score,
                 '+' if strand else '-', cds_start, cds_stop, color,
                 ex_num, lengths, starts
             ]
