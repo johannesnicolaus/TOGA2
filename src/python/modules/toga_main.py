@@ -26,7 +26,7 @@ import os
 import sys
 
 __author__ = 'Yury V. Malovichko'
-__version__ = '2.0.5'
+__version__ = '2.0.6'
 __year__ = '2024'
 __credits__ = ('Bogdan M. Kirilenko', 'Michael Hiller')
 
