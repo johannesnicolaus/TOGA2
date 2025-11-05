@@ -38,7 +38,7 @@ build_cython:
 build_rust:
 	cd src/rust && cargo build --release
 	echo ${DELIM}
-        cd ../../bed2gtf && cargo build
+		cd bed2gtf && cargo build
 
 check_essentials:
 	./${CHECK_DEPS} essentials
@@ -80,7 +80,7 @@ install_binaries:
 	wget -P bin/ http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/bigBedToBed && \
 	wget -P bin/ http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/bedToBigBed && \
 	wget -P bin/ http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/ixIxx && \
-        chmod +x bin/*
+		chmod +x bin/*
 	echo ${DELIM}
 
 install_python_packages:
@@ -94,7 +94,7 @@ install_python_packages:
 			python3 -m pip install -r requirements.txt; \
 		else \
 			echo "Installing missing packages globally"; \
-                        cat missing_packages.txt ; \
+						cat missing_packages.txt ; \
 			python3 -m pip install -r missing_packages.txt --root-user-action=ignore; \
 		fi; \
 	fi ; \
