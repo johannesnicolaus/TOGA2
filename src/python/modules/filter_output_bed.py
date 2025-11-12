@@ -155,7 +155,7 @@ class OutputBedFilter(CommandLineManager):
                 if '#retro' not in data[3]:
                     data[3] = f'{data[3]}#retro'
                 line = '\t'.join(data) +'\n'
-            elif name in self.paralog_projs or basename in self.paralog_projs:
+            if name in self.paralog_projs or basename in self.paralog_projs:
                 if '#paralog' not in data[3]:
                     data[3] = f'{data[3]}#paralog'
                 line = '\t'.join(data) + '\n'

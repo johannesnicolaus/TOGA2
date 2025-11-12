@@ -379,7 +379,8 @@ def gene_loss_report(
     help=(
         'A single-column file containing names of discarded paralogous projections. '
         'For transcripts which are annotated with paralogous projections alone, '
-        'only those which retain at least one non-discarded projections are '
+        'only those which retain at least one non-discarded projections are kept for '
+        'transcript- and gene-level loss estimation'
     )
 )
 @click.option(
@@ -420,14 +421,12 @@ def main(
         ppgenes=ppgenes,
         discarded_paralogs=discarded_paralogs
     )
-    print(f'{tr2status.get("ENST00000315491.12#TUBB3")=}')
     if rejected_projections is not None:
         with open(rejected_projections, 'r') as h:
             r_proj2status, r_tr2status = rejection_file_to_report(h)
             proj2status, tr2status = add_rejection_data(
                 proj2status, tr2status, r_proj2status, r_tr2status, spanning_status
             )
-    print(f'{tr2status.get("ENST00000315491.12#TUBB3")=}')
     output.write(Headers.LOSS_FILE_HEADER)
     for proj, status in proj2status.items():
         output.write('\t'.join((PROJECTION, proj, status)) + '\n')
