@@ -1153,16 +1153,19 @@ class TogaMain(CommandLineManager):
             'logs_dir': project_path,
             'nextflow_dir': self.nextflow_dir,
             'NF_EXECUTE': self.nextflow_exec_script,
-            'local_executor': self.local_executor,
             'keep_nf_logs': self.keep_nextflow_log,
             # 'nexflow_config_file': nextflow_config,
-            'nextflow_config_dir': self.nextflow_config_dir,
             'temp_wd': self.tmp,
             'queue_name': self.cluster_queue_name,
             'logger': self.logger
         }
         if config_file is not None:
-            manager_data['nexflow_config_file'] = config_file
+            manager_data['nextflow_config_file'] = config_file
+            manager_data['local_executor'] = False
+            manager_data['nextflow_config_dir'] = self.nextflow_config_dir
+        else:
+            manager_data['local_executor'] = self.local_executor
+            manager_data['nextflow_config_dir'] = self.nextflow_dir
         try:
             job_manager.execute_jobs(
                 joblist,
@@ -1606,8 +1609,9 @@ class TogaMain(CommandLineManager):
                     ) % (file, self.nextflow_config_dir),
                     'warning'
                 )
-                file = None
-            self.nextflow_config_files[process] = file
+                self.nextflow_config_files[process] = None
+            else:
+                self.nextflow_config_files[process] = self._abspath(config_path)
         ## TODO: Add the file contents inspection?
 
     def filter_chain_file(self) -> None:

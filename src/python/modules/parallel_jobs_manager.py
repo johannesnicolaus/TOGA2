@@ -118,8 +118,8 @@ class NextflowStrategy(ParallelizationStrategy):
         self.queue_name = manager_data.get("queue_name", self.DEFAULT_QUEUE_NAME)
         self.logger = manager_data['logger']
 
-        self.config_path: Union[str, None] = manager_data.get(
-            'nexflow_config_file', self._create_config_file()
+        self.config_path: Union[str, None] = (
+            manager_data.get('nextflow_config_file') or self._create_config_file()
         )
 
         # create the nextflow process
@@ -131,7 +131,7 @@ class NextflowStrategy(ParallelizationStrategy):
         os.mkdir(log_dir) if not os.path.isdir(log_dir) else None
         log_file_path = os.path.join(manager_data["logs_dir"], f"{label}.log")
         with open(log_file_path, "w") as log_file:
-            self.logger.warning(f"Parallel manager: pushing job {cmd}")
+            self.logger.info(f"Parallel manager: pushing job {cmd}")
             self._process = subprocess.Popen(
                 cmd,
                 shell=True,
