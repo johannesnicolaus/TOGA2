@@ -80,6 +80,9 @@ cesar_options: PrettyGroup = PrettyGroup(
 parallel_options: PrettyGroup = PrettyGroup(
     'Parallel execution', help='Execution parameters for the pipeline\'s parallel steps'
 )
+container_options: PrettyGroup = PrettyGroup(
+    'Container execution', help='Container execution options'
+)
 spliceai_options: PrettyGroup = PrettyGroup(
     'SpliceAI use', help=(
         'SpliceAI use for exon annotation, splice site correction, and intron gain search'
@@ -1064,6 +1067,35 @@ def toga2() -> None:
         'If set, proceeds through parallel steps even if some batches failed. '
         'Failed batches are further added to the "failed_batches_<project_name>.tsv file stepwise. '
         'Note that the results of the failed batches will be missing from the final output'
+    )
+)
+@container_options.option(
+    '--container_image',
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    help=(
+        'A path to the executable TOGA2 container image. '
+        'All the parallel step scripts will be executed by invoking this container. '
+    )
+)
+@container_options.option(
+    '--container_executor',
+    type=str,
+    default='apptainer',
+    show_default=True,
+    help='A name for container executor engine'
+)
+@container_options.option(
+    '--bindings',
+    type=str,
+    metavar="STRING",
+    default=None,
+    show_default=True,
+    help=(
+        'A list of directory mounts to provide to the container instances at parallel steps. '
+        'Binginds should be provided as expected by the container executor engine and wrapped in '
+        'quotes, e.g. "/tmp,/src/,~/:/home"'
     )
 )
 @legacy_and_experimental.option(

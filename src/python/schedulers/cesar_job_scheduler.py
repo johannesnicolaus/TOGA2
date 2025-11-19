@@ -7,15 +7,16 @@ A module for CESAR job binning based on maximal memory requirements
 from collections import defaultdict, namedtuple
 from heapq import heappop, heappush
 from math import ceil
-from modules.constants import PRE_CLEANUP_LINE
+from modules.constants import CONTAINER_ENGINE2BIND_KEY, PRE_CLEANUP_LINE
 from modules.cesar_wrapper_constants import (
     DEF_BLOSUM_FILE, MIN_PROJ_OVERLAP_THRESHOLD,
     HG38_CANON_U2_ACCEPTOR, HG38_CANON_U2_DONOR,
     FIRST_ACCEPTOR, LAST_DONOR
 )
 from modules.shared import (
-    CommandLineManager, get_upper_dir, 
-    intersection, CONTEXT_SETTINGS, SPLIT_JOB_HEADER
+    CommandLineManager, CONTEXT_SETTINGS,
+    get_upper_dir, intersection, 
+    SPLIT_JOB_HEADER
 )
 from pathlib import Path
 from shared import get_connected_components
@@ -26,31 +27,22 @@ import click
 import networkx as nx
 import os
 # import sys
-
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 # sys.path.extend([LOCATION, PARENT])
 
 __author__  = 'Yury V. Malovichko'
 __credits__ = ['Bogdan Kirilenko', 'Michael Hiller']
 __year__ = '2024'
 
-TOGA2_ROOT: str = get_upper_dir(__file__, 4)
-
 ## define constants
-# LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-BLOSUM_FILE: str = os.path.join(TOGA2_ROOT, *DEF_BLOSUM_FILE)
-HL_CESAR_PATH: str = os.path.join(
-    os.path.sep,
-    'projects',
-    'hillerlab',
-    'genome',
-    'src',
-    'TOGA_pub',
-    'CESAR2.0',
-    'cesar'
-)
+TOGA2_ROOT: str = get_upper_dir(__file__, 4)
+LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 CESAR_WRAPPER_SCRIPT: str = os.path.join(PARENT, 'cesar_exec.py')
+CESAR_WRAPPER_SCRIPT_REL: str = os.path.join(
+    *PARENT.split(os.sep)[-2:], 'cesar_exec.py'
+)
+
+BLOSUM_FILE: str = os.path.join(TOGA2_ROOT, *DEF_BLOSUM_FILE)
 REDUNDANT_ENTRY: str = (
     'PROJECTION\t{}\t0\tRedundant projection to the given locus\tREDUNDANT\tN'
 )
@@ -437,6 +429,35 @@ def fragmented_projection(chain_id: str) -> bool:
         '[default:PREPROCESS_JOB_DIRECTORY/genes_rejection_reason.tsv]'
     )
 )
+@click.option(
+    '--container_image',
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    help=(
+        'A path to the executable TOGA2 container image. '
+        'All the parallel step scripts will be executed by invoking this container. '
+    )
+)
+@click.option(
+    '--container_executor',
+    type=str,
+    default='apptainer',
+    show_default=True,
+    help='A name for container executor engine'
+)
+@click.option(
+    '--bindings',
+    type=str,
+    metavar="STRING",
+    default=None,
+    show_default=True,
+    help=(
+        'A list of directory mounts to provide to the container instances at parallel steps. '
+        'Binginds should be provided as expected by the container executor engine and wrapped in '
+        'quotes, e.g. "/tmp,/src/,~/:/home"'
+    )
+)
 ## benchmarking-related - REMOVE IN THE FINAL VERSION
 @click.option(
     '--toga1_compatible',
@@ -477,7 +498,7 @@ class CesarScheduler(CommandLineManager):
         'first_acceptor', 'last_donor', 
         'correct_short_introns', 'ignore_alternative_frame',
         'save_cesar_input', 'v',
-
+        'container_image', 'container_executor', 'bindings', 'binding_map',
         'proj2max_mem', 'proj2sum_mem', 'proj2storage', 'rejected_transcripts',
         'heavier_jobs', 'heavy_job_nums', 'heavy_job_max_mem', 'jobs', 'job2mem',
         'joblist_descr', 'rejection_file',
@@ -521,6 +542,9 @@ class CesarScheduler(CommandLineManager):
         ignore_alternative_frame: Optional[bool],
         save_cesar_input: Optional[bool],
         rejection_report: Optional[click.Path],
+        container_image: Optional[Union[click.Path, None]],
+        container_executor: str,
+        bindings: Optional[Union[str, None]],
         toga1_compatible: Optional[bool],
         verbose: bool
     ) -> None:
@@ -554,9 +578,7 @@ class CesarScheduler(CommandLineManager):
         )
         if cesar_binary is None:
             cesar_in_path: str = which('cesar')
-            if os.path.exists(HL_CESAR_PATH):
-                self.cesar_binary: str = HL_CESAR_PATH
-            elif cesar_in_path is not None:
+            if cesar_in_path is not None:
                 self.cesar_binary: str = cesar_in_path
             else:
                 raise FileNotFoundError(
@@ -605,6 +627,11 @@ class CesarScheduler(CommandLineManager):
                 job_directory, 'genes_rejection_reason.tsv'
             )
         )
+
+        self.container_image: Union[str, None] = container_image
+        self.container_executor: str = container_executor
+        self.bindings: Union[str, None] = bindings
+        self.binding_map: Union[Dict[str, str], None] = self._process_bindings(bindings)
 
         self.run()
 
@@ -1020,8 +1047,16 @@ class CesarScheduler(CommandLineManager):
                         self.proj2storage[proj]
                     ).absolute()
                     input_file: str = os.path.join(input_dir, 'exon_storage.hdf5')
+                    if self.container_image is not None:
+                        bindings: str = self.bindings if self.bindings is not None else ''
+                        executor: str = (
+                        f'{self.container_executor} run {{}} {{}} {{}} '
+                        f'{CESAR_WRAPPER_SCRIPT}'
+                    )
+                    else:
+                        executor: str = CESAR_WRAPPER_SCRIPT
                     cmd: str = (
-                        f'{CESAR_WRAPPER_SCRIPT} "{tr}" '
+                        f'{executor} "{tr}" '
                         f'{chain} {input_file} -cs {self.cesar_binary} '
                         f'-scm {self.correction_mode} '
                         f'-msp {self.min_splice_prob} '
@@ -1067,6 +1102,15 @@ class CesarScheduler(CommandLineManager):
                         cmd += ' --parallel_job'
                     # cmd += ' -v'
                     cmd += f' -o {cesar_output}'
+                    if self.container_image is not None:
+                        if self.binding_map is not None:
+                            bind_key: str = CONTAINER_ENGINE2BIND_KEY[self.container_executor]
+                            bindings: str = self.bindings if self.bindings is not None else ''
+                            for key, value in self.binding_map.items():
+                                cmd = cmd.replace(key, value)
+                            cmd = cmd.format(bind_key, bindings, self.container_image)
+                        else:
+                            cmd = cmd.format('', '', self.container_image)
                     cmds.append(cmd)
                 jobfile_dest: str = os.path.join(self.job_directory, f'batch{jobid}.ex')
                 with open(jobfile_dest, 'w') as h2:
@@ -1119,6 +1163,25 @@ class CesarScheduler(CommandLineManager):
         with open(self.rejection_file, 'w') as h:
             for line in self.rejected_transcripts:
                 h.write(line + '\n')
+
+    def _process_bindings(self, bindings: Union[str, None]) -> Union[Dict[str, str], None]:
+        """Processes the directory bindings for the containter engine"""
+        if bindings is None:
+            return None
+        binding_dict: Dict[str, str] = {}
+        for mount in bindings.strip().split(','):
+            if ':' not in mount:
+                if mount[-1] != os.sep:
+                    mount += os.sep
+                binding_dict[mount] = ''
+                continue
+            key, value = mount.split(':')
+            if key[-1] != os.sep:
+                key += os.sep
+            if value[-1] != os.sep:
+                value += os.sep
+            binding_dict[key] = value
+        return binding_dict
 
 
 if __name__ == '__main__':

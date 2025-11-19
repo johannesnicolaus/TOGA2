@@ -14,11 +14,16 @@ from modules.cesar_wrapper_constants import (
     FIRST_ACCEPTOR, LAST_DONOR,
     MIN_ASMBL_GAP_SIZE,
 )
-from modules.constants import PRE_CLEANUP_LINE
+from modules.constants import (
+    CONTAINER_ENGINE2BIND_KEY, PRE_CLEANUP_LINE
+)
 from heapq import heappop, heappush
 from math import ceil
 from pathlib import Path
-from modules.shared import CommandLineManager, get_upper_dir, CONTEXT_SETTINGS, SPLIT_JOB_HEADER
+from modules.shared import (
+    CommandLineManager, get_upper_dir, 
+    CONTEXT_SETTINGS, SPLIT_JOB_HEADER
+)
 from shutil import which
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -31,6 +36,9 @@ PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 # sys.path.append(PARENT)
 
 CESAR_PREPROCESS_SCRIPT: str = os.path.join(PARENT, 'cesar_preprocess.py')
+CESAR_PREPROCESS_SCRIPT_REL: str = os.path.join(
+    *PARENT.split(os.sep)[-2:], 'cesar_preprocess.py' 
+)
 HG38_CANON_U2_ACCEPTOR: str = os.path.join(TOGA2_ROOT, *HG38_CANON_U2_ACCEPTOR)
 HG38_CANON_U2_DONOR: str = os.path.join(TOGA2_ROOT, *HG38_CANON_U2_DONOR)
 HG38_NON_CANON_U2_ACCEPTOR: str = os.path.join(TOGA2_ROOT, *HG38_NON_CANON_U2_ACCEPTOR)
@@ -84,6 +92,7 @@ class PreprocessingScheduler(CommandLineManager):
         'chain2trs', 'transcript_spans', 'job2cmds',
         'paralog_list', 'paralog_report', 'ppgene_list', 'ppgene_report',
         'rejected_transcripts', 'rejection_report',
+        'container_image', 'container_executor', 'bindings', 'binding_map',
         'toga1', 'toga1_plus_cesar',
         'v'
     ]
@@ -136,6 +145,9 @@ class PreprocessingScheduler(CommandLineManager):
         annotate_processed_pseudogenes: Optional[bool] = False,
         processed_pseudogene_report: Optional[Union[click.File, None]] = None,
         rejection_report: Optional[Union[click.File, None]] = None,
+        container_image: Optional[Union[click.Path, None]] = None,
+        container_executor: Optional[str] = 'apptainer',
+        bindings: Optional[Union[str, None]] = None,
         toga1_compatible: Optional[bool] = False,
         toga1_plus_corrected_cesar: Optional[bool] = False,
         log_name: Optional[Union[str, None]] = None,
@@ -217,6 +229,12 @@ class PreprocessingScheduler(CommandLineManager):
             self.bigwig2wig_binary: click.Path = bigwig2wig_binary
         self.min_splice_prob: float = max(0.0, min(min_splice_prob, 1.0))
         self.annotate_ppgenes: bool = annotate_processed_pseudogenes
+
+        self.container_image: Union[str, None] = container_image
+        self.container_executor: str = container_executor
+        self.bindings: Union[str, None] = bindings
+        self.binding_map: Union[Dict[str, str], None] = self._process_bindings(bindings)
+
         self.toga1: bool = toga1_compatible
         self.toga1_plus_cesar: bool = toga1_plus_corrected_cesar
 
@@ -444,12 +462,19 @@ class PreprocessingScheduler(CommandLineManager):
                 prepr_output: str = Path(
                     os.path.join(self.preprocessing_directory, f'batch{jobid}')
                 ).absolute()
+                if self.container_image is not None:
+                    executor: str = (
+                        f'{self.container_executor} run {{}} {{}} {{}} '
+                        f'{CESAR_PREPROCESS_SCRIPT_REL}'
+                    )
+                else:
+                    executor: str = CESAR_PREPROCESS_SCRIPT
                 with open(job_file, 'w') as h2:
                     h2.write('\n'.join(SPLIT_JOB_HEADER) + '\n')
                     h2.write(PRE_CLEANUP_LINE.format(prepr_output) + '\n')
                     for chain, trs in inputs:
                         cmd: str = (
-                            f'{CESAR_PREPROCESS_SCRIPT} "{trs}" {chain} {self.ref_annotation} '
+                            f'{executor} "{trs}" {chain} {self.ref_annotation} '
                             f'{self.ref} {self.query} {self.chain_file} '
                             f'{self.ref_chrom_sizes} {self.query_chrom_sizes} '
                             f' --cesar_canon_u2_acceptor {self.cesar_canon_u2_acceptor}'
@@ -497,6 +522,15 @@ class PreprocessingScheduler(CommandLineManager):
                             cmd += f' --spliceai_dir {self.spliceai_dir}'
                             cmd += f' --min_splice_prob {self.min_splice_prob}'
                         cmd += f' --output {prepr_output}'# -v'
+                        if self.container_image is not None:
+                            if self.binding_map is not None:
+                                bind_key: str = CONTAINER_ENGINE2BIND_KEY[self.container_executor]
+                                bindings: str = self.bindings if self.bindings is not None else ''
+                                for key, value in self.binding_map.items():
+                                    cmd = cmd.replace(key, value)
+                                cmd = cmd.format(bind_key, bindings, self.container_image)
+                            else:
+                                cmd = cmd.format('', '', self.container_image)
                         h2.write(cmd + '\n')
                         ok_file: str = os.path.join(prepr_output, OK)
                     h2.write(TOUCH.format(ok_file) + '\n')
@@ -528,6 +562,26 @@ class PreprocessingScheduler(CommandLineManager):
         with open(self.rejection_report, 'w') as h:
             for line in self.rejected_transcripts:
                 h.write(line + '\n')
+
+    def _process_bindings(self, bindings: Union[str, None]) -> Union[Dict[str, str], None]:
+        """Processes the directory bindings for the containter engine"""
+        if bindings is None:
+            return None
+        binding_dict: Dict[str, str] = {}
+        for mount in bindings.strip().split(','):
+            if ':' not in mount:
+                if mount[-1] != os.sep:
+                    mount += os.sep
+                binding_dict[mount] = ''
+                continue
+            key, value = mount.split(':')
+            if key[-1] != os.sep:
+                key += os.sep
+            if value[-1] != os.sep:
+                value += os.sep
+            binding_dict[key] = value
+        return binding_dict
+
 
 @click.command(context_settings=CONTEXT_SETTINGS, no_args_is_help=True)
 @click.argument(
@@ -954,7 +1008,35 @@ class PreprocessingScheduler(CommandLineManager):
         '[default:PREPROCESS_JOB_DIRECTORY/genes_rejection_reason.tsv]'
     )
 )
-
+@click.option(
+    '--container_image',
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    help=(
+        'A path to the executable TOGA2 container image. '
+        'All the parallel step scripts will be executed by invoking this container. '
+    )
+)
+@click.option(
+    '--container_executor',
+    type=str,
+    default='apptainer',
+    show_default=True,
+    help='A name for container executor engine'
+)
+@click.option(
+    '--bindings',
+    type=str,
+    metavar="STRING",
+    default=None,
+    show_default=True,
+    help=(
+        'A list of directory mounts to provide to the container instances at parallel steps. '
+        'Binginds should be provided as expected by the container executor engine and wrapped in '
+        'quotes, e.g. "/tmp,/src/,~/:/home"'
+    )
+)
 ## benchmarking-related - REMOVE IN THE FINAL VERSION
 @click.option(
     '--toga1_compatible',

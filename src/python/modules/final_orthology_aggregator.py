@@ -242,11 +242,17 @@ class FinalOrthologyResolver(CommandLineManager):
             if line == Headers.ORTHOLOGY_TABLE_HEADER:
                 continue
             line = line.rstrip()
-            if not line:
-                continue
             data: List[str] = line.split('\t')
-            ## TODO: Sanity check for column number
-            if data[-1] != MANY2MANY:
+            if not data or not data[0]:
+                continue
+            if data[0] == 't_gene':
+                continue
+            ## The commented section has never been a problem in production runs
+            ## but might incur some problems upon patching
+            # if data[-1] != MANY2MANY:
+            #     self.out_lines.append(line)
+            #     continue
+            if data[-1] == ONE2ZERO:
                 self.out_lines.append(line)
                 continue
             ref_gene: str = data[0]
@@ -312,8 +318,14 @@ class FinalOrthologyResolver(CommandLineManager):
                 query_tr: str = data[1]
             query_tr = restore_fragmented_proj_id(query_tr)
             ref_tr = '#'.join(ref_tr.split('#')[:-1])
-            ref_gene: str = self.ref_tr2gene[ref_tr]
-            query_gene: str = self.query_tr2gene[query_tr]
+            ref_gene: str = self.ref_tr2gene.get(ref_tr, None)
+            if ref_gene is None:
+                self._to_log('Missing gene for reference transcipt %s' % ref_tr, 'warning')
+                continue
+            query_gene: str = self.query_tr2gene.get(query_tr, None)
+            if query_gene is None:
+                self._to_log('Missing gene for query transcipt %s' % query_tr, 'warning')
+                continue
             ### CURRENT IDEA: First, check whether all the query genes 
             ### actually have projections from the reference orthologs
             ### does not seem trivial since the input does not contain any indications of the original clique
@@ -349,9 +361,6 @@ class FinalOrthologyResolver(CommandLineManager):
                 ## might have come from a gene other than the newly established ortholog;
                 ## pick the one used for the tree reconstruction only if the established 
                 ## ortholog has no projection in the query gene
-                v = ref_tr == 'XM_047425712.1#OTUD7B'
-                if v:
-                    print(f'{ref_tr=}, {query_tr=}')
                 progenitor_tr: str = get_tr(query_tr)
                 if progenitor_tr not in self.ref_tr2gene:
                     self._die('Transcript %s is missing from the reference gene-to-transcript mapping' % progenitor_tr)
@@ -372,8 +381,8 @@ class FinalOrthologyResolver(CommandLineManager):
                     recorded_lines: bool = True
                 for other_query_tr in self.query_gene2tr[query_gene]:
                     other_ref_tr: str = get_tr(other_query_tr)#'#'.join(other_query_tr.split('#')[:-1])
-                    if v:
-                        print(f'{other_ref_tr=}, {other_query_tr=}, {ref_gene=}, {self.ref_tr2gene[other_ref_tr]=}')
+                    if other_ref_tr not in self.ref_tr2gene:
+                        continue
                     ## projections from other genes are counted as rejected
                     if self.ref_tr2gene[other_ref_tr] != ref_gene:
                         self._to_log(f'Skipping {other_query_tr} since it does not belong to the original reference gene')
@@ -446,6 +455,7 @@ class FinalOrthologyResolver(CommandLineManager):
             #         'from the resolved pairs file: %s|%s' % (ref_gene, ','.join(query_genes)) 
             #     )
             status: str = (
+                ONE2ONE if ref_gene_num == query_gene_num == 1 else
                 ONE2MANY if ref_gene_num == 1 else 
                 MANY2ONE if query_gene_num == 1 else 
                 ONE2ZERO if not query_gene_num else 

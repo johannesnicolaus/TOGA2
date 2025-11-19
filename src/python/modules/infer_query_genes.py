@@ -623,8 +623,8 @@ class QueryGeneCollapser(CommandLineManager):
         max_prob: float = self.tr2max_prob.get(tr, -1)
         if max_prob < 0:
             return False
-        second_probable: bool = self.proj2prob.get(proj, 0.0) < max_prob
-        overextended: bool = self.proj2exon_cov[proj] < MIN_RELIABLE_EXON_COV
+        second_probable: bool = self.proj2prob.get(basename, 0.0) < max_prob
+        overextended: bool = self.proj2exon_cov[basename] < MIN_RELIABLE_EXON_COV
         return second_probable and overextended
 
     def get_intersections_in_ref(self, ref_isoform_file: TextIO, ref_bed_file: TextIO) -> None:

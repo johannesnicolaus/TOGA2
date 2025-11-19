@@ -144,6 +144,9 @@ class TogaMain(CommandLineManager):
         cluster_queue_name: Optional[str],
         keep_nextflow_log: Optional[bool],
         ignore_crashed_parallel_batches: Optional[bool],
+        container_image: Optional[click.Path],
+        container_executor: Optional[str],
+        bindings: Optional[str],
         legacy_chain_feature_extraction: Optional[bool],
         toga1_compatible: Optional[bool],
         toga1_plus_corrected_cesar: Optional[bool],
@@ -280,6 +283,9 @@ class TogaMain(CommandLineManager):
         self.max_parallel_time: int = max_parallel_time
         self.keep_nextflow_log: bool = keep_nextflow_log
         self.cluster_queue_name: str = cluster_queue_name
+        self.container_image: Union[click.Path, None] = self._abspath(container_image)
+        self.container_executor: str = container_executor
+        self.bindings: Union[str, None] = bindings
         self.ignore_crashed_parallel_batches: bool = ignore_crashed_parallel_batches
         self.legacy_chain_feature_extraction: bool = legacy_chain_feature_extraction
         self.parallel_process_names: List[str] = []
@@ -1792,6 +1798,14 @@ class TogaMain(CommandLineManager):
             '-j', f'{self.feature_job_num}',
             '-r', self.feature_rejection_log, '-ln', self.project_id
         ]
+        if self.container_image is not None:
+            args.extend(
+                (
+                    '--container_image', self.container_image,
+                    '--container_executor', self.container_executor,
+                    '--bindings', self.bindings
+                )
+            )
         ChainFeatureScheduler(args, standalone_mode=False)
 
     def run_feature_extraction_jobs(self) -> None:
@@ -1970,6 +1984,10 @@ class TogaMain(CommandLineManager):
             kwargs['min_splice_prob'] = self.min_splice_prob
         if self.annotate_ppgenes:
             kwargs['annotate_processed_pseudogenes'] = True
+        if self.container_image is not None:
+            kwargs['container_image'] = self.container_image
+            kwargs['container_executor'] = self.container_executor
+            kwargs['bindings'] = self.bindings
         PreprocessingScheduler(**kwargs)
 
     def run_preprocessing_jobs(self) -> None:
@@ -2080,6 +2098,14 @@ class TogaMain(CommandLineManager):
                     '-crd', self.cesar_canon_u2_donor,
                     '-cfa', self.cesar_first_acceptor,
                     '-cld', self.cesar_last_donor
+                )
+            )
+        if self.container_image is not None:
+            args.extend(
+                (
+                    '--container_image', self.container_image,
+                    '--container_executor', self.container_executor,
+                    '--bindings', self.bindings
                 )
             )
         CesarScheduler(args, standalone_mode=False)
@@ -2258,10 +2284,15 @@ class TogaMain(CommandLineManager):
 
         from .initial_orthology_resolver import InitialOrthologyResolver
         args: List[str] = [
-            self.bed_file_copy, self.query_annotation_filt, self.loss_summary_extended,
-            self.pred_scores, self.orthology_resolution_dir,
-            '-qi', self.query_genes_raw, '-l', self.accepted_loss_symbols,
-            '-mr', self.preprocessing_report, '-ln', self.project_id,
+            self.bed_file_copy, 
+            self.query_annotation_filt, 
+            self.loss_summary_extended,
+            self.pred_scores, 
+            self.orthology_resolution_dir,
+            '-qi', self.query_genes_raw, 
+            '-l', self.accepted_loss_symbols,
+            '-mr', self.preprocessing_report, 
+            '-ln', self.project_id,
             # '-pf', self.feature_table
         ]
         if self.isoform_file is not None:
@@ -2284,6 +2315,14 @@ class TogaMain(CommandLineManager):
                 args.extend(('--use_raxml', '--tree_bootstrap', '100'))
             else:
                 args.extend(('--tree_bootstrap', '5000'))
+        if self.container_image is not None:
+            args.extend(
+                (
+                    '--container_image', self.container_image,
+                    '--container_executor', self.container_executor,
+                    '--bindings', self.bindings
+                )
+            )
         InitialOrthologyResolver(args, standalone_mode=False)
         add_graph_rej_cmd: str = f'cat {self.rejected_by_graph} >> {self.final_rejection_log}'
         _ = self._exec(add_graph_rej_cmd, 'Adding rejected items from the orthology step failed')
@@ -2661,6 +2700,10 @@ class TogaMain(CommandLineManager):
             f'gzip -5 {self.query_gtf}'
         )
         _ = self._exec(gtf_cmd, 'GTF file preparation failed')
+
+    def create_postoga_table(self) -> None:
+        """Creates Postoga summary table"""
+        pass
 
     def write_failed_batches(self) -> None:
         """

@@ -489,6 +489,11 @@ BEST_PRACTICES: str = """\bExamples:
 
     """
 
+CONTAINER_ENGINE2BIND_KEY: Dict[str, str]= {
+    'apptainer': '--bind',
+    'docker': '--mount'
+}
+
 PRE_CLEANUP_LINE: str = 'rm -rf {}/*'
 IQTREE_ACCEPTED_MODELS: str = ','.join(
     (
@@ -496,8 +501,7 @@ IQTREE_ACCEPTED_MODELS: str = ','.join(
         'Q.mammal'#, 'Q.bird', 'Q.insect', 'Q.plant', 'Q.yeast'
     )
 )
-PHYLO_NOT_FOUND: str = '{} was not found in PATH, with no defaults'
-
+PHYLO_NOT_FOUND: str = '{} was not found in $PATH, with no defaults'
 
 COMPLEMENT_BASE: Dict[str, str] = {
     "A": "T",
@@ -640,6 +644,7 @@ TOGA2_SLOTS: Tuple[str] = (
 
     'project_name', 'local_executor', 'logger', 
     'cluster_queue_name', 'parallel_process_names', 'ignore_crashed_parallel_batches',
+    'container_image', 'container_executor', 'bindings',
     'legacy_chain_feature_extraction',
 
     'input_data',
@@ -805,7 +810,10 @@ TOGA2_SLOT2ARG: Dict[str, str] = {
     'ixixx_binary': 'ixixx_binary',
     'ucsc_prefix': 'ucsc_prefix',
     'bedtobigbed_binary': 'bedtobigbed_binary',
-    'ignore_crashed_parallel_batches': 'ignore_crashed_parallel_batches'
+    'ignore_crashed_parallel_batches': 'ignore_crashed_parallel_batches',
+    'container_image': 'container_image', 
+    'container_executor': 'container_executor', 
+    'bindings': 'bindings'
 }
 
 TOGA2_ARG2SLOT: Dict[str, str] = {v:k for k,v in TOGA2_SLOT2ARG.items()}

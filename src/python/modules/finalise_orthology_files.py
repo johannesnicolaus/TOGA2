@@ -309,6 +309,7 @@ class QueryGeneNamer(CommandLineManager):
         symbols with the corresponding orthology-based names
         """
         gene2tr: Dict[str, List[str]] = defaultdict(list)
+        ref_gene_counter: Dict[str, int] = defaultdict(int)
         with open(self.query_gene_table, 'w') as h:
             h.write(Headers.QUERY_GENE_HEADER)
             for i, line in enumerate(file, start=1):
@@ -320,7 +321,7 @@ class QueryGeneNamer(CommandLineManager):
                         'Line %i in the query gene mapping file has less than two columns' %i
                     )
                 proj: str = data[1]
-                if proj in self.discarded:
+                if proj in self.discarded or base_proj_name(proj) in self.discarded:
                     self._to_log(
                         'Removing projection %s from the final isoform file' % proj,
                         'warning'
@@ -329,20 +330,12 @@ class QueryGeneNamer(CommandLineManager):
                 old_name: str = data[0]
                 ## gene has no orthologs in the orthology classification file
                 if old_name not in self.gene2new_name:
-                    # ## if reference mapping were provided, rename it later
-                    # if self.ref_tr2gene:
-                    #     gene2tr[old_name].append(data[1])
-                    #     continue
-                    # ## otherwise, report it as-is, retaining the technical "reg_X" name
-                    # self._to_log(
-                    #     'Gene %s at line %i in the gene table has no proven orthologs in the reference' % (
-                    #         old_name, i
-                    #     ),
-                    #     'warning'
-                    # )
-                    # gene_name: str = old_name
-                    gene2tr[old_name].append(data[1])
-                    continue
+                    ## another workaround for patching purposes
+                    if proj in self.tr2new_gene_name:
+                        gene_name: str = self.tr2new_gene_name[proj]
+                    else:
+                        gene2tr[old_name].append(data[1])
+                        continue
                 else:
                     gene_name: str = self.gene2new_name[old_name]
                 data[0] = gene_name
@@ -351,7 +344,9 @@ class QueryGeneNamer(CommandLineManager):
             for gene, projs in gene2tr.items():
                 # projs = [base_proj_name(x) for x in projs]
                 ## check if any of the projections must be removed from the final file
-                projs = [x for x in projs if base_proj_name(x) not in self.discarded]
+                projs = [
+                    x for x in projs if base_proj_name(x) not in self.discarded or x in self.discarded
+                ]
                 if not projs:
                     self._to_log('Dropping gene %s which no longer has any valid projections' % gene)
                     continue
@@ -359,12 +354,18 @@ class QueryGeneNamer(CommandLineManager):
                 genes: Set[str] = {
                     self.ref_tr2gene.get(base_proj_name(x), base_proj_name(x)) for x in trs
                 }
-                if len(genes) == 1:
-                    new_query_name = genes.pop()
-                elif len(genes) <= 3:
-                    new_query_name = ','.join(genes)
+                upd_genes: List[str] = []
+                for _gene in genes:
+                    ref_gene_counter[_gene] += 1
+                    if ref_gene_counter[_gene] > 1:
+                        _gene = f'{_gene}_{ref_gene_counter[_gene]}'
+                    upd_genes.append(_gene)
+                if len(upd_genes) == 1:
+                    new_query_name = upd_genes.pop()
+                elif len(upd_genes) <= 3:
+                    new_query_name = ','.join(upd_genes)
                 else:
-                    new_query_name = genes.pop() + '+'
+                    new_query_name = upd_genes.pop() + '+'
                 ## check if this is a processed pseudogene/retrogene locus
                 ppnum: int = sum(base_proj_name(x) in self.ppgenes for x in projs)
                 if ppnum == len(projs):
@@ -406,6 +407,8 @@ class QueryGeneNamer(CommandLineManager):
         Modifies the query gene BED file, substituting reg_{x} 
         symbols with the corresponding orthology-based names
         """
+        ## safeguard against duplicates
+        encountered_coords: Set[str] = set()
         with open(self.query_gene_bed, 'w') as h:
             for i, line in enumerate(file, start=1):
                 data: List[str] = line.rstrip().split('\t')
@@ -415,7 +418,15 @@ class QueryGeneNamer(CommandLineManager):
                     self._die(
                         'Line %i in the query gene BED file has less than four columns' %i
                     )
+                ## generally the absence of the reg_ name might result only from the gene 
+                ## having all of its projections discarded for one reason or another
                 old_name: str = data[3]
+                key: Tuple[str, str, str] = tuple(data[:3])
+                if key in encountered_coords:
+                    self._to_log(
+                        'Duplicate gene coordinates encountered: %s' % (f'{key[0]}:{key[1]}-{key[2]}')
+                    )
+                encountered_coords.add(key)
                 if old_name not in self.gene2new_name:
                     self._to_log(
                         'Gene %s at line %i in the gene table has no proven orthologs in the reference' % (
@@ -423,7 +434,9 @@ class QueryGeneNamer(CommandLineManager):
                         ),
                         'warning'
                     )
-                    gene_name: str = old_name
+                    # gene_name: str = old_name
+                    ## at some point, these genes were still recorded in the output
+                    ## but now we assume them to be dead on arrival
                     continue
                 else:
                     gene_name: str = self.gene2new_name[old_name]
