@@ -1395,6 +1395,8 @@ class InitialOrthologyResolver(CommandLineManager):
                         bind_key: str = CONTAINER_ENGINE2BIND_KEY[self.container_executor]
                         bindings: str = self.bindings if self.bindings is not None else ''
                         for key, value in self.binding_map.items():
+                            if not value:
+                                continue
                             cmd = cmd.replace(key, value)
                         cmd = cmd.format(bind_key, bindings, self.container_image)
                     else:
