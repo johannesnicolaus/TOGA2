@@ -10,15 +10,19 @@ extra/
 _extra/
 src/python/modules/final_orthology_aggregator_old.py
 src/python/modules/_run_postoga.py
+call_toga2.py
 
 # current Conda configuration attempts
-meta.yaml
+_meta.yaml
 
 # compiled Rust code
 src/rust/target
 
 # C extensions
 *.so
+
+## files for domestic use
+supply/containers/example_command.txt
 
 # Distribution / packaging
 .Python
