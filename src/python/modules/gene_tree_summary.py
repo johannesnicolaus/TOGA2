@@ -4,12 +4,12 @@
 Creates a summary table for the gene tree-based orthology refinement step
 """
 
-from constants import Headers
-from shared import CommandLineManager, CONTEXT_SETTINGS
-from typing import Dict, List, Optional, Union, TextIO
+import os
+from typing import Dict, List, Optional, TextIO, Union
 
 import click
-import os
+from constants import Headers
+from shared import CONTEXT_SETTINGS, CommandLineManager
 
 RESOLVED_LEAVES: str = "resolved_pairs.tsv"
 IQTREE_PATH_COMPONENTS: str = os.path.join("tmp", "tree", "{}_tmp", "{}.log")

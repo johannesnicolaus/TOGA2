@@ -1,10 +1,8 @@
 """Class holding all project-wide constants."""
 
+import os
 from logging import Formatter
 from typing import Dict, List, Tuple
-
-import os
-
 
 __author__ = "Yury V. Malovichko"
 __credits__ = "Bogdan M. Kirilenko"
@@ -24,7 +22,7 @@ class Constants:
         "mailx_binary": "mailx",
     }
 
-    SPLICEAI_FILES: Tuple[str] = (
+    SPLICEAI_FILES: Tuple[str, ...] = (
         "spliceAiDonorPlus.bw",
         "spliceAiAcceptorPlus.bw",
         "spliceAiDonorMinus.bw",
@@ -33,7 +31,7 @@ class Constants:
 
     MEM_FILE: str = "preprocessing_report"
 
-    PROJECTION_OUTPUT: Tuple[str] = (
+    PROJECTION_OUTPUT: Tuple[str, ...] = (
         "query_annotation.with_discarded_exons.bed",
         "query_annotation.bed",
     )
@@ -52,7 +50,7 @@ class Constants:
     SPLICE_SITE_SHIFTS: str = "splice_site_shifts.tsv"
     TRANSCRIPT_META: str = "transcript_meta.tsv"
     UCSC_STUB: str = "query_annotation.for_browser.bed"
-    CESAR_OUT_FILES: Tuple[str] = [
+    CESAR_OUT_FILES: List[str] = [
         "query_annotation.with_discarded_exons.bed",
         "query_annotation.bed",
         "query_annotation.for_browser.bed",
@@ -86,7 +84,7 @@ class Constants:
         TRANSCRIPT_META: "transcript_meta",
         UCSC_STUB: "aggr_ucsc_stub",
     }
-    FINAL_UCSC_FILES: Tuple[str] = (
+    FINAL_UCSC_FILES: Tuple[str, ...] = (
         "{}.bb",
         "{}.ix",
         "{}.ixx",
@@ -94,8 +92,18 @@ class Constants:
     SCORE_CORRECTION_CMD: str = (
         "awk -F'\t' 'BEGIN{{OFS=\"\t\"}}{{$5=1000; print $0}}' {} > {}"
     )
-    ALL_LOSS_SYMBOLS: Tuple[str] = ("FI", "I", "PI", "UL", "M", "L", "PG", "PP", "N")
-    DEFAULT_LOSS_SYMBOLS: Tuple[str] = ("FI", "I", "PI", "UL")
+    ALL_LOSS_SYMBOLS: Tuple[str, ...] = (
+        "FI",
+        "I",
+        "PI",
+        "UL",
+        "M",
+        "L",
+        "PG",
+        "PP",
+        "N",
+    )
+    DEFAULT_LOSS_SYMBOLS: Tuple[str, ...] = ("FI", "I", "PI", "UL")
 
     FORMATTER: Formatter = Formatter(
         "[{asctime}][{filename}] - {levelname}: {message}",
@@ -124,7 +132,7 @@ class Constants:
     CESAR_AGGREGATION_RANK: int = RESUME_ORDER["aggregate_cesar_res"]
     OK_FILE: str = ".ok"
 
-    CLEANUP_TARGETS: Dict[str, Tuple[str]] = {
+    CLEANUP_TARGETS: Dict[str, Tuple[str, ...]] = {
         "all": ("meta", "nextflow_dir", "tmp", "ucsc_dir"),
         "setup": ("meta", "nextflow_dir", "tmp", "ucsc_dir"),
         "feature_extraction": (
@@ -244,13 +252,13 @@ class Constants:
         "spanning_chain_coords": "SPANNING_CHAIN_HEADER",
     }
 
-    DISCARDED_PROJECTION_FILES: Tuple[str] = (
+    DISCARDED_PROJECTION_FILES: Tuple[str, ...] = (
         "paralog_report",
         "processed_pseudogene_report",
         "discarded_overextended_projections",
     )
 
-    FILES_TO_GZIP: Tuple[str] = (
+    FILES_TO_GZIP: Tuple[str, ...] = (
         "aa_fasta",
         "cds_fasta",
         "codon_fasta",
@@ -271,7 +279,7 @@ class Constants:
     UTF8: str = "utf-8"
 
     ## Nextflow configuration constants
-    NEXTFLOW_SUPPORTED_EXECS: Tuple[str] = (
+    NEXTFLOW_SUPPORTED_EXECS: Tuple[str, ...] = (
         "awsbatch",
         "azurebatch",
         "bridge",
@@ -290,7 +298,7 @@ class Constants:
         "sge",
         "slurm",
     )
-    ALL_PARALLEL_EXECS: Tuple[str] = (*NEXTFLOW_SUPPORTED_EXECS, "para", "custom")
+    ALL_PARALLEL_EXECS: Tuple[str, ...] = (*NEXTFLOW_SUPPORTED_EXECS, "para", "custom")
     NF_EXEC_SCRIPT_NAME: str = "execute_joblist.nf"
     UNIQUE_CONFIGS: Dict[str, str] = {
         "preprocessing": "preprocessing.config",
@@ -644,7 +652,7 @@ BEST_PRACTICES: str = """\bExamples:
     HERE GOES INTRON CHECK EXAMPLE
 
     \b
-    HERE GOES 
+    HERE GOES
 
     """
 
@@ -747,7 +755,7 @@ GENETIC_CODE: Dict[str, str] = {
 }
 
 ## Slots for command line managers
-TOGA2_SLOTS: Tuple[str] = (
+TOGA2_SLOTS: Tuple[str, ...] = (
     "ref_2bit",
     "query_2bit",
     "chain_file",

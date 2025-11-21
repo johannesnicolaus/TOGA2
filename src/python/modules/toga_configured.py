@@ -4,13 +4,14 @@
 Wrapper over TogaMain for file-configured runs
 """
 
-from .constants import TOGA2_ARG2SLOT, TOGA2_SLOT2ARG
-from .shared import CommandLineManager
-from .toga_main import __version__
+import os
 from typing import Dict, List, Optional, Tuple, Union
 
 import click
-import os
+
+from .constants import TOGA2_ARG2SLOT, TOGA2_SLOT2ARG
+from .shared import CommandLineManager
+from .toga_main import __version__
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"
@@ -23,7 +24,7 @@ REF: str = "ref_2bit"
 QUERY: str = "query_2bit"
 CHAIN: str = "chain_file"
 ANNOT: str = "ref_annotation"
-MANDATORY_ARGS: Tuple[str] = (REF, QUERY, CHAIN, ANNOT)
+MANDATORY_ARGS: Tuple[str, ...] = (REF, QUERY, CHAIN, ANNOT)
 TRUE: str = "True"
 FALSE: str = "False"
 NONE: str = "None"

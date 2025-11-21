@@ -4,19 +4,20 @@
 Assign the names based on referene gene IDs to query genes, finalising the orthology step
 """
 
+import os
 from collections import defaultdict
-from .constants import Headers
-from .shared import (
-    base_proj_name,
-    CommandLineManager,
-    CONTEXT_SETTINGS,
-    get_proj2trans,
-    parse_single_column,
-)
 from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 
 import click
-import os
+
+from .constants import Headers
+from .shared import (
+    CONTEXT_SETTINGS,
+    CommandLineManager,
+    base_proj_name,
+    get_proj2trans,
+    parse_single_column,
+)
 
 MANY2MANY: str = "many2many"
 NONE: str = "None"

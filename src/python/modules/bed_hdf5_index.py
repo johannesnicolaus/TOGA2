@@ -12,12 +12,13 @@ LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
 
-from modules.shared import CommandLineManager, CONTEXT_SETTINGS
-from numpy import bytes_
 from typing import List, Optional
 
 import click
 import h5py
+from modules.shared import CONTEXT_SETTINGS, CommandLineManager
+from numpy import bytes_
+
 # from version import __version__
 
 __author__ = "Yury V. Malovichko"

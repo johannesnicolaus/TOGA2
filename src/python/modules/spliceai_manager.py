@@ -4,14 +4,7 @@
 SpliceAI prediction wrapper
 """
 
-from .constants import Constants
-from .parallel_jobs_manager import (
-    CustomStrategy,
-    NextflowStrategy,
-    ParaStrategy,
-    ParallelJobsManager,
-)
-from .shared import CommandLineManager, dir_name_by_date, get_upper_dir
+import os
 from collections import defaultdict
 from heapq import heappop, heappush
 
@@ -22,7 +15,15 @@ from heapq import heappop, heappush
 from typing import Dict, List, Optional, Tuple, Union
 
 import click
-import os
+
+from .constants import Constants
+from .parallel_jobs_manager import (
+    CustomStrategy,
+    NextflowStrategy,
+    ParallelJobsManager,
+    ParaStrategy,
+)
+from .shared import CommandLineManager, dir_name_by_date, get_upper_dir
 
 PYTHON_DIR: str = get_upper_dir(__file__, 2)
 EXEC_SCRIPT: str = os.path.join(PYTHON_DIR, "predict_with_spliceai.py")

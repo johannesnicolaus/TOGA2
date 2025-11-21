@@ -5,15 +5,15 @@ Aggregates the results from the initial (graph-based) and fine (tree-based)
 orthology resolution steps
 """
 
-from .constants import Headers
+import os
+import sys
 from collections import defaultdict
-from .shared import base_proj_name, CommandLineManager, CONTEXT_SETTINGS
-
 from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 
 import click
-import os
-import sys
+
+from .constants import Headers
+from .shared import CONTEXT_SETTINGS, CommandLineManager, base_proj_name
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])

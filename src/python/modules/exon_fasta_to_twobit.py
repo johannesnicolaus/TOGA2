@@ -2,12 +2,13 @@
 
 """ """
 
-from .shared import CommandLineManager, CONTEXT_SETTINGS, hex_code
+import os
 from shutil import which
 from typing import Dict, List, Optional, TextIO, Tuple, Union
 
 import click
-import os
+
+from .shared import CONTEXT_SETTINGS, CommandLineManager, hex_code
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2025"

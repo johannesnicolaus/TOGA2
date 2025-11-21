@@ -2,48 +2,60 @@
 Constants for CESAR wrapper module
 """
 
+import os
 from typing import Dict, Set, Tuple
 
-import os
-
 ## default values for profile files
-DEF_BLOSUM_FILE: Tuple[str] = ("supply", "BLOSUM62.txt")
-HL_COMMON_ACCEPTOR: Tuple[str] = ("extra", "tables", "human", "acc_profile.txt")
-HL_COMMON_DONOR: Tuple[str] = ("extra", "tables", "human", "do_profile.txt")
-HL_FIRST_ACCEPTOR: Tuple[str] = ("extra", "tables", "human", "firstCodon_profile.txt")
-HL_LAST_DONOR: Tuple[str] = ("extra", "tables", "human", "lastCodon_profile.txt")
-HL_EQ_ACCEPTOR: Tuple[str] = ("supply", "eq_acc_profile.txt")
-HL_EQ_DONOR: Tuple[str] = ("supply", "eq_donor_profile.txt")
+DEF_BLOSUM_FILE: Tuple[str, ...] = ("supply", "BLOSUM62.txt")
+HL_COMMON_ACCEPTOR: Tuple[str, ...] = ("extra", "tables", "human", "acc_profile.txt")
+HL_COMMON_DONOR: Tuple[str, ...] = ("extra", "tables", "human", "do_profile.txt")
+HL_FIRST_ACCEPTOR: Tuple[str, ...] = (
+    "extra",
+    "tables",
+    "human",
+    "firstCodon_profile.txt",
+)
+HL_LAST_DONOR: Tuple[str, ...] = ("extra", "tables", "human", "lastCodon_profile.txt")
+HL_EQ_ACCEPTOR: Tuple[str, ...] = ("supply", "eq_acc_profile.txt")
+HL_EQ_DONOR: Tuple[str, ...] = ("supply", "eq_donor_profile.txt")
 
-CESAR_PROFILE_DIR: Tuple[str] = ("supply", "CESAR2.0", "profiles")
-HG38_CANON_U2_ACCEPTOR: Tuple[str] = (
+CESAR_PROFILE_DIR: Tuple[str, ...] = ("supply", "CESAR2.0", "profiles")
+HG38_CANON_U2_ACCEPTOR: Tuple[str, ...] = (
     *CESAR_PROFILE_DIR,
     "human",
     "canon_U2_acceptor.tsv",
 )
-HG38_CANON_U2_DONOR: Tuple[str] = (*CESAR_PROFILE_DIR, "human", "canon_U2_donor.tsv")
-HG38_NON_CANON_U2_ACCEPTOR: Tuple[str] = (
+HG38_CANON_U2_DONOR: Tuple[str, ...] = (
+    *CESAR_PROFILE_DIR,
+    "human",
+    "canon_U2_donor.tsv",
+)
+HG38_NON_CANON_U2_ACCEPTOR: Tuple[str, ...] = (
     *CESAR_PROFILE_DIR,
     "human",
     "nonCanon_U2_acceptor.tsv",
 )
-HG38_NON_CANON_U2_DONOR: Tuple[str] = (
+HG38_NON_CANON_U2_DONOR: Tuple[str, ...] = (
     *CESAR_PROFILE_DIR,
     "human",
     "nonCanon_U2_donor.tsv",
 )
-HG38_CANON_U12_ACCEPTOR: Tuple[str] = (
+HG38_CANON_U12_ACCEPTOR: Tuple[str, ...] = (
     *CESAR_PROFILE_DIR,
     "human",
     "canon_U12_acceptor.tsv",
 )
-HG38_CANON_U12_DONOR: Tuple[str] = (*CESAR_PROFILE_DIR, "human", "canon_U12_donor.tsv")
-HG38_NON_CANON_U12_ACCEPTOR: Tuple[str] = (
+HG38_CANON_U12_DONOR: Tuple[str, ...] = (
+    *CESAR_PROFILE_DIR,
+    "human",
+    "canon_U12_donor.tsv",
+)
+HG38_NON_CANON_U12_ACCEPTOR: Tuple[str, ...] = (
     *CESAR_PROFILE_DIR,
     "human",
     "canon_U12_acceptor.tsv",
 )
-HG38_NON_CANON_U12_DONOR: Tuple[str] = (
+HG38_NON_CANON_U12_DONOR: Tuple[str, ...] = (
     *CESAR_PROFILE_DIR,
     "human",
     "canon_U12_acceptor.tsv",
@@ -84,7 +96,7 @@ SPLICEAI_PROCESS_SCRIPT: str = (
 
 ## accepted U2 splice sites
 ACCEPTOR_SITE: Tuple[str] = ("ag",)
-DONOR_SITE: Tuple[str] = ("gt", "gc")
+DONOR_SITE: Tuple[str, ...] = ("gt", "gc")
 ACCEPTOR_SITE_U12: str = "ag"
 DONOR_SITE_U12: str = "gt"
 U2: str = "U2"
@@ -212,11 +224,11 @@ LO_T_BLOSUM: int = 25
 ## mutation class shortcuts
 LEFT_SPLICE_CORR: Tuple[str] = ("ag",)  ## acceptor
 LEFT_SPLICE_CORR_U12: str = "ag"  ## acceptor
-RIGHT_SPLICE_CORR: Tuple[str] = ("gt", "gc")  ## donor
+RIGHT_SPLICE_CORR: Tuple[str, ...] = ("gt", "gc")  ## donor
 RIGHT_SPLICE_CORR_U12: str = "gt"  ## donor
 MISS_EXON: str = "Missing exon"
 DEL_EXON: str = "Deleted exon"
-DEL_MISS: Tuple[str] = (MISS_EXON, DEL_EXON)
+DEL_MISS: Tuple[str, ...] = (MISS_EXON, DEL_EXON)
 COMPENSATION: str = "COMPENSATION"
 SSM_A: str = "SSMA"
 SSM_D: str = "SSMD"
@@ -228,7 +240,7 @@ FS_INS: str = "FS_INS"
 FS_INDELS: Tuple[str, str] = (FS_DEL, FS_INS)
 BIG_DEL: str = "BIG_DEL"
 BIG_INS: str = "BIG_INS"
-BIG_INDEL: Tuple[str] = (BIG_DEL, BIG_INS)
+BIG_INDEL: Tuple[str, ...] = (BIG_DEL, BIG_INS)
 STOP: str = "STOP"
 STOP_MISSING: str = "STOP_MISSING"
 INTRON_GAIN: str = "INTRON_GAIN"
@@ -243,13 +255,13 @@ EX_MISS_REASON: str = "Exon is missing"
 U12_REASON: str = "U12 intron"
 NON_CANON_U2_REASON: str = "Non-canonical U2 intron"
 OBSOLETE_COMPENSATION: str = "Treated as inactivating"
-SAFE_SPLICE_SITE_REASONS: Tuple[str, str] = (
+SAFE_SPLICE_SITE_REASONS: Tuple[str, ...] = (
     U12_REASON,
     NON_CANON_U2_REASON,
     INTRON_DEL_REASON,
 )
 ## reasons under which masked mutations are not unmasked
-SAFE_UNMASKABLE_REASONS: Tuple[str] = (
+SAFE_UNMASKABLE_REASONS: Tuple[str, ...] = (
     U12_REASON,
     NON_CANON_U2_REASON,
     INTRON_DEL_REASON,
@@ -258,7 +270,7 @@ SAFE_UNMASKABLE_REASONS: Tuple[str] = (
     EX_MISS_REASON,
 )
 ## mutation types which do not get unmasked
-SAFE_UNMASKABLE_TYPES: Tuple[str] = (
+SAFE_UNMASKABLE_TYPES: Tuple[str, ...] = (
     BIG_INS,
     BIG_DEL,
     COMPENSATION,
@@ -312,7 +324,7 @@ UL: str = "UL"
 PG: str = "PG"
 PP: str = "PP"
 N: str = "N"
-LOSS_STATUSES: Tuple[str] = (FI, I, PI, M, PM, L, UL, PG, PP, N)
+LOSS_STATUSES: Tuple[str, ...] = (FI, I, PI, M, PM, L, UL, PG, PP, N)
 
 ## numeric orthology resolution constants
 MIN_COV_FOR_ORTH: float = 0.5

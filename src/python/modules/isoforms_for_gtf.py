@@ -6,10 +6,11 @@ Creates a provisional isoform file for BED-to-GTF conversion
 
 from collections import defaultdict
 from os import PathLike
-from .shared import CommandLineManager, CONTEXT_SETTINGS, segment_base
 from typing import Dict, List, Optional, Union
 
 import click
+
+from .shared import CONTEXT_SETTINGS, CommandLineManager, segment_base
 
 HEADER: str = "query_gene"
 

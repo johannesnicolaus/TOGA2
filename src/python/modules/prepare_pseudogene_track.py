@@ -4,14 +4,15 @@
 Prepares a BED12 track for processed pseudogenes found by TOGA2
 """
 
-from .cesar_wrapper_constants import PINK
+import os
+import sys
 from collections import defaultdict
-from .shared import CommandLineManager, CONTEXT_SETTINGS
 from typing import Any, Dict, List, Optional, Set, TextIO, Tuple, Union
 
 import click
-import os
-import sys
+
+from .cesar_wrapper_constants import PINK
+from .shared import CONTEXT_SETTINGS, CommandLineManager
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"

@@ -5,19 +5,20 @@ Given the extended BED files produced at the TOGA alignment step,
 prepares a complete UCSC BigBed report file
 """
 
+import os
 from collections import defaultdict
-from ucsc_report import REF_LINK_PLACEHOLDER
-from .shared import (
-    base_proj_name,
-    CommandLineManager,
-    CONTEXT_SETTINGS,
-    get_proj2trans,
-    parse_single_column,
-)
 from typing import Any, Dict, List, Optional, Set, TextIO, Tuple, Union
 
 import click
-import os
+from ucsc_report import REF_LINK_PLACEHOLDER
+
+from .shared import (
+    CONTEXT_SETTINGS,
+    CommandLineManager,
+    base_proj_name,
+    get_proj2trans,
+    parse_single_column,
+)
 
 __author__ = "Yury V. Malovichko"
 __credits__ = ("Bogdan Kirilenko", "Björn Langer", "Michael Hiller")

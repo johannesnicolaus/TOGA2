@@ -5,10 +5,18 @@ Integrates TOGA2 results obtained with multiple references for a single query
 to produce a combined, multi-reference TOGA2 annotation
 """
 
-from .cesar_wrapper_constants import CLASS_TO_COL, CLASS_TO_NUM
-from .constants import Constants
+import gzip
+import json
+import os
 from collections import defaultdict
 from dataclasses import dataclass
+from shutil import which
+from typing import Dict, Iterable, List, Optional, Set, TextIO, Union
+
+import networkx as nx
+
+from .cesar_wrapper_constants import CLASS_TO_COL, CLASS_TO_NUM
+from .constants import Constants
 from .shared import (
     CommandLineManager,
     base_proj_name,
@@ -16,13 +24,6 @@ from .shared import (
     get_upper_dir,
     intersection,
 )
-from shutil import which
-from typing import Dict, Iterable, List, Optional, Set, TextIO, Union
-
-import gzip
-import json
-import os
-import networkx as nx
 
 TOGA2_ROOT: str = get_upper_dir(__file__, 4)
 BIN: str = os.path.join(TOGA2_ROOT, "bin")

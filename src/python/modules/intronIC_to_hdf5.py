@@ -13,12 +13,12 @@ PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
 
 from collections import defaultdict
-from numpy import array, str_
-from shared import CommandLineManager, CONTEXT_SETTINGS
 from typing import Dict, Iterable, List, Optional, Tuple, TypeVar
 
-import h5py
 import click
+import h5py
+from numpy import array, str_
+from shared import CONTEXT_SETTINGS, CommandLineManager
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"

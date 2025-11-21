@@ -6,23 +6,24 @@ __author__ = "Yury V. Malovichko"
 __credits__ = "Michael Hiller"
 __year__ = "2025"
 
+import logging
+import os
 from collections import defaultdict
-from .constants import Headers
 from contextlib import nullcontext
-from .shared import CommandLineManager, dir_name_by_date, get_upper_dir, hex_dir_name
-from .filter_ref_bed import (
-    consistent_name,
-    CONTIG_REJ_REASON,
-    FRAME_REJ_REASON,
-    NAME_REJ_REASON,
-    NON_CODING_REJ_REASON,
-)
 from shutil import which
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 import click
-import logging
-import os
+
+from .constants import Headers
+from .filter_ref_bed import (
+    CONTIG_REJ_REASON,
+    FRAME_REJ_REASON,
+    NAME_REJ_REASON,
+    NON_CODING_REJ_REASON,
+    consistent_name,
+)
+from .shared import CommandLineManager, dir_name_by_date, get_upper_dir, hex_dir_name
 
 logging.basicConfig(level=logging.INFO)
 
@@ -36,7 +37,7 @@ OUT_OF_FRAME: str = "OUT_OF_FRAME"
 NUMERIC_FIELDS: Tuple[int] = (1, 2, 6, 7, 9, 10, 11)
 U12: str = "U12"
 U2: str = "U2"
-CANON_SITES: Tuple[str] = ("GT-AG", "GC-AG")
+CANON_SITES: Tuple[str, ...] = ("GT-AG", "GC-AG")
 U12_CANON_SITES: str = "GT-AG"
 MIN_INTRON_LENGTH_FOR_CLASSIFICATION: int = 30
 MIN_INTRON_LENGTH_FOR_PROFILES: int = 70
@@ -47,7 +48,7 @@ ACC_PROFILE_LEN: int = 22
 DONOR_PROFILE_LEN: int = 6
 ACC_START_POS: int = -22
 DONOR_START_POS: int = 1
-NUCS: Tuple[str] = ("A", "T", "C", "G")
+NUCS: Tuple[str, ...] = ("A", "T", "C", "G")
 N: str = "N"
 CANON: str = "canon"
 NONCANON: str = "nonCanon"

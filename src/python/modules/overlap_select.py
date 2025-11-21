@@ -6,6 +6,7 @@ gene: how many bases this chain overlap in exons.
 
 from collections import defaultdict
 from typing import Dict, List, Tuple
+
 # from version import __version__
 
 __author__ = "Bogdan Kirilenko, 2020."

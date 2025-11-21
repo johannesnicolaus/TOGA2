@@ -2,27 +2,28 @@
 TOGA2 main class
 """
 
+import logging
+import os
+import subprocess
+import sys
+import time
 from collections import defaultdict
 from contextlib import nullcontext
-from .constants import Constants, TOGA2_SLOTS, TOGA2_SLOT2ARG
-from .parallel_jobs_manager import (
-    CustomStrategy,
-    NextflowStrategy,
-    ParaStrategy,
-    ParallelJobsManager,
-)
-from .results_checks import ResultChecker, SanityCheckResult
-from .shared import CommandLineManager, dir_name_by_date, get_upper_dir, hex_dir_name
 from pathlib import Path
 from shutil import copy, which
 from typing import Any, Dict, List, Optional, Union
 
 import click
-import logging
-import subprocess
-import time
-import os
-import sys
+
+from .constants import TOGA2_SLOT2ARG, TOGA2_SLOTS, Constants
+from .parallel_jobs_manager import (
+    CustomStrategy,
+    NextflowStrategy,
+    ParallelJobsManager,
+    ParaStrategy,
+)
+from .results_checks import ResultChecker, SanityCheckResult
+from .shared import CommandLineManager, dir_name_by_date, get_upper_dir, hex_dir_name
 
 __author__ = "Yury V. Malovichko"
 __version__ = "2.0.6"

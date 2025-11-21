@@ -2,15 +2,23 @@
 
 """Contains executables used in the CESAR wrapper"""
 
+import ctypes
+import os
+import subprocess
+import sys
 from _io import TextIOWrapper
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
+from sys import stderr
+from typing import Any, Dict, Iterable, List, Set, TextIO, Tuple, Union
+
+import click
 from modules.cesar_wrapper_constants import (
-    AA_CODE,
-    ACCEPTOR_SITE,
     A_T_BLOSUM,
     A_T_PID,
+    AA_CODE,
+    ACCEPTOR_SITE,
     DEL_PEN,
     DONOR_SITE,
     FLANK_SPACE,
@@ -32,18 +40,9 @@ from modules.shared import (
     flatten,
     intersection,
     nn,
-    reverse_complement,
     parts,
+    reverse_complement,
 )
-from sys import stderr
-from typing import Any, Dict, Iterable, List, Set, TextIO, Tuple, Union
-
-import click
-import ctypes
-import os
-import subprocess
-import sys
-
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])

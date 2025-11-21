@@ -2,19 +2,20 @@
 A collection of constants and executables related to UCSC BigBed report formatting
 """
 
-from modules.cesar_wrapper_executables import Mutation
+from collections import defaultdict
+from dataclasses import dataclass  ## TODO: HIGHLY REDUNDANT
+from typing import Any, Dict, Iterable, List, Optional, Set, TextIO, Tuple
+
 from modules.cesar_wrapper_constants import (
-    FS_INDELS,
     COMPENSATION,
-    DEL_MISS,
     DEL_EXON,
+    DEL_MISS,
+    FS_INDELS,
     MISS_EXON,
     SSM,
 )
-from collections import defaultdict
-from dataclasses import dataclass  ## TODO: HIGHLY REDUNDANT
+from modules.cesar_wrapper_executables import Mutation
 from modules.shared import parts
-from typing import Any, Dict, Iterable, List, Optional, Set, TextIO, Tuple
 
 __author__ = "Yury V. Malovichko"
 __credits__ = ("Bogdan Kirilenko", "Björn Langer", "Michael Hiller")
@@ -32,7 +33,7 @@ ABBR2STATUS: Dict[str, str] = {
     "PG": "Paralogous projection",
     "PP": "Processed pseudogene",
 }
-MUT_SLOTS_TO_IGNORE: Tuple[str] = ("projection", "chrom", "start", "stop")
+MUT_SLOTS_TO_IGNORE: Tuple[str, ...] = ("projection", "chrom", "start", "stop")
 OUT_OF_CHAIN_PLACEHOLDER: float = 0.0
 BR: str = "<BR>"
 BOX_START: str = "<TT>"
@@ -71,10 +72,10 @@ FS_INS = "FS_INS"
 BIG_DEL = "BIG_DEL"
 BIG_INS = "BIG_INS"
 INTRON_GAIN: str = "INTRON_GAIN"
-INDELS: Tuple[str] = (FS_DEL, FS_INS, BIG_DEL, BIG_INS, INTRON_GAIN)
-BIG_INDELS: Tuple[str] = (BIG_DEL, BIG_INS, INTRON_GAIN)
+INDELS: Tuple[str, ...] = (FS_DEL, FS_INS, BIG_DEL, BIG_INS, INTRON_GAIN)
+BIG_INDELS: Tuple[str, ...] = (BIG_DEL, BIG_INS, INTRON_GAIN)
 INS: Tuple = (FS_INS, BIG_INS)
-DELS: Tuple[str] = (FS_DEL, BIG_DEL)
+DELS: Tuple[str, ...] = (FS_DEL, BIG_DEL)
 STOP: str = "STOP"
 # (ag)acceptor-EXON-donor(gt)
 SSM_D: str = "SSMD"  # Donor, right, GT,GC
@@ -117,11 +118,11 @@ HORIZONTAL_OFFSET: float = 15.0
 CHAIN_LABEL_OFFSET: float = 15.0
 TRANSCRIPT_NAME_OFFSET: float = 10.0
 
-EXON_BASE_SIZE: int = 0.8
+EXON_BASE_SIZE: float = 0.8
 INTRON_BASE_SIZE = 0.02
 MAX_INTRON_SIZE: float = 2000.0  ## bases
 MIN_INTRON_SIZE: float = 600.0  # bases
-INTACT_INTRON_SIZE: int = MIN_INTRON_SIZE * INTRON_BASE_SIZE
+INTACT_INTRON_SIZE: float = MIN_INTRON_SIZE * INTRON_BASE_SIZE
 
 GAP_WIDTH: int = 0  # pixels
 HALF_GAP_HEIGHT: int = 0  # pixels

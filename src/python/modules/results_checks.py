@@ -2,16 +2,15 @@
 Sanity check and troubleshooting manager
 """
 
-from collections import defaultdict
-from dataclasses import dataclass
-from .constants import Constants
-from .shared import CommandLineManager, parse_single_column
-from typing import Dict, List, Optional, Set, Tuple, Union
-
 import logging
 import os
 import sys
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Set, Tuple, Union
 
+from .constants import Constants
+from .shared import CommandLineManager, parse_single_column
 
 ORTH_PROB_HEADER: str = "transcript"
 ORTH_PROB_FIELDS: int = 3
@@ -124,7 +123,7 @@ Orthology resolution:
 \t#reference genes: {}
 \t#query genes: {}
 \t\t#with defined orthology: {} ({}%)
-\t\t#lost, missing, or lacking defined orthology: {} ({}%) 
+\t\t#lost, missing, or lacking defined orthology: {} ({}%)
 \tReference gene orthology class composition:
 \t\tone2one: {} ({}%)
 \t\tone2many: {} ({}%)

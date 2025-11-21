@@ -8,13 +8,12 @@ neither nextflow nor para satisfy your needs.
 WIP, to be enabled later.
 """
 
-from abc import ABC, abstractmethod
-from typing import Union
-
 import os
 import signal
 import subprocess
 import sys
+from abc import ABC, abstractmethod
+from typing import Union
 
 # LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 # PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])

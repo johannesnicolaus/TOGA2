@@ -6,45 +6,44 @@ of respective transcripts in the query
 """
 
 import os
-
-# LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-# PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-# sys.path.extend([LOCATION, PARENT])
-
-from .cesar_wrapper_constants import (
-    FI,
-    I,
-    PI,
-    UL,
-    M,
-    L,
-    PG,
-    N,
-    MAX_QLEN_FOR_ORTH,
-    MIN_COV_FOR_ORTH,
-    MIN_INTRON_COV_FOR_ORTH,
-    CLASS_TO_NUM,
-)
 from collections import defaultdict
-from .constants import PHYLO_NOT_FOUND, PRE_CLEANUP_LINE
 from heapq import heappop, heappush
-from .shared import (
-    base_proj_name,
-    CommandLineManager,
-    CONTEXT_SETTINGS,
-    get_proj2trans,
-    flatten,
-    get_upper_dir,
-    get_connected_components,
-    segment_base,
-    SPLIT_JOB_HEADER,
-)
 from shutil import which
 from typing import Any, Dict, Iterable, List, Optional, Set, TextIO, Tuple, Union
 
 import click
 import h5py
 import networkx as nx
+
+# LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+# PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
+# sys.path.extend([LOCATION, PARENT])
+from .cesar_wrapper_constants import (
+    CLASS_TO_NUM,
+    FI,
+    MAX_QLEN_FOR_ORTH,
+    MIN_COV_FOR_ORTH,
+    MIN_INTRON_COV_FOR_ORTH,
+    PG,
+    PI,
+    UL,
+    I,
+    L,
+    M,
+    N,
+)
+from .constants import PHYLO_NOT_FOUND, PRE_CLEANUP_LINE
+from .shared import (
+    CONTEXT_SETTINGS,
+    SPLIT_JOB_HEADER,
+    CommandLineManager,
+    base_proj_name,
+    flatten,
+    get_connected_components,
+    get_proj2trans,
+    get_upper_dir,
+    segment_base,
+)
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"

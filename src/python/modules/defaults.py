@@ -1,9 +1,9 @@
 """Default argument values; used as-is for the `test` mode"""
 
-from .shared import get_upper_dir
+import os
 from typing import Dict, Union
 
-import os
+from .shared import get_upper_dir
 
 TOGA_DIR: str = get_upper_dir(__file__, 4)
 TEST_INPUT: str = os.path.join(TOGA_DIR, "test_input")
@@ -13,7 +13,7 @@ PROFILES: str = os.path.join(SUPPLY, "CESAR2.0", "profiles")
 HUMAN_PROFILES: str = os.path.join(PROFILES, "human")
 BIN: str = os.path.join(TOGA_DIR, "bin")
 
-DEFAULT_ARGS: Dict[str, Union[str, int, float]] = {
+DEFAULT_ARGS: Dict[str, Union[str, int, float, bool, None]] = {
     "ref_2bit": os.path.join(TEST_INPUT, "hg38.micro_sample.2bit"),
     "query_2bit": os.path.join(TEST_INPUT, "q2bit_micro_sample.2bit"),
     "chain_file": os.path.join(TEST_INPUT, "align_micro_sample.chain"),

@@ -3,15 +3,16 @@ Uses CESAR2 alignment results and SpliceAI predictions
 to search for additional introns in the query data
 """
 
-from .cesar_wrapper_constants import GAP_CODON, MIN_INTRON_LENGTH, STOPS
-from .cesar_wrapper_executables import CesarInput, RawCesarOutput, fast_seq_id
 from copy import deepcopy
 from dataclasses import dataclass
 from logging import Logger
+from typing import Any, Dict, Iterable, List, Optional, Tuple, TypeVar, Union
 
 # from Operator import mul
 from shared import parts
-from typing import Any, Dict, Iterable, List, Optional, Tuple, TypeVar, Union
+
+from .cesar_wrapper_constants import GAP_CODON, MIN_INTRON_LENGTH, STOPS
+from .cesar_wrapper_executables import CesarInput, RawCesarOutput, fast_seq_id
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"

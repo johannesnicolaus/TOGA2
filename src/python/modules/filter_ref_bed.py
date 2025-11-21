@@ -4,12 +4,13 @@
 Filters reference BED file for further use within the TOGA 2.0 pipeline
 """
 
-from .shared import CommandLineManager, CONTEXT_SETTINGS
+import os
+import sys
 from typing import List, Optional, Set, Tuple, Union
 
 import click
-import os
-import sys
+
+from .shared import CONTEXT_SETTINGS, CommandLineManager
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
@@ -20,7 +21,7 @@ __year__ = "2024"
 __credits__ = "Bogdan M. Kirilenko"
 __all__ = None
 
-ALLOWED_CHARSET: Tuple[int] = tuple(
+ALLOWED_CHARSET: Tuple[int, ...] = tuple(
     [35, 45, 46, *range(48, 58), *range(65, 91), 95, *range(97, 123), 124]
 )
 NAME_REJ_REASON: str = (

@@ -4,15 +4,16 @@
 Filters TOGA2 output BED files and adds the necessary postfixes
 """
 
-from .shared import (
-    base_proj_name,
-    CommandLineManager,
-    CONTEXT_SETTINGS,
-    parse_single_column,
-)
 from typing import List, Optional, Set, TextIO, Union
 
 import click
+
+from .shared import (
+    CONTEXT_SETTINGS,
+    CommandLineManager,
+    base_proj_name,
+    parse_single_column,
+)
 
 FI_COL: str = "0,0,100"
 I_COL: str = "0,0,200"

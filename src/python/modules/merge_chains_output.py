@@ -6,15 +6,16 @@ This script merges these files and then
 builds s table containing chain features.
 """
 
-from dataclasses import dataclass
-from collections import defaultdict
-from .shared import CommandLineManager, CONTEXT_SETTINGS
-from typing import Dict, List, Optional, TextIO, Union
-# from version import __version__
-
-import click
 import os
 import sys
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Dict, List, Optional, TextIO, Union
+
+# from version import __version__
+import click
+
+from .shared import CONTEXT_SETTINGS, CommandLineManager
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])

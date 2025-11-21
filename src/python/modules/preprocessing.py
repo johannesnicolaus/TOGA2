@@ -4,22 +4,22 @@
 A collection of executables related to data preprocessing for CESAR
 """
 
+import ctypes
+import logging
+import os
+import subprocess
+import sys
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Dict, Iterable, List, Set, Tuple, Union
+
 from .cesar_wrapper_constants import (
     MAX_CHAIN_GAP_SIZE,
     MAX_CHAIN_INTRON_LEN,
     MIN_INTRON_LENGTH,
     STOPS,
 )
-from collections import defaultdict
 from .shared import chain_extract_id, intersection, nn
-from dataclasses import dataclass
-from typing import Dict, Iterable, List, Set, Tuple, Union
-
-import ctypes
-import logging
-import os
-import subprocess
-import sys
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])

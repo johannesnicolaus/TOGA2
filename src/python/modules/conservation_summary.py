@@ -5,13 +5,14 @@ Summarises projection classification data based on TOGA results
 """
 
 from collections import defaultdict
-from .constants import Headers
-from .shared import base_proj_name, CONTEXT_SETTINGS, parse_single_column
-from .cesar_wrapper_constants import CLASS_TO_NUM
 from sys import stdout
 from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 
 import click
+
+from .cesar_wrapper_constants import CLASS_TO_NUM
+from .constants import Headers
+from .shared import CONTEXT_SETTINGS, base_proj_name, parse_single_column
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"

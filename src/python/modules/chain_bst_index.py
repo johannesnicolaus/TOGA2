@@ -15,12 +15,12 @@ LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
 
-from modules.shared import CommandLineManager, CONTEXT_SETTINGS
-from typing import Optional, Union
-# from version import __version__
-
-import click
 import ctypes
+from typing import Optional
+
+# from version import __version__
+import click
+from modules.shared import CONTEXT_SETTINGS, CommandLineManager
 
 __author__ = ("Bogdan M. Kirilenko", "Yury V. Malovichko")
 

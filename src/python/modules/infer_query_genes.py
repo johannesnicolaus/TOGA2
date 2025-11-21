@@ -14,19 +14,20 @@ the projections
 
 from collections import defaultdict
 from dataclasses import dataclass
-from .cesar_wrapper_executables import AnnotationEntry, Exon, ExonDict
-from .shared import (
-    base_proj_name,
-    CommandLineManager,
-    CONTEXT_SETTINGS,
-    get_proj2trans,
-    intersection,
-    segment_base,
-)
 from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 
 import click
 import networkx as nx
+
+from .cesar_wrapper_executables import AnnotationEntry, Exon, ExonDict
+from .shared import (
+    CONTEXT_SETTINGS,
+    CommandLineManager,
+    base_proj_name,
+    get_proj2trans,
+    intersection,
+    segment_base,
+)
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"

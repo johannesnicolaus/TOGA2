@@ -10,15 +10,16 @@ sys.path.extend([LOCATION, PARENT])
 
 from collections import defaultdict
 from datetime import datetime as dt
-from .constants import Headers
-from .shared import (
-    CONTEXT_SETTINGS,
-    make_cds_track,
-    flatten,
-)  ## TODO: most of legacy T1 code in this import line is no longer needed; remove in the stable version
 from typing import Dict, List, Optional
 
 import click
+
+from .constants import Headers
+from .shared import (
+    CONTEXT_SETTINGS,
+    flatten,
+    make_cds_track,
+)  ## TODO: most of legacy T1 code in this import line is no longer needed; remove in the stable version
 
 # artificial 0-scored points
 SOURCE = "SOURCE"

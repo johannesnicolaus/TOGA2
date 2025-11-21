@@ -5,6 +5,11 @@ A speed-up version of processed_segment.py
 Most likely a final solution make
 """
 
+from collections import defaultdict
+from logging import Logger
+from math import floor
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, TypeVar, Union
+
 from .cesar_wrapper_constants import (
     AA_CODE,
     ALT_FRAME_REASON,
@@ -21,10 +26,11 @@ from .cesar_wrapper_constants import (
     DEL_MISS,
     EX_DEL_REASON,
     EX_MISS_REASON,
-    GAP_CODON,
+    FI,
     FS_DEL,
     FS_INDELS,
     FS_INS,
+    GAP_CODON,
     INTACT_CODON_LOSS_THRESHOLD,
     INTRON_GAIN,
     INTRON_GAIN_MASK_REASON,
@@ -34,18 +40,21 @@ from .cesar_wrapper_constants import (
     MAX_RETAINED_INTRON_LEN,
     MIN_BLOSUM_THRESHOLD,
     MIN_ID_THRESHOLD,
-    MIN_INTRON_LENGTH,
     MIN_INTACT_UL_FRACTION,
+    MIN_INTRON_LENGTH,
     MISS_EXON,
     NNN_CODON,
     NON_CANON_U2_REASON,
     NON_DEL_LOSS_THRESHOLD,
-    ORTHOLOG,
     OBSOLETE_COMPENSATION,
+    ORTHOLOG,
+    PARALOG,
+    PG,
+    PI,
+    PP,
+    PROC_PSEUDOGENE,
     RIGHT_SPLICE_CORR,
     RIGHT_SPLICE_CORR_U12,
-    PARALOG,
-    PROC_PSEUDOGENE,
     SAFE_SPLICE_SITE_REASONS,
     SAFE_UNMASKABLE_REASONS,
     SAFE_UNMASKABLE_TYPES,
@@ -53,43 +62,35 @@ from .cesar_wrapper_constants import (
     SSM_D,
     START,
     START_MISSING,
-    STRICT_FACTION_INTACT_THRESHOLD,
     STOP,
-    STOPS,
     STOP_MISSING,
+    STOPS,
+    STRICT_FACTION_INTACT_THRESHOLD,
     TERMINAL_EXON_DEL_SIZE,
     U12_REASON,
-    FI,
-    I,
-    PI,
     UL,
+    I,
     L,
     M,
-    PG,
-    PP,
 )
 from .cesar_wrapper_executables import (
+    Mutation,
+    RawCesarOutput,
     assess_exon_quality,
     check_codon,
     get_affected_exon_threshold,
     get_blosum_score,
     get_d_runs,
-    process_codon_pair,
     process_and_translate,
-    Mutation,
-    RawCesarOutput,
+    process_codon_pair,
 )
-from collections import defaultdict
-from logging import Logger
-from math import floor
 from .shared import intersection, nn, parts, safe_div
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, TypeVar, Union
 from .ucsc_report import (
+    ProjectionPlotter,
     exon_aln_entry,
     exon_aln_header,
     format_fasta_as_aln,
     mutation_table,
-    ProjectionPlotter,
 )
 
 __author__ = "Yury V. Malovichko"

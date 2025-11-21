@@ -4,13 +4,14 @@
 Creates a binary index for gzip-compressed exon Fasta file
 """
 
+import gzip
+import os
+import struct
 from typing import List, TextIO
-from shared import CONTEXT_SETTINGS
 
 import click
-import gzip
-import struct
-import os
+from shared import CONTEXT_SETTINGS
+
 # import zlib
 
 HEADER_START: bytes = b">"

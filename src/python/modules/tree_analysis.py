@@ -1,12 +1,12 @@
-from Bio import Phylo
-from Bio.Phylo.TreeConstruction import DistanceTreeConstructor, DistanceMatrix
+import os
+import sys
 from collections import Counter
 
 # from io import StringIO
 from typing import List, Optional, Tuple, Union
 
-import os
-import sys
+from Bio import Phylo
+from Bio.Phylo.TreeConstruction import DistanceMatrix, DistanceTreeConstructor
 
 __author__ = "Amy Stephen"
 __credits__ = "Yury V. Malovichko"
