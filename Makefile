@@ -41,15 +41,15 @@ build_rust:
 		cd bed2gtf && cargo build --release
 
 check_essentials:
-	./${CHECK_DEPS} essentials
+	python3 ${CHECK_DEPS} essentials
 	echo ${DELIM}
 
 check_managers:
-	./${CHECK_DEPS} managers
+	python3 ${CHECK_DEPS} managers
 	echo ${DELIM}
 
 check_python:
-	./${CHECK_DEPS} python --installation_mode
+	python3 ${CHECK_DEPS} python --installation_mode
 
 check_shell:
 	if [ $(echo $0) != "-bash" ]; then \
@@ -104,8 +104,8 @@ install_python:
 	python3 -m pip install -r requirements.txt
 
 install_third_party:
-	./${CHECK_DEPS} install_third_party
+	python3 ${CHECK_DEPS} install_third_party
 
 train_models:
-	src/python/train_model.py
+	python3 src/python/train_model.py
 	echo ${DELIM}
