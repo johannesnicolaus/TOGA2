@@ -1,0 +1,95 @@
+package:
+  name: toga2
+  version: 2.0.6
+  summary: Tool to infer Orthologs from Genome Alignment, version 2
+
+channels:
+  - conda-forge
+  - bioconda
+
+source:
+  path: ../
+  #git_rev: main
+  #git_url: https://github.com/hillerlab/TOGA2
+
+build:
+  number: 0
+  # Enable NumPy build variants
+  skip: false
+
+requirements:
+  {% set np = numpy %}
+  {% if np.startswith("1") %}
+  {% set pandas_ver = "<2.2.2" %}
+  {% set numexpr_ver = "<2.10.0" %}
+  {% set scikit_ver = "<1.4.2 " %}
+  {% set scipy_ver = "<1.13.0" %}
+  {% set networkx_ver = "<3.3" %}
+  {% set xgboost_ver = "<2.1.0" %}
+  {% set contourpy_ver = "<1.2.1" %}
+  {% set tensorflow_ver = ">=2.1" %}
+  {% else %}
+  {% set pandas_ver = ">=2.2.2" %}
+  {% set numexpr_ver = ">=2.10.0" %}
+  {% set scikit_ver = ">=1.4.2 " %}
+  {% set scipy_ver = ">=1.13.0" %}
+  {% set networkx_ver = ">=3.3" %}
+  {% set xgboost_ver = ">=2.1.0" %}
+  {% set contourpy_ver = ">=1.2.1" %}
+  {% set tensorflow_ver = ">=2.19" %}
+  {% endif %}
+  build:
+    - python
+    - setuptools
+    - make
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - rust
+    - bash
+    - cython
+    - cmake
+    - maturin
+
+  host:
+    - python {{ python }}
+    - numpy {{ numpy }}
+    - scikit-learn {{ scikit_ver }}
+    - scipy {{ scipy_ver }}
+    - networkx {{ networkx_ver }}
+    - xgboost {{ xgboost_ver }}
+    - pandas {{ pandas_ver }}
+    - pip
+    - rust
+    - cython
+    - click>=8.1 
+    - click-option-group==0.5.6
+
+  run:
+    - python
+    - {{ pin_compatible('numpy') }}
+    - bioconda::nextflow>=23.0
+    - bash
+    - filelock
+    - click>=8.1 
+    - click-option-group==0.5.6
+    - joblib>=1.4
+    - h5py
+    - pandas {{ pandas_ver }}
+    - numexpr {{ numexpr_ver }}
+    - scikit-learn {{ scikit_ver }}
+    - scipy {{ scipy_ver }}
+    - networkx {{ networkx_ver }}
+    - xgboost {{ xgboost_ver }} 
+    - contourpy {{ contourpy_ver }}
+    - tensorflow
+    - spliceai
+    - biopython
+
+about:
+  dev_url: https://github.com/hillerlab/TOGA2
+  doc_ur: https://github.com/hillerlab/TOGA2/wiki
+  summary: Tool to infer Orthologs from Genome Alignment, version 2
+  home: https://github.com/hillerlab/TOGA2
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
