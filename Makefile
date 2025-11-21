@@ -14,7 +14,7 @@ check: check_shell check_essentials check_managers
 
 build: chmod install check build_c build_cesar build_cython build_rust train_models
 
-install: install_python install_third_party install_postoga
+install: install_binaries install_python install_third_party install_postoga
 
 build_c:
 	if [ ARCH = "arm64" ]; then \
