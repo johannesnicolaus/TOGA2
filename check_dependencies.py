@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Checks for third-party dependencies necessary for the full TOGA2 experience
 """
@@ -241,12 +239,18 @@ class IntronIcInstaller(Installer):
         ## clone from github
         dest: str = os.path.join(os.path.dirname(__file__), 'bin', 'intronIC')
         clone_cmd: str = f'git clone https://github.com/glarue/intronIC {dest}'
-        subprocess.run(clone_cmd, shell=True)
+        pr: subprocess.Pipe = subprocess.Popen(clone_cmd, shell=True, stderr=subprocess.PIPE)
+        if pr.returncode != 0:
+            click.echo('Process died with the following error: %s' % pr.communicate()[1])
+            sys.exit(1)
         minor_v: int = sys.version_info.minor
         if minor_v > PKG_MAX_VERSION:
             versioneer: str = os.path.join(dest, 'versioneer.py')
             sed_cmd: str = f"sed -i 's/SafeConfig/Config/g; s/readfp/read_file/g' {versioneer}"
-            subprocess.run(sed_cmd, shell=True)
+            pr: subprocess.Pipe = subprocess.Popen(sed_cmd, shell=True, stderr=subprocess.PIPE)
+            if pr.returncode != 0:
+                click.echo('Process died with the following error: %s' % pr.communicate()[1])
+                sys.exit(1)
 
     def name() -> str:
         return 'intronIC'
@@ -256,7 +260,10 @@ class PrankInstaller(Installer):
         install_cmd: str = """git clone https://github.com/ariloytynoja/prank-msa.git bin/prank && \
     cd bin/prank/src && make && mv prank ../
 """
-        subprocess.run(install_cmd, shell=True)
+        pr: subprocess.Pipe = subprocess.Popen(install_cmd, shell=True, stderr=subprocess.PIPE)
+        if pr.returncode != 0:
+            click.echo('Process died with the following error: %s' % pr.communicate()[1])
+            sys.exit(1)
 
     def name() -> str:
         return 'prank'
@@ -269,7 +276,10 @@ wget -P bin/ https://github.com/iqtree/iqtree2/releases/download/v2.4.0/iqtree-2
     mv bin/iqtree-2.4.0-Linux-intel/bin/iqtree2 bin/ && \
     rm -rf bin/iqtree-2.4.0-Linux-intel bin/iqtree-2.4.0-Linux-intel.tar.gz
 """
-        subprocess.run(install_cmd, shell=True)
+        pr: subprocess.Pipe = subprocess.Popen(install_cmd, shell=True, stderr=subprocess.PIPE)
+        if pr.returncode != 0:
+            click.echo('Process died with the following error: %s' % pr.communicate()[1])
+            sys.exit(1)
 
     def name() -> str:
         return 'IqTree2'
@@ -280,7 +290,8 @@ INTRONIC_INSTALL_CMD: str = """
 wget -P bin https://github.com/glarue/intronIC/archive/refs/tags/v1.5.2.tar.gz && \
 tar -xzvf bin/v1.5.2.tar.gz -C bin/ && rm -rf bin/v1.5.2.tar.gz && mv bin/intronIC-1.5.2 bin/intronIC
 """ ## TODO: Pull from git; if Python>=3.12, replace SafeConfig with Config and readfp with read_file in versioner.py; go to the directory; python3 setup.py egg_info
-SPLICEAI_INSTALL_CMD: str = 'git clone https://github.com/Illumina/SpliceAI.git bin/SpliceAI && cd bin/SpliceAI && python setup.py install'
+# SPLICEAI_INSTALL_CMD: str = 'git clone https://github.com/Illumina/SpliceAI.git bin/SpliceAI && cd bin/SpliceAI && python setup.py install'
+SPLICEAI_INSTALL_CMD: str = '$PYTHON -m pip install -v spliceai'
 PRANK_INSTALL_CMD: str = """
 git clone https://github.com/ariloytynoja/prank-msa.git bin/prank && \
     cd bin/prank/src && make && mv prank ../
@@ -552,25 +563,21 @@ def check_third_party() -> None:
     context_settings=CONTEXT_SETTINGS,
     help='Installs missing/outdated third-party programs (intronIC, PRANK, IqTree2, SpliceAI)'
 )
-def install_third_party() -> None:
+@click.option(
+    '--install_spliceai',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='Install SpliceAI with pip; required for Conda build'
+)
+def install_third_party(install_spliceai: Optional[bool]) -> None:
     """
     """
-    # if not os.path.exists(MISSING_THIRD_PARTY):
-    #     click.echo(
-    #         'All third-party programs have been successfully found in $PATH'
-    #     )
-    #     sys.exit(0)
-    # with open(MISSING_THIRD_PARTY, 'r') as h:
-    #     for line in h:
-    #         line = line.rstrip()
-    #         if line not in INSTALL_CMDS:
-    #             click.echo('ERROR: No installation recipe for third-party software %s' % line)
-    #         cmd: str = INSTALL_CMDS[line]
-    #         subprocess.run(cmd, shell=True)
-    #         click.echo('Successfully installed %s' % line)
     for installer in INSTALLERS:
-        installer.install()
+        installer.install() ## TODO: Add installation checks
         click.echo('Successfully installed %s' % installer.name())
+    if install_spliceai:
+        subprocess.call(SPLICEAI_INSTALL_CMD, shell=True)
 
 if __name__ == '__main__':
     check_deps()

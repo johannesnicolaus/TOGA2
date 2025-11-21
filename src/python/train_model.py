@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Script to train XGBoost models."""
 
 from numpy import log10, ndarray
