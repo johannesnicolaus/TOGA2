@@ -7,13 +7,12 @@ LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
 
-from constants import Constants
-from itertools import islice
-from modules.common import to_log, call_process
-from modules.common import read_isoforms_file
-from twobitreader import TwoBitFile
-
 import shutil
+from itertools import islice
+
+from constants import Constants
+from modules.common import call_process, read_isoforms_file, to_log
+from twobitreader import TwoBitFile
 
 __author__ = "Bogdan M. Kirilenko, 2024"
 __github__ = "https://github.com/kirilenkobm"

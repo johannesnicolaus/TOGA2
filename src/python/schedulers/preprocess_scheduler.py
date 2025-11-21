@@ -4,36 +4,36 @@
 Schedules CESAR preprocessing jobs for optimal cluster performance
 """
 
+import os
 from collections import defaultdict
-from modules.cesar_wrapper_constants import (
-    FLANK_SPACE,
-    HG38_CANON_U2_ACCEPTOR,
-    HG38_CANON_U2_DONOR,
-    HG38_NON_CANON_U2_ACCEPTOR,
-    HG38_NON_CANON_U2_DONOR,
-    HG38_CANON_U12_ACCEPTOR,
-    HG38_CANON_U12_DONOR,
-    HG38_NON_CANON_U12_ACCEPTOR,
-    HG38_NON_CANON_U12_DONOR,
-    FIRST_ACCEPTOR,
-    LAST_DONOR,
-    MIN_ASMBL_GAP_SIZE,
-)
-from modules.constants import PRE_CLEANUP_LINE
 from heapq import heappop, heappush
 from math import ceil
 from pathlib import Path
-from modules.shared import (
-    CommandLineManager,
-    get_upper_dir,
-    CONTEXT_SETTINGS,
-    SPLIT_JOB_HEADER,
-)
 from shutil import which
 from typing import Dict, List, Optional, Tuple, Union
 
 import click
-import os
+from modules.cesar_wrapper_constants import (
+    FIRST_ACCEPTOR,
+    FLANK_SPACE,
+    HG38_CANON_U2_ACCEPTOR,
+    HG38_CANON_U2_DONOR,
+    HG38_CANON_U12_ACCEPTOR,
+    HG38_CANON_U12_DONOR,
+    HG38_NON_CANON_U2_ACCEPTOR,
+    HG38_NON_CANON_U2_DONOR,
+    HG38_NON_CANON_U12_ACCEPTOR,
+    HG38_NON_CANON_U12_DONOR,
+    LAST_DONOR,
+    MIN_ASMBL_GAP_SIZE,
+)
+from modules.constants import PRE_CLEANUP_LINE
+from modules.shared import (
+    CONTEXT_SETTINGS,
+    SPLIT_JOB_HEADER,
+    CommandLineManager,
+    get_upper_dir,
+)
 
 TOGA2_ROOT: str = get_upper_dir(__file__, 4)
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))

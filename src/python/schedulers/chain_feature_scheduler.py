@@ -11,19 +11,19 @@ LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
 
-from _chain_bed_intersect import retrieve_chain_headers, get_bed_coords
 from collections import defaultdict
 from heapq import heappop, heappush
-from modules.shared import (
-    CommandLineManager,
-    CONTEXT_SETTINGS,
-    intersection,
-    SPLIT_JOB_HEADER,
-)
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 import click
+from _chain_bed_intersect import get_bed_coords, retrieve_chain_headers
+from modules.shared import (
+    CONTEXT_SETTINGS,
+    SPLIT_JOB_HEADER,
+    CommandLineManager,
+    intersection,
+)
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"

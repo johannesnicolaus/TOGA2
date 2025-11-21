@@ -4,33 +4,34 @@
 A module for CESAR job binning based on maximal memory requirements
 """
 
+import os
 from collections import defaultdict, namedtuple
 from heapq import heappop, heappush
 from math import ceil
-from modules.constants import PRE_CLEANUP_LINE
-from modules.cesar_wrapper_constants import (
-    DEF_BLOSUM_FILE,
-    MIN_PROJ_OVERLAP_THRESHOLD,
-    HG38_CANON_U2_ACCEPTOR,
-    HG38_CANON_U2_DONOR,
-    FIRST_ACCEPTOR,
-    LAST_DONOR,
-)
-from modules.shared import (
-    CommandLineManager,
-    get_upper_dir,
-    intersection,
-    CONTEXT_SETTINGS,
-    SPLIT_JOB_HEADER,
-)
 from pathlib import Path
-from shared import get_connected_components
 from shutil import which
 from typing import Dict, List, Optional, Tuple, Type, Union
 
 import click
 import networkx as nx
-import os
+from modules.cesar_wrapper_constants import (
+    DEF_BLOSUM_FILE,
+    FIRST_ACCEPTOR,
+    HG38_CANON_U2_ACCEPTOR,
+    HG38_CANON_U2_DONOR,
+    LAST_DONOR,
+    MIN_PROJ_OVERLAP_THRESHOLD,
+)
+from modules.constants import PRE_CLEANUP_LINE
+from modules.shared import (
+    CONTEXT_SETTINGS,
+    SPLIT_JOB_HEADER,
+    CommandLineManager,
+    get_upper_dir,
+    intersection,
+)
+from shared import get_connected_components
+
 # import sys
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
