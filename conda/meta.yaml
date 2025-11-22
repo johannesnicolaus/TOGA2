@@ -9,8 +9,6 @@ channels:
 
 source:
   path: ../
-  #git_rev: main
-  #git_url: https://github.com/hillerlab/TOGA2
 
 build:
   number: 0

@@ -29,16 +29,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-echo "SRC_DIR: $SRC_DIR"
-echo "Contents:"
-ls -R "$SRC_DIR"
-
-outdir=${PREFIX}/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
-mkdir -p ${outdir}
-cp -r $RECIPE_DIR/* $outdir
-
 cd "$SRC_DIR"
-echo "pwd: $(pwd)"
 
 ## Build C code
 if [ ARCH = "arm64" ]; then \
@@ -82,17 +73,13 @@ for script in ${EXEC_MODULES[@]}; do \
 done
 
 ## install third party tools
-which python
-which python3
-echo "PYTHON = $PYTHON"
-# $PYTHON -m pip install --upgrade pip setuptools wheel
 $PYTHON ${CHECK_DEPS} install_third_party
-# ## install packages missing from Conda
-# $PYTHON -m pip install -v --index-url https://pypi.org/simple tensorflow>=2.1
-# $PYTHON -m pip install -v --index-url https://pypi.org/simple biogl==2.3.0
-# $PYTHON -m pip install -v --index-url https://pypi.org/simple spliceai
 echo ${DELIM}
 
 ## train classification models
 $PYTHON src/python/train_model.py
 echo ${DELIM}
+
+outdir=${PREFIX}/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
+mkdir -p ${outdir}
+cp -r $RECIPE_DIR/* $outdir
