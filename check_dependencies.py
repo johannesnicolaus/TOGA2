@@ -247,19 +247,22 @@ class IntronIcInstaller(Installer):
     def install() -> None:
         ## clone from github
         dest: str = os.path.join(os.path.dirname(__file__), "bin", "intronIC")
-        clone_cmd: str = f"git clone https://github.com/alejandrogzi/intronIC {dest}"
-        pr: subprocess.Pipe = subprocess.Popen(clone_cmd, shell=True, stderr=subprocess.PIPE)
+        clone_cmd: str = f"git clone https://github.com/alejandrogzi/intronIC.git {dest}"
+        click.echo(f"Cloning intronIC from {clone_cmd}")
+        pr: subprocess.Popen = subprocess.Popen(clone_cmd, shell=True, stderr=subprocess.PIPE)
+        _, stderr = pr.communicate()
         if pr.returncode != 0:
-            click.echo("Process died with the following error: %s" % pr.communicate()[1])
+            click.echo("Process died with following error: %s" % stderr)
             sys.exit(1)
         minor_v: int = sys.version_info.minor
         if minor_v > PKG_MAX_VERSION:
             versioneer: str = os.path.join(dest, "versioneer.py")
             sed_cmd: str = f"sed -i 's/SafeConfig/Config/g; s/readfp/read_file/g' {versioneer}"
-            pr: subprocess.Pipe = subprocess.Popen(sed_cmd, shell=True, stderr=subprocess.PIPE)
-            if pr.returncode != 0:
-                click.echo("Process died with the following error: %s" % pr.communicate()[1])
-                sys.exit(1)
+        pr: subprocess.Popen = subprocess.Popen(sed_cmd, shell=True, stderr=subprocess.PIPE)
+        _, stderr = pr.communicate()
+        if pr.returncode != 0:
+            click.echo("Process died with following error: %s" % stderr)
+            sys.exit(1)
 
     def name() -> str:
         return "intronIC"
@@ -267,12 +270,14 @@ class IntronIcInstaller(Installer):
 
 class PrankInstaller(Installer):
     def install():
-        install_cmd: str = """git clone https://github.com/ariloytynoja/prank-msa.git bin/prank && \
-    cd bin/prank/src && make && mv prank ../
+        install_cmd: str = """git clone https://github.com/alejandrogzi/prank-msa.git bin/prank && \
+cd bin/prank/src && make && mv prank ../
 """
-        pr: subprocess.Pipe = subprocess.Popen(install_cmd, shell=True, stderr=subprocess.PIPE)
+        click.echo(f"Installing PRANK from {install_cmd}")
+        pr: subprocess.Popen = subprocess.Popen(install_cmd, shell=True, stderr=subprocess.PIPE)
+        _, stderr = pr.communicate()
         if pr.returncode != 0:
-            click.echo('Process died with the following error: %s' % pr.communicate()[1])
+            click.echo('Process died with following error: %s' % stderr)
             sys.exit(1)
 
     def name() -> str:
@@ -287,9 +292,10 @@ wget -P bin/ https://github.com/iqtree/iqtree2/releases/download/v2.4.0/iqtree-2
     mv bin/iqtree-2.4.0-Linux-intel/bin/iqtree2 bin/ && \
     rm -rf bin/iqtree-2.4.0-Linux-intel bin/iqtree-2.4.0-Linux-intel.tar.gz
 """
-        pr: subprocess.Pipe = subprocess.Popen(install_cmd, shell=True, stderr=subprocess.PIPE)
+        pr: subprocess.Popen = subprocess.Popen(install_cmd, shell=True, stderr=subprocess.PIPE)
+        _, stderr = pr.communicate()
         if pr.returncode != 0:
-            click.echo('Process died with the following error: %s' % pr.communicate()[1])
+            click.echo('Process died with following error: %s' % stderr)
             sys.exit(1)
 
     def name() -> str:
