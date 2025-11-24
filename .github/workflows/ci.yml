@@ -102,10 +102,22 @@ jobs:
     
     - name: Build Cython components
       run: |
+        if [ ! -d "toga2" ]; then
+          python3 -m venv toga2
+        fi
+        
+        source toga2/bin/activate
+        
+        pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
         make build_cython
     
     - name: Build Rust components
       run: |
+        # install rust
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        source $HOME/.cargo/env
+
         make build_rust
     
     - name: Build CESAR2.0
