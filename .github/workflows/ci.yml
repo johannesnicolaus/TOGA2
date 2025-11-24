@@ -80,7 +80,15 @@ jobs:
         fi
         
         source toga2/bin/activate
-        make install_python install_third_party install_postoga
+        
+        pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+        
+        python check_dependencies.py install_third_party
+        
+        cd postoga/rustools
+        maturin develop --release
+        cd ../..
         
         ./postoga/postoga.py -h
     
