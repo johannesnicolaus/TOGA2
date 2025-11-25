@@ -246,7 +246,7 @@ These data are used for improved exon annotation in the query""",
     help="""A flag indicating that TOGA2 will be used without SpliceAI predictions for exon annotation. 
 Discouraged unless you cannot obtain SpliceAI annotation for your query genome, 
 suspect that SpliceAI performs suboptimally for your query species, or have concerns about 
-TOGA2 performance speed and memory consumption.""",
+TOGA2 performance speed and memory consumption""",
 )
 @control_flow_options.option(
     "--resume_from",
