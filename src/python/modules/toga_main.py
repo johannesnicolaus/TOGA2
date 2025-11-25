@@ -675,17 +675,13 @@ class TogaMain(CommandLineManager):
         self._to_log(f"Project metadata dumped at {self.arg_file}")
 
         ## check the input arguments
-        # self._echo('Checking input arguments')
         self._to_log("Checking input arguments")
         self.check_arguments()
-        # self._echo('All settings are correct')
         self._to_log("All settings are correct")
 
         ## check the availability of all the necessary binaries
-        # self._echo('Checking third-part dependencies')
         self._to_log("Checking third-part dependencies")
         self.check_binaries()
-        # self._echo('All dependencies were found')
         self._to_log("All dependencies were found")
 
         ## if SpliceAI directory was provided, check its contents
@@ -778,7 +774,6 @@ class TogaMain(CommandLineManager):
             if not self.disable_fragment_assembly:
                 self._to_log("Recovering fragmented projections")
                 self.recover_fragmented_projections()
-                # self._echo('Fragmented projections successfully recovered')
                 self._to_log("Fragmented projections successfully recovered")
 
             ## Step 3: Prepare and run CESAR preprocessing jobs
@@ -890,7 +885,6 @@ class TogaMain(CommandLineManager):
             ## 6b: Summarise loss data
             self._to_log("Summarizing transcript/gene conservation data")
             self.loss_status_summary()
-            # self._echo('Conservation data successfully summarized')
             self._to_log("Conservation data successfully summarized")
         else:
             if self.halt_at == "loss_summary":
@@ -1506,10 +1500,10 @@ class TogaMain(CommandLineManager):
         ## check bigWigToWig binary
         for attr, default_name in Constants.BINARIES_TO_CHECK.items():
             if attr not in self.__slots__:
-                self._echo(
+                self._to_log(
                     "Binary %s has no corresponding toga_main.py attribute; skipping"
                     % default_name,
-                    "warning",
+                    'warning'
                 )
                 continue
             if self.__getattribute__(attr) is None:

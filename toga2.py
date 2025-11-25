@@ -408,7 +408,7 @@ from individual chains""",
 )
 @gene_select_options.option(
     "--orthologs_only",
-    "-r",
+    "-o_only",
     type=bool,
     is_flag=True,
     default=False,
@@ -1238,7 +1238,7 @@ def from_config(config_file: click.File, override: Optional[str]) -> None:
 @click.argument("ref_annot", type=click.Path(exists=True), metavar="REF_ANNOTATION_BED")
 @click.option(
     "--ref_isoforms",
-    "-r",
+    "-i",
     type=click.Path(exists=True),
     metavar="ISOFORMS_FILE",
     default=None,
