@@ -60,8 +60,9 @@ HG38_NON_CANON_U12_DONOR: Tuple[str, ...] = (
     "human",
     "canon_U12_acceptor.tsv",
 )
-FIRST_ACCEPTOR: Tuple[str] = (*CESAR_PROFILE_DIR, "firstCodon_profile.tsv")
-LAST_DONOR: Tuple[str] = (*CESAR_PROFILE_DIR, "lastCodon_profile.tsv")
+EQUIPROBABLE_ACCEPTOR: Tuple[str, ...] = (*CESAR_PROFILE_DIR, 'equiprobable_acceptor.tsv')
+FIRST_ACCEPTOR: Tuple[str, ...] = (*CESAR_PROFILE_DIR, "firstCodon_profile.tsv")
+LAST_DONOR: Tuple[str, ...] = (*CESAR_PROFILE_DIR, "lastCodon_profile.tsv")
 
 ## warning messages for unaligned exon portions
 MEM_UNALIGNED_WARNING: str = (

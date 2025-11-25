@@ -13,6 +13,7 @@ import click
 from __version__ import __version__
 from src.python.modules.cesar_wrapper_constants import (
     DEF_BLOSUM_FILE,
+    EQUIPROBABLE_ACCEPTOR,
     FIRST_ACCEPTOR,
     HG38_CANON_U2_ACCEPTOR,
     HG38_CANON_U2_DONOR,
@@ -630,7 +631,7 @@ Value of 0 denotes unlimited memory""",
     "-cnua",
     type=click.Path(exists=True),
     metavar="PATH",
-    default=HG38_NON_CANON_U12_ACCEPTOR,
+    default=EQUIPROBABLE_ACCEPTOR,
     show_default=True,
     help="A path to non-canonical (non-GT-AG) U12 exon acceptor profile",
 )
@@ -1929,6 +1930,7 @@ def test(output: Optional[click.Path]) -> None:
     from src.python.modules.toga_main import TogaMain
 
     DEFAULT_ARGS["output"] = output
+    DEFAULT_ARGS["no_spliceai"] = True
     TogaMain(**DEFAULT_ARGS)
 
 
