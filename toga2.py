@@ -10,6 +10,7 @@ from typing import List, Optional
 
 import click
 
+from __version__ import __version__
 from src.python.modules.cesar_wrapper_constants import (
     DEF_BLOSUM_FILE,
     FIRST_ACCEPTOR,
@@ -33,7 +34,6 @@ from src.python.modules.input_producer import (
 from src.python.modules.shared import CONTEXT_SETTINGS, MutexOption, PrettyGroup
 
 __author__ = "Yury V. Malovichko"
-__version__ = "2.0.6"
 __year__ = "2025"
 __credits__ = ("Bogdan M. Kirilenko", "Michael Hiller")
 
