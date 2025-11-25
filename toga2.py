@@ -1179,13 +1179,6 @@ def run(**kwargs) -> None:
 
     \b
     run - Run TOGA2 main pipeline
-
-    \b
-    Mandatory arguments are:
-    * REF_2BIT - a path to reference genome assembly in .2bit format;
-    * QUERY_2BIT - a path to query genome assembly, also in .2bit format;
-    * ALIGNMENT_CHAINS - a path to genome alignment chains, with REF_2BIT as reference and QUERY_2BIT as query. Can be compressed in .gzip format;
-    * REF_ANNOTATION_BED - protein-coding gene annotation for the reference genome, in Bed12 format
     """
     from src.python.modules.toga_main import TogaMain
 
