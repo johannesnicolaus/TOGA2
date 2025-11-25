@@ -22,6 +22,7 @@ __year__ = "2024"
 __credits__ = ["Bogdan M. Kirilenko"]
 __all__ = [None]
 
+xgb.set_config(verbosity=0)
 
 class Constants:
     # __slots__ = (
