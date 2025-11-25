@@ -17,6 +17,7 @@ from shutil import copy2, rmtree
 from typing import Any, Dict, Iterable, List, Optional, Set, TextIO, Tuple, Union
 
 import click
+import click_option_group
 import networkx as nx
 from click_option_group import OptionGroup
 
@@ -63,9 +64,10 @@ class PrettyGroup(OptionGroup):
             return None
         return "\n" + init_help[0], init_help[1]
 
-class MutexOption(click.Option):
+
+class MutexOption(click_option_group.GroupedOption):
     """
-    Mutually exclusive Click option class. 
+    Mutually exclusive Click option class.
     Based on the solution from https://github.com/pallets/click/issues/257
     """
 
@@ -75,14 +77,14 @@ class MutexOption(click.Option):
             raise click.UsageError(
                 "No competing options for an AlternativeOption instance, "
                 "with no defaults. Please provide a list of competing options "
-                "with \"competes_with\" argument"
+                'with "competes_with" argument'
             )
         self.required_mutex: bool = kwargs.get("required_mutex", False)
         kwargs["help"] = (
-            "" if kwargs.get("help")is None else (kwargs.get("help", "") + ". "),
+            "" if kwargs.get("help") is None else (kwargs.get("help", "") + ". "),
             "Mutually exclusive with the following options: ",
             ", ".join(self.competes_with),
-            "."
+            ".",
         )
         super(MutexOption, self).__init__(*args, **kwargs)
 
@@ -93,18 +95,19 @@ class MutexOption(click.Option):
             if mutex_opt in opts:
                 if current_opt:
                     raise click.UsageError(
-                        "Options %s and %s are mutually exlusive" % (self.name, mutex_opt)
+                        "Options %s and %s are mutually exlusive"
+                        % (self.name, mutex_opt)
                     )
                 else:
                     self.prompt = None
                 alternative_found = True
         if not current_opt and not alternative_found and self.required_mutex:
             raise click.UsageError(
-                "One of the following options is required for TOGA2 execution: %s" % (
-                    self.name + ", " + ",".join(self.competes_with)
-                )
+                "One of the following options is required for TOGA2 execution: %s"
+                % (self.name + ", " + ",".join(self.competes_with))
             )
         return super(MutexOption, self).handle_parse_result(ctx, opts, args)
+
 
 ## Executables
 def dir_name_by_date(prefix: str) -> str:
