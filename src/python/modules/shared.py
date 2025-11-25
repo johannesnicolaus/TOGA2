@@ -97,7 +97,7 @@ class MutexOption(click_option_group.GroupedOption):
             if mutex_opt in opts:
                 if current_opt:
                     raise click.UsageError(
-                        "Options %s and %s are mutually exlusive"
+                        "Options %s and %s are mutually exclusive"
                         % (self.name, mutex_opt)
                     )
                 else:
