@@ -79,12 +79,14 @@ class MutexOption(click_option_group.GroupedOption):
                 "with no defaults. Please provide a list of competing options "
                 'with "competes_with" argument'
             )
-        self.required_mutex: bool = kwargs.get("required_mutex", False)
+        self.required_mutex: bool = (
+            kwargs.pop("required_mutex") if "required_mutex" in kwargs else False
+        )
         kwargs["help"] = (
-            "" if kwargs.get("help") is None else (kwargs.get("help", "") + ". "),
-            "Mutually exclusive with the following options: ",
-            ", ".join(self.competes_with),
-            ".",
+            "" if kwargs.get("help") is None else (kwargs.get("help", "") + ". ") + 
+            "Mutually exclusive with the following options: " + 
+            ", ".join(self.competes_with) + 
+            "."
         )
         super(MutexOption, self).__init__(*args, **kwargs)
 

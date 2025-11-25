@@ -149,21 +149,21 @@ def toga2() -> None:
     context_settings=CONTEXT_SETTINGS,
     no_args_is_help=True,
     epilog=TOGA2_EPILOG,
-    short_help="Run TOGA2 pipeline with command line arguments"
+    short_help="Run TOGA2 pipeline with command line arguments",
 )
 @input_options.option(
     "--ref_2bit",
     type=click.Path(exists=True),
     metavar="REF_2BIT",
     required=True,
-    help="Reference genome assembly file, in .2bit format"
+    help="Reference genome assembly file, in .2bit format",
 )
 @input_options.option(
     "--query_2bit",
     type=click.Path(exists=True),
     metavar="QUERY_2BIT",
     required=True,
-    help="Query genome assembly file, in .2bit format"
+    help="Query genome assembly file, in .2bit format",
 )
 @input_options.option(
     "--chain_file",
@@ -172,7 +172,7 @@ def toga2() -> None:
     required=True,
     help="""Genome alignment chains, with REF_2BIT as reference and QUERY_2BIT as query. 
 TOGA2 annotates query genome by projecting reference transcripts through the chains 
-contained in this file. Can be compressed in .gzip format"""
+contained in this file. Can be compressed in .gzip format""",
 )
 @input_options.option(
     "--ref_annotation",
@@ -180,7 +180,7 @@ contained in this file. Can be compressed in .gzip format"""
     metavar="REF_ANNOTATION_BED",
     required=True,
     help="""Reference annotation file, in BED12 format. TOGA2 annotates transcripts in the "
-query genome by projecting reference transcripts contained in this file"""
+query genome by projecting reference transcripts contained in this file""",
 )
 @input_options.option(
     "--isoform_file",
@@ -190,7 +190,7 @@ query genome by projecting reference transcripts contained in this file"""
     cls=MutexOption,
     competes_with=["no_isoform_file"],
     required_mutex=True,
-    help="A path to a two-column tab-separated file containing gene-to-isoform mapping"
+    help="A path to a two-column tab-separated file containing gene-to-isoform mapping",
 )
 @input_options.option(
     "--no_isoform_file",
@@ -201,7 +201,7 @@ query genome by projecting reference transcripts contained in this file"""
     required_mutex=True,
     help="""A flag indicating that TOGA2 will be used without isoform file. 
 Use this if you do not have an isoform file or want each transcript 
-in REF_ANNOTATION_BED to be treated as a separate gene"""
+in REF_ANNOTATION_BED to be treated as a separate gene""",
 )
 @input_options.option(
     "--u12_file",
@@ -212,7 +212,7 @@ in REF_ANNOTATION_BED to be treated as a separate gene"""
     competes_with=["no_u12_file"],
     required_mutex=True,
     help="""A three-column tab-separated file containing information on the 
-non-canonical splice sites"""
+non-canonical splice sites""",
 )
 @input_options.option(
     "--no_u12_file",
@@ -223,7 +223,7 @@ non-canonical splice sites"""
     required_mutex=True,
     help="""A flag indicating that TOGA2 will be used without U12/non-canonical U2 classification file. 
 Use this if you do not want to discriminate between GT/GC-AG U2 and other 
-intron classes in in your annotation (highly discouraged)"""
+intron classes in in your annotation (highly discouraged)""",
 )
 @input_options.option(
     "--spliceai_dir",
@@ -234,7 +234,7 @@ intron classes in in your annotation (highly discouraged)"""
     competes_with=["no_spliceai"],
     required_mutex=True,
     help="""A path to the SpliceAI predictions directory produced by TOGA2 `run_spliceai` mode. 
-These data are used for improved exon annotation in the query"""
+These data are used for improved exon annotation in the query""",
 )
 @input_options.option(
     "--no_spliceai",
@@ -246,7 +246,7 @@ These data are used for improved exon annotation in the query"""
     help="""A flag indicating that TOGA2 will be used without SpliceAI predictions for exon annotation. 
 Discouraged unless you cannot obtain SpliceAI annotation for your query genome, 
 suspect that SpliceAI performs suboptimally for your query species, or have concerns about 
-TOGA2 performance speed and memory consumption."""
+TOGA2 performance speed and memory consumption.""",
 )
 @control_flow_options.option(
     "--resume_from",
@@ -270,7 +270,7 @@ TOGA2 performance speed and memory consumption."""
         orthology: orthology relationship resolution; if "-st" flag is set, gene tree orthology batches are run at this step;\b\n
         summarize_trees: if "-st" flag was set, individual gene tree batch results are summarized and added to the original orthology data at this step;\b\n
         finalize: gene renaming and output Bed file filtering;\b\n
-        ucsc_report: BigBed file preparation\n"""
+        ucsc_report: BigBed file preparation\n""",
 )
 @control_flow_options.option(
     "--halt_at",
@@ -280,7 +280,7 @@ TOGA2 performance speed and memory consumption."""
     default="all",
     show_default=True,
     help="""Halts the pipeline at the selected step (see above). Option "all" 
-implies running the pipeline to the last step"""
+implies running the pipeline to the last step""",
 )
 @control_flow_options.option(
     "--selected_feature_batches",
@@ -291,7 +291,7 @@ implies running the pipeline to the last step"""
     show_default=True,
     help="""A comma-separated list of batch numbers for the feature extraction step to be run. 
 Valid only if --resume_from is set to "feature_extraction" or lower, and 
-"--legacy_chain_feature_extraction option was set in both interrupted and scheduled runs"""
+"--legacy_chain_feature_extraction option was set in both interrupted and scheduled runs""",
 )
 @control_flow_options.option(
     "--selected_preprocessing_batches",
@@ -301,7 +301,7 @@ Valid only if --resume_from is set to "feature_extraction" or lower, and
     default=None,
     show_default=True,
     help="""A comma-separated list of batch numbers for the CESAR preprocessing step to be run. 
-Valid only if --resume_from is set to "preprocessing" or lower"""
+Valid only if --resume_from is set to "preprocessing" or lower""",
 )
 @control_flow_options.option(
     "--selected_alignment_batches",
@@ -311,7 +311,7 @@ Valid only if --resume_from is set to "preprocessing" or lower"""
     default=None,
     show_default=True,
     help="""A comma-separated list of batch numbers for the CESAR alignment step to be run. 
-Valid only if --resume_from is set to "alignment" or lower"""
+Valid only if --resume_from is set to "alignment" or lower""",
 )
 @control_flow_options.option(
     "--no_utr_annotation",
@@ -319,7 +319,7 @@ Valid only if --resume_from is set to "alignment" or lower"""
     is_flag=True,
     default=False,
     show_default=True,
-    help="If set, UTR sequences are not added to the final annotation file"
+    help="If set, UTR sequences are not added to the final annotation file",
 )
 @extraction_options.option(
     "--min_chain_score",
@@ -329,7 +329,7 @@ Valid only if --resume_from is set to "alignment" or lower"""
     default=15000,
     show_default=True,
     help="""Minimal score for chains to be considered for classification. Setting 
-this value to zero disables chain filtering"""
+this value to zero disables chain filtering""",
 )
 @extraction_options.option(
     "--min_orthologous_chain_score",
@@ -340,7 +340,7 @@ this value to zero disables chain filtering"""
     show_default=True,
     help="""Minimal score for chains to be potentially classified as orthologous. Chains with 
 min_chain_score <= X < min_orthologous_chain_score are discarded unless they are 
-classified as retrogenes/processed pseudogenes"""
+classified as retrogenes/processed pseudogenes""",
 )
 @extraction_options.option(
     "--feature_jobs",
@@ -349,7 +349,7 @@ classified as retrogenes/processed pseudogenes"""
     metavar="INT",
     default=100,
     show_default=True,
-    help="A number of jobs to projection feature extraction commands into"
+    help="A number of jobs to projection feature extraction commands into",
 )
 @class_options.option(
     "--orthology_threshold",
@@ -358,7 +358,7 @@ classified as retrogenes/processed pseudogenes"""
     metavar="FLOAT",
     default=Constants.DEFAULT_ORTH_THRESHOLD,
     show_default=True,
-    help="Probability threshold for considering projections as orthologous"
+    help="Probability threshold for considering projections as orthologous",
 )
 @class_options.option(
     "--single_exon_model",
@@ -367,7 +367,7 @@ classified as retrogenes/processed pseudogenes"""
     metavar="PATH",
     default=os.path.join(LOCATION, "models", "se_model.dat"),
     show_default=True,
-    help="A path to a orthology classification model for single exon reference transcripts"
+    help="A path to a orthology classification model for single exon reference transcripts",
 )
 @class_options.option(
     "--multi_exon_model",
@@ -376,7 +376,7 @@ classified as retrogenes/processed pseudogenes"""
     metavar="PATH",
     default=os.path.join(LOCATION, "models", "me_model.dat"),
     show_default=True,
-    help="A path to a orthology classification model for multi-exon reference transcripts"
+    help="A path to a orthology classification model for multi-exon reference transcripts",
 )
 @class_options.option(
     "--use_long_distance_model",
@@ -385,7 +385,7 @@ classified as retrogenes/processed pseudogenes"""
     default=False,
     show_default=True,
     help="""If set, applies extra classifier for distantly related species; 
-relevant at molecular distances >=1sps"""
+relevant at molecular distances >=1sps""",
 )
 @class_options.option(
     "--long_distance_model",
@@ -395,7 +395,7 @@ relevant at molecular distances >=1sps"""
     default=os.path.join(LOCATION, "models", "ld_model.dat"),
     show_default=True,
     help="""A path to a refinement classification model for distantly related 
-reference-query species pairs"""
+reference-query species pairs""",
 )
 @gene_select_options.option(
     "--disable_fragment_assembly",
@@ -404,7 +404,7 @@ reference-query species pairs"""
     default=False,
     show_default=True,
     help="""If set, does not attempt to recover fragmented projections 
-from individual chains"""
+from individual chains""",
 )
 @gene_select_options.option(
     "--orthologs_only",
@@ -413,7 +413,7 @@ from individual chains"""
     is_flag=True,
     default=False,
     show_default=True,
-    help="If set, only orthologous projections are considered"
+    help="If set, only orthologous projections are considered",
 )
 @gene_select_options.option(
     "--one2ones_only",
@@ -422,7 +422,7 @@ from individual chains"""
     is_flag=True,
     default=False,
     show_default=True,
-    help="If set, only transcript with a single orthologous projection are considered"
+    help="If set, only transcript with a single orthologous projection are considered",
 )
 @gene_select_options.option(
     "--enable_spanning_chains",
@@ -433,7 +433,7 @@ from individual chains"""
     show_default=True,
     help="""If set, spanning chains (i.e., chains with alignment gap corresponding 
 to the projected transcript) are considered for CESAR alignment; otherwise 
-spanning chains are used only to discriminate between Lost and Missing projections"""
+spanning chains are used only to discriminate between Lost and Missing projections""",
 )
 @gene_select_options.option(
     "--annotate_processed_pseudogenes",
@@ -443,7 +443,7 @@ spanning chains are used only to discriminate between Lost and Missing projectio
     default=False,
     show_default=True,
     help="""If set, processed pseudogene projections are considered for CESAR alignment; 
-otherwise, a separate BED9 track "processed_pseudogenes.bed" is added to output directory"""
+otherwise, a separate BED9 track "processed_pseudogenes.bed" is added to output directory""",
 )
 @prepr_options.option(
     "--preprocessing_jobs",
@@ -462,7 +462,7 @@ otherwise, a separate BED9 track "processed_pseudogenes.bed" is added to output 
     default=100,
     show_default=True,
     help="""A maximum number of chains to project each transcript through. If the 
-number of projections exceeds the given value, only the first N chains will be considered"""
+number of projections exceeds the given value, only the first N chains will be considered""",
 )
 @prepr_options.option(
     "--max_search_space_size",
@@ -473,7 +473,7 @@ number of projections exceeds the given value, only the first N chains will be c
     show_default=True,
     help="""Query sequence length limit for CESAR jobs. Projections in which any 
 exon group aligns to sequence beyond this limit will be discarded "
-from alignment step"""
+from alignment step""",
 )
 @prepr_options.option(
     "--extrapolation_modifier",
@@ -483,7 +483,7 @@ from alignment step"""
     default=1.2,
     show_default=True,
     help="""Modifier by which counterparts of missing reference sequence are modified 
-when extrapolating ambiguous projection termini"""
+when extrapolating ambiguous projection termini""",
 )
 @prepr_options.option(
     "--minimal_covered_fraction",
@@ -495,7 +495,7 @@ when extrapolating ambiguous projection termini"""
     help="""Minimal fraction of reference CDS sequence covered by aligned chain 
 blocks to consider the projection for CESAR alignment. If the 
 --enable_spanning_chains flag is set, this parameter is automatically 
-set to 0.0"""
+set to 0.0""",
 )
 @prepr_options.option(
     "--exon_locus_flank",
@@ -504,7 +504,7 @@ set to 0.0"""
     metavar="INT (BP)",
     default=100,
     show_default=True,
-    help="Size of flank to be added to each defined exon locus from both sides. "
+    help="Size of flank to be added to each defined exon locus from both sides. ",
 )
 @prepr_options.option(
     "--assembly_gap_size",
@@ -513,7 +513,7 @@ set to 0.0"""
     metavar="INT",
     default=MIN_ASMBL_GAP_SIZE,
     show_default=True,
-    help="Minimum number of consecutive N symbols to be considered an assembly gap"
+    help="Minimum number of consecutive N symbols to be considered an assembly gap",
 )
 @cesar_options.option(
     "--cesar_binary",
@@ -524,7 +524,7 @@ set to 0.0"""
     show_default=False,
     help="""A path to the actual CESAR2.0 binary; if not provided, will look for one 
 in the PATH, otherwise defaulting to the CESAR2.0 instance 
-in the current directory"""
+in the current directory""",
 )
 @cesar_options.option(
     "--memory_bins",
@@ -536,7 +536,7 @@ in the current directory"""
     help="""A comma-separated list of memory bin caps, in GB. For each memory bin, 
 job scheduling will be performed independently. If you want to process 
 memory-intensive projections as a single cluster call, set the last value 
-to "big" or enable the --allow_heavy_jobs flag"""
+to "big" or enable the --allow_heavy_jobs flag""",
 )
 @cesar_options.option(
     "--job_nums_per_bin",
@@ -547,7 +547,7 @@ to "big" or enable the --allow_heavy_jobs flag"""
     show_default=True,
     help="""A comma-separated list of job numbers per memory bin. 
 Job jumbers must follow in the same order as memory caps passed 
-to --memory_bins option"""
+to --memory_bins option""",
 )
 @cesar_options.option(
     "--allow_heavy_jobs",
@@ -558,7 +558,7 @@ to --memory_bins option"""
     default=False,
     show_default=True,
     help="""Aggregate all jobs exceeding the highest memory cap as a single joblist; 
-if memory bins are provided, duplicates the "big" memory bin behavior"""
+if memory bins are provided, duplicates the "big" memory bin behavior""",
 )
 @cesar_options.option(
     "--cesar_memory_limit",
@@ -569,7 +569,7 @@ if memory bins are provided, duplicates the "big" memory bin behavior"""
     show_default=True,
     help="""Upper memory limit for CESAR jobs. Projections in which any exon group 
 requires memory beyond this limit will be discarded before the alignment step. 
-Value of 0 denotes unlimited memory"""
+Value of 0 denotes unlimited memory""",
 )
 @cesar_options.option(
     "--cesar_canon_u2_acceptor",
@@ -578,7 +578,7 @@ Value of 0 denotes unlimited memory"""
     metavar="PATH",
     default=HG38_CANON_U2_ACCEPTOR,
     show_default=True,
-    help="A path to canonical (GT/GC-AG) U2 acceptor profile"
+    help="A path to canonical (GT/GC-AG) U2 acceptor profile",
 )
 @cesar_options.option(
     "--cesar_canon_u2_donor",
@@ -587,7 +587,7 @@ Value of 0 denotes unlimited memory"""
     metavar="PATH",
     default=HG38_CANON_U2_DONOR,
     show_default=True,
-    help="A path to canonical (GT/GC-AG) U2 donor profile"
+    help="A path to canonical (GT/GC-AG) U2 donor profile",
 )
 @cesar_options.option(
     "--cesar_non_canon_u2_acceptor",
@@ -596,7 +596,7 @@ Value of 0 denotes unlimited memory"""
     metavar="PATH",
     default=HG38_NON_CANON_U2_ACCEPTOR,
     show_default=True,
-    help="A path to non-canonical (non GT/GC-AG) U2 acceptor profile"
+    help="A path to non-canonical (non GT/GC-AG) U2 acceptor profile",
 )
 @cesar_options.option(
     "--cesar_non_canon_u2_donor",
@@ -605,7 +605,7 @@ Value of 0 denotes unlimited memory"""
     metavar="PATH",
     default=HG38_NON_CANON_U2_DONOR,
     show_default=True,
-    help="A path to non-canonical (non GT/GC-AG) U2 donor profile"
+    help="A path to non-canonical (non GT/GC-AG) U2 donor profile",
 )
 @cesar_options.option(
     "--cesar_canon_u12_acceptor",
@@ -614,7 +614,7 @@ Value of 0 denotes unlimited memory"""
     metavar="PATH",
     default=HG38_CANON_U12_ACCEPTOR,
     show_default=True,
-    help="A path to canonical (GT-AG) U12 exon acceptor profile"
+    help="A path to canonical (GT-AG) U12 exon acceptor profile",
 )
 @cesar_options.option(
     "--cesar_canon_u12_donor",
@@ -623,7 +623,7 @@ Value of 0 denotes unlimited memory"""
     metavar="PATH",
     default=HG38_CANON_U12_DONOR,
     show_default=True,
-    help="A path to canonical (GT-AG) U12  donor profile"
+    help="A path to canonical (GT-AG) U12  donor profile",
 )
 @cesar_options.option(
     "--cesar_non_canon_u12_acceptor",
@@ -632,7 +632,7 @@ Value of 0 denotes unlimited memory"""
     metavar="PATH",
     default=HG38_NON_CANON_U12_ACCEPTOR,
     show_default=True,
-    help="A path to non-canonical (non-GT-AG) U12 exon acceptor profile"
+    help="A path to non-canonical (non-GT-AG) U12 exon acceptor profile",
 )
 @cesar_options.option(
     "--cesar_non_canon_u12_donor",
@@ -641,7 +641,7 @@ Value of 0 denotes unlimited memory"""
     metavar="PATH",
     default=HG38_NON_CANON_U12_DONOR,
     show_default=True,
-    help="A path to non-canonical (non-GT-AG) U12 exon donor profile"
+    help="A path to non-canonical (non-GT-AG) U12 exon donor profile",
 )
 @cesar_options.option(
     "--cesar_first_acceptor",
@@ -650,7 +650,7 @@ Value of 0 denotes unlimited memory"""
     metavar="PATH",
     default=FIRST_ACCEPTOR,
     show_default=True,
-    help="A (relative to CESAR2 location) path to first exon acceptor profile"
+    help="A (relative to CESAR2 location) path to first exon acceptor profile",
 )
 @cesar_options.option(
     "--cesar_last_donor",
@@ -659,7 +659,7 @@ Value of 0 denotes unlimited memory"""
     metavar="PATH",
     default=LAST_DONOR,
     show_default=True,
-    help="A (relative to CESAR2 location) path to last exon donor profile"
+    help="A (relative to CESAR2 location) path to last exon donor profile",
 )
 @cesar_options.option(
     "--separate_splice_site_treatment",
@@ -668,7 +668,7 @@ Value of 0 denotes unlimited memory"""
     default=False,
     show_default=True,
     help="""If set, donor and acceptor intron splice sites are treated 
-as (non-)canonical indepent of each other"""
+as (non-)canonical indepent of each other""",
 )
 @spliceai_options.option(
     "--spliceai_correction_mode",
@@ -686,7 +686,7 @@ as (non-)canonical indepent of each other"""
 5 - correct all canonical U2 and mutated and/or unsupported  GT-AG U12 splice sites;\b\n
 6 - correct all canonical U2 and all U12 splice sites;\b\n
 7 - correct all U2 (including known non-canonical sites) and U12 splice sites.\b\n
-Current recommendation (at least, for vertebrate queries) is 3"""
+Current recommendation (at least, for vertebrate queries) is 3""",
 )
 @spliceai_options.option(
     "--min_splice_prob",
@@ -695,7 +695,7 @@ Current recommendation (at least, for vertebrate queries) is 3"""
     metavar="FLOAT",
     default=0.02,
     show_default=True,
-    help="Minimum SpliceAI prediction probability to consider the splice site"
+    help="Minimum SpliceAI prediction probability to consider the splice site",
 )
 @spliceai_options.option(
     "--splice_prob_margin",
@@ -705,7 +705,7 @@ Current recommendation (at least, for vertebrate queries) is 3"""
     default=0.02,
     show_default=True,
     help="""For splice sites with SpliceAI support 0<x<min_splice_prob, ignore 
-alternative sites with support < x + splice_prob_margin"""
+alternative sites with support < x + splice_prob_margin""",
 )
 @spliceai_options.option(
     "--intron_gain_check",
@@ -713,7 +713,7 @@ alternative sites with support < x + splice_prob_margin"""
     is_flag=True,
     default=False,
     show_default=True,
-    help="If set, performs SpliceAI-guided check for query-specific introns"
+    help="If set, performs SpliceAI-guided check for query-specific introns",
 )
 @spliceai_options.option(
     "--intron_gain_threshold",
@@ -722,7 +722,7 @@ alternative sites with support < x + splice_prob_margin"""
     metavar="FLOAT",
     default=0.5,
     show_default=True,
-    help="Minimal intron gain threshold to consider"
+    help="Minimal intron gain threshold to consider",
 )
 @spliceai_options.option(
     "--min_intron_prob_trusted",
@@ -732,7 +732,7 @@ alternative sites with support < x + splice_prob_margin"""
     default=0.1,
     show_default=True,
     help="""Minimal SpliceAI support for query-specific introns supported by the presence of 
-both extensive alignment gaps and frame-shifting/nonsense mutations"""
+both extensive alignment gaps and frame-shifting/nonsense mutations""",
 )
 @spliceai_options.option(
     "--min_intron_prob_supported",
@@ -742,7 +742,7 @@ both extensive alignment gaps and frame-shifting/nonsense mutations"""
     default=0.2,
     show_default=True,
     help="""Minimal SpliceAI support for query-specific introns supported by the presence of 
-either extensive alignment gaps and frame-shifting/nonsense mutations"""
+either extensive alignment gaps and frame-shifting/nonsense mutations""",
 )
 @spliceai_options.option(
     "--min_intron_prob_unsupported",
@@ -752,7 +752,7 @@ either extensive alignment gaps and frame-shifting/nonsense mutations"""
     default=0.8,
     show_default=True,
     help="""Minimal SpliceAI support for query-specific introns not supported by 
-either extensive alignment gaps and frame-shifting/nonsense mutations"""
+either extensive alignment gaps and frame-shifting/nonsense mutations""",
 )
 @spliceai_options.option(
     "-max_intron_number",
@@ -762,7 +762,7 @@ either extensive alignment gaps and frame-shifting/nonsense mutations"""
     default=4,
     show_default=True,
     help="""Maximum gained intron number per exon. 
-Highly recommended not to increase this beyond 5-6"""
+Highly recommended not to increase this beyond 5-6""",
 )
 @annot_options.option(
     "--matrix",
@@ -771,7 +771,7 @@ Highly recommended not to increase this beyond 5-6"""
     metavar="BLOSUM_MATRIX_FILE",
     default=BLOSUM_FILE,
     show_default=True,
-    help="A file containing the protein alignment matrix"
+    help="A file containing the protein alignment matrix",
 )
 @annot_options.option(
     "--mask_n_terminal_mutations",
@@ -781,7 +781,7 @@ Highly recommended not to increase this beyond 5-6"""
     default=False,
     show_default=True,
     help="""If set, masks mutations occurring in the first 10 percents 
-of query projection length regardless of alternative start codon presence"""
+of query projection length regardless of alternative start codon presence""",
 )
 @annot_options.option(
     "--disable_missing_stop_search",
@@ -804,7 +804,7 @@ does not end with one""",
     help="""A comma-separated list of loss status symbols; only projections of 
 respective statuses will be considered for orthology resolution. 
 Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
-    % ",".join(Constants.ALL_LOSS_SYMBOLS)
+    % ",".join(Constants.ALL_LOSS_SYMBOLS),
 )
 @orth_options.option(
     "--skip_gene_trees",
@@ -812,7 +812,7 @@ Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
     is_flag=True,
     default=False,
     show_default=True,
-    help="If set, skips gene-tree based resolution step for convoluted many2many clades"
+    help="If set, skips gene-tree based resolution step for convoluted many2many clades",
 )
 @orth_options.option(
     "--use_raxml",
@@ -820,7 +820,7 @@ Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
     is_flag=True,
     default=False,
     show_default=True,
-    help="Use raxmlHPC-PTHREADS-AVX instead of IqTree2 for tree inference"
+    help="Use raxmlHPC-PTHREADS-AVX instead of IqTree2 for tree inference",
 )
 @orth_options.option(
     "--max_clique_size",
@@ -829,7 +829,7 @@ Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
     metavar="INT",
     default=50,
     show_default=True,
-    help="A maximum number of sequences in many:many cliques to be resolved with gene trees"
+    help="A maximum number of sequences in many:many cliques to be resolved with gene trees",
 )
 @orth_options.option(
     "--orthology_jobs",
@@ -838,7 +838,7 @@ Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
     metavar="INT",
     default=100,
     show_default=True,
-    help="A number of jobs to split orthology fine resolution commands into"
+    help="A number of jobs to split orthology fine resolution commands into",
 )
 @orth_options.option(
     "--prank_binary",
@@ -848,7 +848,7 @@ Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
     default=None,
     show_default=True,
     help="""A path to the PRANK executable to be used at fine resolution step. 
-If not provided, the program will try to infer its location from the PATH"""
+If not provided, the program will try to infer its location from the PATH""",
 )
 @orth_options.option(
     "--tree_binary",
@@ -858,7 +858,7 @@ If not provided, the program will try to infer its location from the PATH"""
     default=None,
     show_default=True,
     help="""A path to the IqTree2/raxmlHPC-PTHREADS-AVX executable to be used at fine resolution step. 
-If not provided, the program will try to infer its location from the PATH."""
+If not provided, the program will try to infer its location from the PATH.""",
 )
 @orth_options.option(
     "--tree_cpus",
@@ -867,7 +867,7 @@ If not provided, the program will try to infer its location from the PATH."""
     metavar="INT",
     default=1,
     show_default=True,
-    help="A maximum number of CPUs to run IqTree2/RAxML with"
+    help="A maximum number of CPUs to run IqTree2/RAxML with",
 )
 @utr_options.option(
     "--utr_abs_threshold",
@@ -875,7 +875,7 @@ If not provided, the program will try to infer its location from the PATH."""
     type=click.IntRange(min=0),
     default=3000,
     show_default=True,
-    help="Absolute threshold by which the projected UTR block/exon can exceed the reference counterpart"
+    help="Absolute threshold by which the projected UTR block/exon can exceed the reference counterpart",
 )
 @utr_options.option(
     "--utr_rel_threshold",
@@ -884,7 +884,7 @@ If not provided, the program will try to infer its location from the PATH."""
     default=2.5,
     show_default=True,
     help="""Relative (to reference exon length) threshold by which the projected UTR block/exon 
-can exceed the reference counterpart"""
+can exceed the reference counterpart""",
 )
 @utr_options.option(
     "--no_utr_boundary_extrapolation",
@@ -893,7 +893,7 @@ can exceed the reference counterpart"""
     default=False,
     show_default=True,
     help="""If set, UTR block/exon boundaries will be projected by the last aligned UTR position, 
-without extrapolating the terminal unaligned regions"""
+without extrapolating the terminal unaligned regions""",
 )
 @utr_options.option(
     "--no_adjacent_utr_extra",
@@ -901,7 +901,7 @@ without extrapolating the terminal unaligned regions"""
     is_flag=True,
     default=False,
     show_default=True,
-    help="If set, unaligned CDS-adjacent UTR sequences will not be extrapolated"
+    help="If set, unaligned CDS-adjacent UTR sequences will not be extrapolated",
 )
 @utr_options.option(
     "--fixed_adjacent_utr_extra",
@@ -910,7 +910,7 @@ without extrapolating the terminal unaligned regions"""
     default=False,
     show_default=True,
     help="""If set, unaligned CDS-adjacent UTR sequences will be annotated as block of fixed length 
-equal to --utr_abs_threshold value"""
+equal to --utr_abs_threshold value""",
 )
 @browser_options.option(
     "--link_file",
@@ -920,7 +920,7 @@ equal to --utr_abs_threshold value"""
     default=None,
     show_default=False,
     help="""A path to the two-column file containing HTML-formatted hyperlinks 
-to external sources on reference transcripts"""
+to external sources on reference transcripts""",
 )
 @browser_options.option(
     "--ucsc_prefix",
@@ -929,7 +929,7 @@ to external sources on reference transcripts"""
     metavar="PREFIX",
     default=Constants.DEFAULT_UCSC_PREFIX,
     show_default=True,
-    help="A prefix to use in the output file names"
+    help="A prefix to use in the output file names",
 )
 @parallel_options.option(
     "--parallel_strategy",
@@ -944,7 +944,7 @@ Please consult the full list of options at Nextflow help page. Note that setting
 executor to "local" will parallel the processes over the local machine CPUs.\b\n
 If you want to use Parasol as parallel process manager, set this option to "para"\b
 If you want to implement a fully custom parallel manager strategy, modify the CustomStrategy class
-and set this option to "custom" or contact the TOGA2 team"""
+and set this option to "custom" or contact the TOGA2 team""",
 )
 @parallel_options.option(
     "--nextflow_exec_script",
@@ -954,7 +954,7 @@ and set this option to "custom" or contact the TOGA2 team"""
     show_default=True,
     help="""A path to a user-defined Nextflow script used for parallel process execution. 
 If not specified, TOGA2 will use a minimal boilerplate script instead. 
-Ignored if Parasol or custom HPC strategy were specified for parallel steps"""
+Ignored if Parasol or custom HPC strategy were specified for parallel steps""",
 )
 @parallel_options.option(
     "--max_number_of_retries",
@@ -963,7 +963,7 @@ Ignored if Parasol or custom HPC strategy were specified for parallel steps"""
     default=3,
     show_default=True,
     help="""Maximum number of retries per parallel job before reporting job failure. 
-Ignored if Parasol or custom HPC strategy were specified for parallel steps"""
+Ignored if Parasol or custom HPC strategy were specified for parallel steps""",
 )
 @parallel_options.option(
     "--nextflow_config_dir",
@@ -973,7 +973,7 @@ Ignored if Parasol or custom HPC strategy were specified for parallel steps"""
     default=None,
     show_default=True,
     help="""A path to a directory containing user-defined Nextflow configuration files; 
-for detauls, please see nextflow_config_files/readme.txt"""
+for detauls, please see nextflow_config_files/readme.txt""",
 )
 @parallel_options.option(
     "--max_parallel_time",
@@ -982,7 +982,7 @@ for detauls, please see nextflow_config_files/readme.txt"""
     metavar="HOURS",
     default=24,
     show_default=True,
-    help="Maximum time duration (in hours) for Nextflow parallel processes"
+    help="Maximum time duration (in hours) for Nextflow parallel processes",
 )
 @parallel_options.option(
     "--cluster_queue_name",
@@ -993,7 +993,7 @@ for detauls, please see nextflow_config_files/readme.txt"""
     show_default=True,
     help="""Cluster partition/queue name used. Default value assumes that name 
 "batch" is available on your machine. Please consult your cluster 
-administrator for available and recommended queues"""
+administrator for available and recommended queues""",
 )
 @parallel_options.option(
     "--keep_nextflow_log",
@@ -1001,7 +1001,7 @@ administrator for available and recommended queues"""
     is_flag=True,
     default=False,
     show_default=True,
-    help="Do not delete Nextflow logs after successful TOGA execution"
+    help="Do not delete Nextflow logs after successful TOGA execution",
 )
 @parallel_options.option(
     "--ignore_crashed_parallel_batches",
@@ -1011,7 +1011,7 @@ administrator for available and recommended queues"""
     show_default=True,
     help="""If set, proceeds through parallel steps even if some batches failed. 
 Failed batches are further added to the "failed_batches_<project_name>.tsv" file stepwise. 
-Note that the results of the failed batches will be missing from the final output"""
+Note that the results of the failed batches will be missing from the final output""",
 )
 @container_options.option(
     "--container_image",
@@ -1019,14 +1019,14 @@ Note that the results of the failed batches will be missing from the final outpu
     default=None,
     show_default=True,
     help="""A path to the executable TOGA2 container image. 
-All the parallel step scripts will be executed by invoking this container. """
+All the parallel step scripts will be executed by invoking this container. """,
 )
 @container_options.option(
     "--container_executor",
     type=str,
     default="apptainer",
     show_default=True,
-    help="A name for container executor engine"
+    help="A name for container executor engine",
 )
 @container_options.option(
     "--bindings",
@@ -1036,7 +1036,7 @@ All the parallel step scripts will be executed by invoking this container. """
     show_default=True,
     help="""A list of directory mounts to provide to the container instances at parallel steps. 
 Binginds should be provided as expected by the container executor engine and wrapped in double 
-quotes, e.g. "/tmp,/src/,~/:/home\""""
+quotes, e.g. "/tmp,/src/,~/:/home\"""",
 )
 @legacy_and_experimental.option(
     "--legacy_chain_feature_extraction",
@@ -1044,7 +1044,7 @@ quotes, e.g. "/tmp,/src/,~/:/home\""""
     default=False,
     show_default=True,
     help="""If set, legacy Python implementation will be used for chain feature extraction. 
-NOTE: Legacy feature extraction is a parallel step, and a time-consuming one"""
+NOTE: Legacy feature extraction is a parallel step, and a time-consuming one""",
 )
 @legacy_and_experimental.option(
     "--toga1_compatible",
@@ -1053,7 +1053,7 @@ NOTE: Legacy feature extraction is a parallel step, and a time-consuming one"""
     default=False,
     show_default=True,
     help="""Alignment procedure is fully TOGA1.0-compliant except for exonwise 
-CESAR alignment; benchmarking feature, do not use in real runs"""
+CESAR alignment; benchmarking feature, do not use in real runs""",
 )
 @legacy_and_experimental.option(
     "--toga1_plus_corrected_cesar",
@@ -1063,7 +1063,7 @@ CESAR alignment; benchmarking feature, do not use in real runs"""
     show_default=True,
     help="""Alignment procedure is fully TOGA1.0-compliant except for exonwise 
 CESAR alignment and corrected CESAR-related bugs; 
-benchmarking feature, do not use in real runs"""
+benchmarking feature, do not use in real runs""",
 )
 @legacy_and_experimental.option(
     "--account_for_alternative_frame",
@@ -1074,7 +1074,7 @@ benchmarking feature, do not use in real runs"""
     show_default=True,
     help="""If set, codons in the alternative reading frame 
 (=residing between compensated frameshifts) are considered 
-when computing sequence intactness features"""
+when computing sequence intactness features""",
 )
 @out_options.option(
     "--output",
@@ -1083,7 +1083,7 @@ when computing sequence intactness features"""
     metavar="PATH",
     default=None,
     show_default=False,
-    help="A directory to store results into [default: toga2_run_<date_time>]"
+    help="A directory to store results into [default: toga2_run_<date_time>]",
 )
 @out_options.option(
     "--project_name",
@@ -1094,7 +1094,7 @@ when computing sequence intactness features"""
     show_default=True,
     help="""A name for the current TOGA2 project. This name will be used 
 as a prefix followed by run start date and time to name current runs' 
-log and metadata files"""
+log and metadata files""",
 )
 @out_options.option(
     "--keep_temporary_files",
@@ -1102,7 +1102,7 @@ log and metadata files"""
     is_flag=True,
     default=False,
     show_default=True,
-    help="If set, temporary directory (tmp) is left intact after execution is complete"
+    help="If set, temporary directory (tmp) is left intact after execution is complete",
 )
 @verbosity_options.option(
     "--verbose", "-v", is_flag=True, default=False, help="Control logging verbosity"
@@ -1115,7 +1115,7 @@ log and metadata files"""
     show_default=True,
     help="""A valid e-mail address to send notifications to. If provided, TOGA2 "
 will notify the user on pipeline crash, successful completeion, and "
-potential problems after certain pipeline steps"""
+potential problems after certain pipeline steps""",
 )
 @verbosity_options.option(
     "--mailx_binary",
@@ -1124,7 +1124,7 @@ potential problems after certain pipeline steps"""
     default=None,
     show_default=True,
     help="""A path to mailx executable; if not set, the executable with 
-this name will be sought for in $PATH"""
+this name will be sought for in $PATH""",
 )
 @binary_options.option(
     "--fatotwobit_binary",
@@ -1132,7 +1132,7 @@ this name will be sought for in $PATH"""
     metavar="FATOTWOBIT_PATH",
     default=os.path.join(BIN, "faToTwoBit"),
     show_default=True,
-    help="A path to UCSC faToTwoBit executable"
+    help="A path to UCSC faToTwoBit executable",
 )
 @binary_options.option(
     "--twobittofa_binary",
@@ -1140,7 +1140,7 @@ this name will be sought for in $PATH"""
     metavar="TWOBITTOFA_PATH",
     default=os.path.join(BIN, "twoBitToFa"),
     show_default=True,
-    help="A path to UCSC twoBitToFa executable"
+    help="A path to UCSC twoBitToFa executable",
 )
 @binary_options.option(
     "--bigwig2wig_binary",
@@ -1148,7 +1148,7 @@ this name will be sought for in $PATH"""
     type=click.Path(exists=True),
     metavar="BIGWIG2WIG_BINARY",
     default=os.path.join(BIN, "bigWigToWig"),
-    help="A path to the UCSC bigWigToWig binary"
+    help="A path to the UCSC bigWigToWig binary",
 )
 @binary_options.option(
     "--bedtobigbed_binary",
@@ -1156,7 +1156,7 @@ this name will be sought for in $PATH"""
     metavar="BEDTOBIGBED_PATH",
     default=None,
     show_default=True,
-    help="A path to UCSC bedToBigBed executable"
+    help="A path to UCSC bedToBigBed executable",
 )
 @binary_options.option(
     "--ixixx_binary",
@@ -1164,7 +1164,7 @@ this name will be sought for in $PATH"""
     metavar="IXIXX_PATH",
     default=None,
     show_default=True,
-    help="A path to UCSC ixIxx executable"
+    help="A path to UCSC ixIxx executable",
 )
 def run(**kwargs) -> None:
     """
@@ -1197,11 +1197,7 @@ def run(**kwargs) -> None:
     no_args_is_help=True,
     short_help="Run TOGA2 pipeline with a configuration file",
 )
-@click.argument(
-    "config_file",
-    type=click.File("r", lazy=True),
-    metavar="CONFIG_FILE"
-)
+@click.argument("config_file", type=click.File("r", lazy=True), metavar="CONFIG_FILE")
 @click.option(
     "--override",
     type=str,
@@ -1210,7 +1206,7 @@ def run(**kwargs) -> None:
     show_default=True,
     help="""Additional settings for TOGA2 listed in double quotation marks. 
 Settings provided this way will supersede those listed in the configuration file. 
-WARNING: Currenly does not accept argument short (single-dash) names"""
+WARNING: Currenly does not accept argument short (single-dash) names""",
 )
 def from_config(config_file: click.File, override: Optional[str]) -> None:
     """
@@ -1256,7 +1252,7 @@ def from_config(config_file: click.File, override: Optional[str]) -> None:
     show_default=True,
     help="""A path to a two-column tab-separated file containing gene-to-isoform mapping. 
 The contents will be also checked for consistency, with transcripts missing 
-gene mapping further removed from the annotation file"""
+gene mapping further removed from the annotation file""",
 )
 @click.option(
     "--output",
@@ -1275,7 +1271,7 @@ gene mapping further removed from the annotation file"""
     show_default=True,
     help="""If set, copies the input annotation file to the output directory as-is, 
 with no filtering. Highly discouraged unless you want to use compromised transcripts 
-for intron classificaiton/CESAR2 profile generation"""
+for intron classificaiton/CESAR2 profile generation""",
 )
 @click.option(
     "--contigs",
@@ -1285,7 +1281,7 @@ for intron classificaiton/CESAR2 profile generation"""
     show_default=True,
     help="""A comma-separated list of contig (scaffold, chromosome, etc.) names 
 to restrict the fitlered annotation to. Transcripts located in other contigs 
-will be excluded from the annotation."""
+will be excluded from the annotation.""",
 )
 @click.option(
     "--excluded_contigs",
@@ -1296,7 +1292,7 @@ will be excluded from the annotation."""
     help="""A comma-separated list of deprecated contig (scaffold, chromosome, etc.) names 
 to exclude from the filtered annotation. Transcripts located in this contigs 
 will be excluded from the annotation. Contigs appearing in both --contigs 
-and --excluded_contigs are treated as excluded."""
+and --excluded_contigs are treated as excluded.""",
 )
 @click.option(
     "--disable_intron_classification",
@@ -1305,7 +1301,7 @@ and --excluded_contigs are treated as excluded."""
     default=False,
     help="""If set, stops the procedure before intron classification step. Recommended if 
 you already have U12 intron file list or do not have access to intronIC. 
-NOTE: Setting this flag will also disable CESAR2 profile generation."""
+NOTE: Setting this flag will also disable CESAR2 profile generation.""",
 )
 @click.option(
     "--disable_cesar_profiles",
@@ -1317,7 +1313,7 @@ NOTE: Setting this flag will also disable CESAR2 profile generation."""
 TOGA2 comes with a set of trusted CESAR2 profiles for selected mammalian and avian 
 references; generating custom profiles is recommended if your reference belongs to a 
 distant clade with highly divergent intron structure. 
-NOTE: The step is skipped automatically if --disable_intron_classification flag is set."""
+NOTE: The step is skipped automatically if --disable_intron_classification flag is set.""",
 )
 @click.option(
     "--intronic_binary",
@@ -1326,7 +1322,7 @@ NOTE: The step is skipped automatically if --disable_intron_classification flag 
     default=None,
     show_default=True,
     help="""A path to intronIC binary. If not set, will check 
-for executable intronIC instance in $PATH"""
+for executable intronIC instance in $PATH""",
 )
 @click.option(
     "--intronic_cores",
@@ -1334,7 +1330,7 @@ for executable intronIC instance in $PATH"""
     metavar="INT",
     default=1,
     show_default=True,
-    help="Number of CPUs to run intronIC with"
+    help="Number of CPUs to run intronIC with",
 )
 @click.option(
     "--min_intron_length_intronic",
@@ -1342,7 +1338,7 @@ for executable intronIC instance in $PATH"""
     metavar="INT",
     default=MIN_INTRON_LENGTH_FOR_CLASSIFICATION,
     show_default=True,
-    help="Minimal intron length for intronIC to consider for classification"
+    help="Minimal intron length for intronIC to consider for classification",
 )
 @click.option(
     "--twobittofa_binary",
@@ -1351,7 +1347,7 @@ for executable intronIC instance in $PATH"""
     default=None,
     show_default=True,
     help="""A path to UCSC twoBitToFa executable; if not set, the executable with this name 
-will be sought for in $PATH"""
+will be sought for in $PATH""",
 )
 @click.option(
     "--min_intron_length_cesar",
@@ -1360,7 +1356,7 @@ will be sought for in $PATH"""
     metavar="INT",
     default=MIN_INTRON_LENGTH_FOR_PROFILES,
     show_default=True,
-    help="Minimal intron length to consider for CESAR2 profile generation"
+    help="Minimal intron length to consider for CESAR2 profile generation",
 )
 @click.option(
     "--keep_temporary",
@@ -1368,7 +1364,7 @@ will be sought for in $PATH"""
     is_flag=True,
     default=False,
     show_default=True,
-    help="If set, does not remove the temporary files directory"
+    help="If set, does not remove the temporary files directory",
 )
 def prepare_input(**kwargs) -> None:
     """
@@ -1429,7 +1425,7 @@ def prepare_input(**kwargs) -> None:
     show_default=True,
     help="""Sequence chunk size for parallel SpliceAi annotation jobs, in bp. 
 Each contig (scaffold, chromosome, etc.) in the genome file is split into chunks 
-of the specified size to facilitate parallel computation"""
+of the specified size to facilitate parallel computation""",
 )
 @spliceai_run_options.option(
     "--flank_size",
@@ -1440,7 +1436,7 @@ of the specified size to facilitate parallel computation"""
     show_default=True,
     help="""Sequence chunk flank size, in bp. Each sequence chunk is furher added this many 
 nucleotides from each side overlapping neighbouring chunks to mititgate 
-potential boundary effects"""
+potential boundary effects""",
 )
 @spliceai_run_options.option(
     "--min_contig_size",
@@ -1457,7 +1453,7 @@ potential boundary effects"""
     metavar="INT",
     default=4,
     show_default=True,
-    help="Number of decimal digits to round SpliceAI predicted probabilities to"
+    help="Number of decimal digits to round SpliceAI predicted probabilities to",
 )
 @spliceai_run_options.option(
     "--min_prob",
@@ -1466,7 +1462,7 @@ potential boundary effects"""
     default=0.001,
     show_default=True,
     help="""Minimal SpliceAI-predicted probability to consider. Values lower than this 
-will not be reported in the output bigWig files"""
+will not be reported in the output bigWig files""",
 )
 @parallel_options.option(
     "--job_number",
@@ -1475,7 +1471,7 @@ will not be reported in the output bigWig files"""
     metavar="INT",
     default=500,
     show_default=True,
-    help="Number of parallel jobs to split the task into"
+    help="Number of parallel jobs to split the task into",
 )
 @parallel_options.option(
     "--parallel_strategy",
@@ -1491,7 +1487,7 @@ executor to "local" will parallel the processes over the local machine CPUs.\b\n
 If you want to use Parasol as parallel process manager, set this option to "para"\b
 If you want to implement a fully custom parallel manager strategy, modify the CustomStrategy class
 and set this option to "custom" or contact the TOGA2 team
-"""
+""",
 )
 @parallel_options.option(
     "--nextflow_exec_script",
@@ -1501,7 +1497,7 @@ and set this option to "custom" or contact the TOGA2 team
     show_default=True,
     help="""A path to a user-defined Nextflow script used for parallel process execution. 
 If not specified, TOGA2 will use a minimal boilerplate script instead. 
-Ignored if Parasol or custom HPC strategy were specified for parallel steps"""
+Ignored if Parasol or custom HPC strategy were specified for parallel steps""",
 )
 @parallel_options.option(
     "--max_number_of_retries",
@@ -1510,7 +1506,7 @@ Ignored if Parasol or custom HPC strategy were specified for parallel steps"""
     default=3,
     show_default=True,
     help="""Maximum number of retries per parallel job before reporting job failure. 
-Ignored if Parasol or custom HPC strategy were specified for parallel steps"""
+Ignored if Parasol or custom HPC strategy were specified for parallel steps""",
 )
 @parallel_options.option(
     "--nextflow_config_file",
@@ -1520,7 +1516,7 @@ Ignored if Parasol or custom HPC strategy were specified for parallel steps"""
     default=None,
     show_default=True,
     help="""A path to a custom Nextflow configuration file. Settings in this file 
-will override those provided via command line"""
+will override those provided via command line""",
 )
 @parallel_options.option(
     "--max_parallel_time",
@@ -1529,7 +1525,7 @@ will override those provided via command line"""
     metavar="HOURS",
     default=24,
     show_default=True,
-    help="Maximum time duration (in hours) for Nextflow parallel processes"
+    help="Maximum time duration (in hours) for Nextflow parallel processes",
 )
 @parallel_options.option(
     "--cluster_queue_name",
@@ -1540,7 +1536,7 @@ will override those provided via command line"""
     show_default=True,
     help="""Cluster partition/queue name used. Default value assumes that name 
 "batch" is available on your machine. Please consult your cluster 
-administrator for available and recommended queues"""
+administrator for available and recommended queues""",
 )
 @parallel_options.option(
     "--memory_limit",
@@ -1548,7 +1544,7 @@ administrator for available and recommended queues"""
     metavar="GB",
     default=DEFAULT_MEMORY_LIMIT,
     show_default=True,
-    help="Memory limit for parallel SpliceAI jobs, in GB"
+    help="Memory limit for parallel SpliceAI jobs, in GB",
 )
 @binary_options.option(
     "--twobittofa_binary",
@@ -1556,7 +1552,7 @@ administrator for available and recommended queues"""
     metavar="PATH",
     default=os.path.join(BIN, "twoBitToFa"),
     show_default=True,
-    help="A path to UCSC twoBitToFa binary"
+    help="A path to UCSC twoBitToFa binary",
 )
 @binary_options.option(
     "--fatotwobit_binary",
@@ -1564,7 +1560,7 @@ administrator for available and recommended queues"""
     metavar="PATH",
     default=os.path.join(BIN, "faToTwoBit"),
     show_default=True,
-    help="A path to UCSC faToTwoBit binary"
+    help="A path to UCSC faToTwoBit binary",
 )
 @binary_options.option(
     "--wigtobigwig_binary",
@@ -1572,7 +1568,7 @@ administrator for available and recommended queues"""
     metavar="PATH",
     default=os.path.join(BIN, "wigToBigWig"),
     show_default=True,
-    help="A path to UCSC wigToBigWigs binary"
+    help="A path to UCSC wigToBigWigs binary",
 )
 @out_options.option(
     "--output",
@@ -1581,7 +1577,7 @@ administrator for available and recommended queues"""
     metavar="PATH",
     default=None,
     show_default=True,
-    help="A path to save the results to [default: spliceai_<date_time>]"
+    help="A path to save the results to [default: spliceai_<date_time>]",
 )
 @out_options.option(
     "--project_name",
@@ -1592,7 +1588,7 @@ administrator for available and recommended queues"""
     show_default=True,
     help="""A name for the current TOGA2 project. This name will be used 
 as a prefix followed by run start date and time to name current runs' 
-log and metadata files"""
+log and metadata files""",
 )
 @out_options.option(
     "--keep_temporary_files", "-k", is_flag=True, default=False, show_default=True
@@ -1603,7 +1599,7 @@ log and metadata files"""
     is_flag=True,
     default=False,
     show_default=True,
-    help="Controls execution verbosity; if set, progress log will be repeated to stdout"
+    help="Controls execution verbosity; if set, progress log will be repeated to stdout",
 )
 def spliceai(**kwargs) -> None:
     """
@@ -1659,7 +1655,7 @@ def merge(**kwargs) -> None:
     context_settings=CONTEXT_SETTINGS,
     no_args_is_help=True,
     short_help="""Prepare an integrated TOGA2 annotation 
-by combining annotation with different references"""
+by combining annotation with different references""",
 )
 @click.argument("ref_data", type=click.Path(exists=True), metavar="INPUT_JSON")
 @click.option(
@@ -1668,7 +1664,7 @@ by combining annotation with different references"""
     type=click.Path(exists=False),
     default=None,
     show_default=True,
-    help="A path to a directory to save the results to"
+    help="A path to a directory to save the results to",
 )
 @click.option(
     "--accepted_statuses",
@@ -1682,7 +1678,7 @@ Projections corresponding to these loss statuses will have preference
 for query gene inference and final annotation content unless no projection 
 of these statuses occurs in a query locus. 
 Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
-    % ",".join(Constants.ALL_LOSS_SYMBOLS)
+    % ",".join(Constants.ALL_LOSS_SYMBOLS),
 )
 @click.option(
     "--prefix",
@@ -1691,7 +1687,7 @@ Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
     metavar="UCSC_PREFIX",
     default="HLTOGA2combined",
     show_default=True,
-    help="A prefix to use in UCSC browser file names for integrated annotation"
+    help="A prefix to use in UCSC browser file names for integrated annotation",
 )
 @click.option(
     "--skip_ucsc",
@@ -1699,7 +1695,7 @@ Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
     default=False,
     show_default=True,
     help="""If set, skips the integrated UCSC BigBed preparation step altogether, 
-even if the reference-wise UCSC files were provided"""
+even if the reference-wise UCSC files were provided""",
 )
 @click.option(
     "--chrom_sizes",
@@ -1709,7 +1705,7 @@ even if the reference-wise UCSC files were provided"""
     show_default=True,
     help="""A path to two-column, tab-separated file containing query chromosome 
 (contig, scaffold, etc.) sizes, in bp. Required if UCSC BigBed file 
-preparation is requested"""
+preparation is requested""",
 )
 @click.option(
     "--bigbedtobed_binary",
@@ -1718,7 +1714,7 @@ preparation is requested"""
     show_default=True,
     help="""A path to UCSC bigBedToBed binary. 
 If none provided, the code will look for the binary in bin/ directory 
-and then for an available executable in $PATH"""
+and then for an available executable in $PATH""",
 )
 @binary_options.option(
     "--bedtobigbed_binary",
@@ -1728,7 +1724,7 @@ and then for an available executable in $PATH"""
     show_default=True,
     help="""A path to UCSC bedToBigBed executable. 
 If none provided, the code will look for the binary in bin/ directory 
-and then for an available executable in $PATH"""
+and then for an available executable in $PATH""",
 )
 @binary_options.option(
     "--ixixx_binary",
@@ -1738,7 +1734,7 @@ and then for an available executable in $PATH"""
     show_default=True,
     help="""A path to UCSC ixIxx executable. 
 If none provided, the code will look for the binary in bin/ directory 
-and then for an available executable in $PATH"""
+and then for an available executable in $PATH""",
 )
 @click.option(
     "--verbose",
@@ -1746,7 +1742,7 @@ and then for an available executable in $PATH"""
     is_flag=True,
     default=False,
     show_default=True,
-    help="Controls execution verbosity"
+    help="Controls execution verbosity",
 )
 def integrate(**kwargs) -> None:
     """
@@ -1771,14 +1767,10 @@ def integrate(**kwargs) -> None:
 @toga2.command(
     context_settings=CONTEXT_SETTINGS,
     no_args_is_help=True,
-    short_help="Run postprocessing analysis with Postoga"
+    short_help="Run postprocessing analysis with Postoga",
 )
 @click.option(
-    "-td",
-    "--togadir",
-    required=True,
-    type=str,
-    help="Path to TOGA results directory"
+    "-td", "--togadir", required=True, type=str, help="Path to TOGA results directory"
 )
 @click.option(
     "-bc",
@@ -1786,7 +1778,7 @@ def integrate(**kwargs) -> None:
     "orthology_status",
     required=False,
     type=str,
-    help="Include certain orthology classes (FI, I, PI, UL, M, PM, L, UL)"
+    help="Include certain orthology classes (FI, I, PI, UL, M, PM, L, UL)",
 )
 @click.option(
     "-br",
@@ -1794,7 +1786,7 @@ def integrate(**kwargs) -> None:
     "orthology_class",
     required=False,
     type=str,
-    help="Include certain orthology relationships (o2o, o2m, m2m, m2m, o2z)"
+    help="Include certain orthology relationships (o2o, o2m, m2m, m2m, o2z)",
 )
 @click.option(
     "-bs",
@@ -1802,7 +1794,7 @@ def integrate(**kwargs) -> None:
     "orthology_score",
     required=False,
     type=float,
-    help="Preserve orthology scores ≥ threshold (0.0–1.0)"
+    help="Preserve orthology scores ≥ threshold (0.0–1.0)",
 )
 @click.option(
     "-to",
@@ -1810,7 +1802,7 @@ def integrate(**kwargs) -> None:
     type=click.Choice(["gtf", "gff", "bed"]),
     default="gtf",
     show_default=True,
-    help="Conversion format for .bed file"
+    help="Conversion format for .bed file",
 )
 @click.option(
     "-tg",
@@ -1819,7 +1811,7 @@ def integrate(**kwargs) -> None:
     type=click.Choice(["bed", "utr"]),
     default="utr",
     show_default=True,
-    help="Which .bed input file to use"
+    help="Which .bed input file to use",
 )
 @click.option(
     "-bp",
@@ -1827,7 +1819,7 @@ def integrate(**kwargs) -> None:
     "min_paralog_score",
     required=False,
     type=float,
-    help="Preserve transcripts with paralog projection probabilities ≥ score"
+    help="Preserve transcripts with paralog projection probabilities ≥ score",
 )
 @click.option(
     "-w",
@@ -1836,7 +1828,7 @@ def integrate(**kwargs) -> None:
     type=str,
     default=None,
     show_default=True,
-    help="Path to custom isoform table"
+    help="Path to custom isoform table",
 )
 @click.option(
     "-o",
@@ -1845,7 +1837,7 @@ def integrate(**kwargs) -> None:
     type=str,
     default=None,
     show_default=True,
-    help="Path to posTOGA output directory"
+    help="Path to posTOGA output directory",
 )
 @click.option(
     "-ext",
@@ -1853,19 +1845,16 @@ def integrate(**kwargs) -> None:
     type=click.Choice(["query", "reference"]),
     required=False,
     default=None,
-    help="Extract sequences from filtered projections"
+    help="Extract sequences from filtered projections",
 )
 @click.option(
-    "-ot",
-    "--only-table",
-    is_flag=True,
-    help="Only produce the toga.table file"
+    "-ot", "--only-table", is_flag=True, help="Only produce the toga.table file"
 )
 @click.option(
     "-oc",
     "--only-convert",
     is_flag=True,
-    help="Only convert the toga.table file to gtf/gff"
+    help="Only convert the toga.table file to gtf/gff",
 )
 @click.option(
     "-L",
@@ -1874,13 +1863,10 @@ def integrate(**kwargs) -> None:
     type=click.Choice(["debug", "info", "warn", "off"]),
     default="info",
     show_default=True,
-    help="Logging verbosity"
+    help="Logging verbosity",
 )
 @click.option(
-    "-d",
-    "--depure",
-    is_flag=True,
-    help="Remove any trace of other postoga runs/files"
+    "-d", "--depure", is_flag=True, help="Remove any trace of other postoga runs/files"
 )
 def postoga(**kwargs) -> None:
     """
@@ -1927,7 +1913,7 @@ def cookbook() -> None:
 @toga2.command(
     context_settings=CONTEXT_SETTINGS,
     no_args_is_help=False,
-    short_help="Test TOGA2 with companion dataset"
+    short_help="Test TOGA2 with companion dataset",
 )
 @click.option(
     "--output",
