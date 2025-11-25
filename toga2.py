@@ -30,7 +30,7 @@ from src.python.modules.input_producer import (
     MIN_INTRON_LENGTH_FOR_CLASSIFICATION,
     MIN_INTRON_LENGTH_FOR_PROFILES,
 )
-from src.python.modules.shared import CONTEXT_SETTINGS, PrettyGroup
+from src.python.modules.shared import CONTEXT_SETTINGS, MutexOption, PrettyGroup
 
 __author__ = "Yury V. Malovichko"
 __version__ = "2.0.6"
@@ -63,7 +63,7 @@ LAST_DONOR: str = os.path.join(LOCATION, *LAST_DONOR)
 BLOSUM_FILE: str = os.path.join(LOCATION, *DEF_BLOSUM_FILE)
 
 
-input_options: PrettyGroup = PrettyGroup("Additional input")
+input_options: PrettyGroup = PrettyGroup("General input")
 control_flow_options: PrettyGroup = PrettyGroup(
     "Pipeline", help="Control flow settings"
 )
@@ -151,11 +151,116 @@ def toga2() -> None:
     epilog=TOGA2_EPILOG,
     short_help="Run TOGA2 pipeline with command line arguments",
 )
-@click.argument("ref_2bit", type=click.Path(exists=True), metavar="REF_2BIT")
-@click.argument("query_2bit", type=click.Path(exists=True), metavar="QUERY_2BIT")
-@click.argument("chain_file", type=click.Path(exists=True), metavar="ALIGNMENT_CHAINS")
-@click.argument(
-    "ref_annotation", type=click.Path(exists=True), metavar="REF_ANNOTATION_BED"
+@input_options.option(
+    "--ref_2bit", 
+    type=click.Path(exists=True), 
+    metavar="REF_2BIT",
+    required=True,
+    help="Reference genome assembly file, in .2bit format",
+)
+@input_options.option(
+    "--query_2bit", 
+    type=click.Path(exists=True), 
+    metavar="QUERY_2BIT",
+    required=True,
+    help="Query genome assembly file, in .2bit format",
+)
+@input_options.option(
+    "--chain_file", 
+    type=click.Path(exists=True), 
+    metavar="ALIGNMENT_CHAINS",
+    required=True,
+    help=(
+        "Genome alignment chains, with REF_2BIT as reference and QUERY_2BIT as query. "
+        "TOGA2 annotates query genome by projecting reference transcripts through the chains"
+        "contained in this file. Can be compressed in .gzip format"
+    ),
+)
+@input_options.option(
+    "--ref_annotation", 
+    type=click.Path(exists=True), 
+    metavar="REF_ANNOTATION_BED",
+    required=True,
+    help=(
+        "Reference annotation file, in BED12 format. TOGA2 annotates transcripts in the "
+        "query genome by projecting reference transcripts contained in this file"
+    ),
+)
+@input_options.option(
+    "--isoform_file",
+    "-i",
+    type=click.Path(exists=True),
+    metavar="ISOFORMS_FILE",
+    cls=MutexOption,
+    competes_with=["no_isoform_file"],
+    required_mutex=True,
+    help="A path to a two-column tab-separated file containing gene-to-isoform mapping",
+)
+@input_options.option(
+    "--no_isoform_file",
+    is_flag=True,
+    default=False,
+    cls=MutexOption,
+    competes_with=["isoform_file"],
+    required_mutex=True,
+    help=(
+        "A flag indicating that TOGA2 will be used without isoform file. "
+        "Use this if you do not have an isoform file or want each transcript "
+        "in REF_ANNOTATION_BED to be treated as a separate gene"
+    ),
+)
+@input_options.option(
+    "--u12_file",
+    "-u12",
+    type=click.Path(exists=True),
+    metavar="U12_FILE",
+    cls=MutexOption,
+    competes_with=["no_u12_file"],
+    required_mutex=True,
+    help=(
+        "A three-column tab-separated file containing information on the "
+        "non-canonical splice sites"
+    ),
+)
+@input_options.option(
+    "--no_u12_file",
+    is_flag=True,
+    default=False,
+    cls=MutexOption,
+    competes_with=["u12_file"],
+    required_mutex=True,
+    help=(
+        "A flag indicating that TOGA2 will be used without U12/non-canonical U2 classification file. "
+        "Use this if you do not want to discriminate between GT/GC-AG U2 and other "
+        "intron classes in in your annotation (highly discouraged)"
+    ),
+)
+@input_options.option(
+    "--spliceai_dir",
+    "-sai",
+    type=click.Path(exists=True),
+    metavar="SPLICEAI_OUT_DIR",
+    cls=MutexOption,
+    competes_with=["no_spliceai"],
+    required_mutex=True,
+    help=(
+        "A path to the SpliceAI predictions directory produced by TOGA2 `run_spliceai` mode. "
+        "These data are used for improved exon annotation in the query"
+    ),
+)
+@input_options.option(
+    "--no_spliceai",
+    is_flag=True,
+    default=False,
+    cls=MutexOption,
+    competes_with=["spliceai_dir"],
+    required_mutex=True,
+    help=(
+        "A flag indicating that TOGA2 will be used without SpliceAI predictions for exon annotation. "
+        "Discouraged unless you cannot obtain SpliceAI annotation for your query genome, "
+        "suspect that SpliceAI performs suboptimally for your query species, or have concerns about "
+        "TOGA2 performance speed and memory consumption."
+    )
 )
 @control_flow_options.option(
     "--resume_from",
@@ -239,34 +344,6 @@ def toga2() -> None:
     default=False,
     show_default=True,
     help="If set, UTR sequences are not added to the final annotation file",
-)
-@input_options.option(
-    "--isoform_file",
-    "-i",
-    type=click.Path(exists=True),
-    metavar="ISOFORMS_FILE",
-    default=None,
-    show_default=True,
-    help="A path to a two-column tab-separated file containing gene-to-isoform mapping",
-)
-@input_options.option(
-    "--u12_file",
-    "-u12",
-    type=click.Path(exists=True),
-    metavar="U12_FILE",
-    default=None,
-    show_default=True,
-    help=(
-        "A three-column tab-separated file containing information on the "
-        "non-canonical splice sites"
-    ),
-)
-@input_options.option(
-    "--spliceai_dir",
-    "-sai",
-    type=click.Path(exists=True),
-    metavar="SPLICEAI_OUT_DIR",
-    help="A path to the SpliceAI pipeline output directory",
 )
 @extraction_options.option(
     "--min_chain_score",

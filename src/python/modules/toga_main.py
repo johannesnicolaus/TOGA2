@@ -64,15 +64,18 @@ class TogaMain(CommandLineManager):
         query_2bit: click.Path,
         chain_file: click.Path,
         ref_annotation: click.Path,
+        isoform_file: Optional[click.Path],
+        no_isoform_file: Optional[bool],
+        u12_file: Optional[click.Path],
+        no_u12_file: Optional[bool],
+        spliceai_dir: Optional[click.Path],
+        no_spliceai: Optional[bool],
         resume_from: Optional[str],
         halt_at: Optional[str],
         selected_feature_batches: Optional[Union[str, None]],
         selected_preprocessing_batches: Optional[Union[str, None]],
         selected_alignment_batches: Optional[Union[str, None]],
         no_utr_annotation: Optional[bool],
-        isoform_file: Optional[click.Path],
-        u12_file: Optional[click.Path],
-        spliceai_dir: Optional[click.Path],
         min_chain_score: Optional[int],
         min_orthologous_chain_score: Optional[int],
         feature_jobs: Optional[int],
@@ -174,6 +177,13 @@ class TogaMain(CommandLineManager):
         self.chain_file: click.Path = self._abspath(chain_file)
         self.ref_annotation: click.Path = self._abspath(ref_annotation)
 
+        self.isoform_file: Union[click.Path, None] = self._abspath(isoform_file)
+        self.no_isoform_file: bool = no_isoform_file
+        self.u12_file: Union[click.Path, None] = self._abspath(u12_file)
+        self.no_u12_file: bool = no_u12_file
+        self.spliceai_dir: Union[click.Path, None] = self._abspath(spliceai_dir)
+        self.no_spliceai: bool = no_spliceai
+
         self.resume_from: str = resume_from
         self.halt_at: str = halt_at
         self.selected_feature_batches: List[str] = (
@@ -192,10 +202,6 @@ class TogaMain(CommandLineManager):
             else None
         )
         self.skip_utr: bool = no_utr_annotation
-
-        self.isoform_file: Union[click.Path, None] = self._abspath(isoform_file)
-        self.u12_file: Union[click.Path, None] = self._abspath(u12_file)
-        self.spliceai_dir: Union[click.Path, None] = self._abspath(spliceai_dir)
 
         self.min_chain_score: int = min_chain_score
         self.min_orth_chain_score: int = min_orthologous_chain_score
@@ -310,7 +316,9 @@ class TogaMain(CommandLineManager):
         self.legacy_chain_feature_extraction: bool = legacy_chain_feature_extraction
         self.parallel_process_names: List[str] = []
 
-        self.output: str = self._abspath(output if output else dir_name_by_date("toga2_run"))
+        self.output: str = self._abspath(
+            output if output else dir_name_by_date("toga2_run")
+        )
         self.keep_tmp: bool = keep_temporary_files
 
         ## benchmarking flags
@@ -1499,8 +1507,9 @@ class TogaMain(CommandLineManager):
         for attr, default_name in Constants.BINARIES_TO_CHECK.items():
             if attr not in self.__slots__:
                 self._echo(
-                    'Binary %s has no corresponding toga_main.py attribute; skipping' % default_name,
-                    'warning'
+                    "Binary %s has no corresponding toga_main.py attribute; skipping"
+                    % default_name,
+                    "warning",
                 )
                 continue
             if self.__getattribute__(attr) is None:
@@ -1509,7 +1518,6 @@ class TogaMain(CommandLineManager):
                 else:
                     expected_path: str = os.path.join(BIN, default_name)
                 if os.path.exists(expected_path) and os.access(expected_path, os.X_OK):
-
                     self._to_log("Found %s at %s" % (default_name, expected_path))
                     self.__setattr__(attr, expected_path)
                     continue
@@ -1796,9 +1804,12 @@ class TogaMain(CommandLineManager):
         if self.container_image is not None:
             args.extend(
                 (
-                    '--container_image', self.container_image,
-                    '--container_executor', self.container_executor,
-                    '--bindings', self.bindings
+                    "--container_image",
+                    self.container_image,
+                    "--container_executor",
+                    self.container_executor,
+                    "--bindings",
+                    self.bindings,
                 )
             )
         ChainFeatureScheduler(args, standalone_mode=False)
@@ -2142,9 +2153,12 @@ class TogaMain(CommandLineManager):
         if self.container_image is not None:
             args.extend(
                 (
-                    '--container_image', self.container_image,
-                    '--container_executor', self.container_executor,
-                    '--bindings', self.bindings
+                    "--container_image",
+                    self.container_image,
+                    "--container_executor",
+                    self.container_executor,
+                    "--bindings",
+                    self.bindings,
                 )
             )
         CesarScheduler(args, standalone_mode=False)
@@ -2353,18 +2367,18 @@ class TogaMain(CommandLineManager):
         from .initial_orthology_resolver import InitialOrthologyResolver
 
         args: List[str] = [
-            self.bed_file_copy, 
-            self.query_annotation_filt, 
+            self.bed_file_copy,
+            self.query_annotation_filt,
             self.loss_summary_extended,
-            self.pred_scores, 
+            self.pred_scores,
             self.orthology_resolution_dir,
-            "-qi", 
-            self.query_genes_raw, 
-            "-l", 
+            "-qi",
+            self.query_genes_raw,
+            "-l",
             self.accepted_loss_symbols,
-            "-mr", 
-            self.preprocessing_report, 
-            "-ln", 
+            "-mr",
+            self.preprocessing_report,
+            "-ln",
             self.project_id,
         ]
         if self.isoform_file is not None:
@@ -2405,9 +2419,12 @@ class TogaMain(CommandLineManager):
         if self.container_image is not None:
             args.extend(
                 (
-                    "--container_image", self.container_image,
-                    "--container_executor", self.container_executor,
-                    "--bindings", self.bindings
+                    "--container_image",
+                    self.container_image,
+                    "--container_executor",
+                    self.container_executor,
+                    "--bindings",
+                    self.bindings,
                 )
             )
         InitialOrthologyResolver(args, standalone_mode=False)

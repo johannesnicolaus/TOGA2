@@ -63,6 +63,48 @@ class PrettyGroup(OptionGroup):
             return None
         return "\n" + init_help[0], init_help[1]
 
+class MutexOption(click.Option):
+    """
+    Mutually exclusive Click option class. 
+    Based on the solution from https://github.com/pallets/click/issues/257
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        self.competes_with: List[str] = kwargs.pop("competes_with")
+        if self.competes_with is None or not self.competes_with:
+            raise click.UsageError(
+                "No competing options for an AlternativeOption instance, "
+                "with no defaults. Please provide a list of competing options "
+                "with \"competes_with\" argument"
+            )
+        self.required_mutex: bool = kwargs.get("required_mutex", False)
+        kwargs["help"] = (
+            "" if kwargs.get("help")is None else (kwargs.get("help", "") + ". "),
+            "Mutually exclusive with the following options: ",
+            ", ".join(self.competes_with),
+            "."
+        )
+        super(MutexOption, self).__init__(*args, **kwargs)
+
+    def handle_parse_result(self, ctx, opts, args) -> None:
+        current_opt: bool = self.name in opts
+        alternative_found: bool = False
+        for mutex_opt in self.competes_with:
+            if mutex_opt in opts:
+                if current_opt:
+                    raise click.UsageError(
+                        "Options %s and %s are mutually exlusive" % (self.name, mutex_opt)
+                    )
+                else:
+                    self.prompt = None
+                alternative_found = True
+        if not current_opt and not alternative_found and self.required_mutex:
+            raise click.UsageError(
+                "One of the following options is required for TOGA2 execution: %s" % (
+                    self.name + ", " + ",".join(self.competes_with)
+                )
+            )
+        return super(MutexOption, self).handle_parse_result(ctx, opts, args)
 
 ## Executables
 def dir_name_by_date(prefix: str) -> str:
