@@ -878,6 +878,9 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "parallel_process_names",
     "ignore_crashed_parallel_batches",
     "legacy_chain_feature_extraction",
+    "container_image",
+    "container_executor",
+    "bindings",
     "input_data",
     "bed_file_copy",
     "ref_cds_unfilt",
@@ -924,6 +927,7 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "query_annotation_raw",
     "query_annotation_filt",
     "query_gtf",
+    "postoga_table",
     "final_rejection_log",
     "gene_loss_summary",
     "loss_summary_extended",
@@ -986,6 +990,8 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "annot_dir",
     "cds_fasta_tmp",
     "prot_fasta_tmp",
+    "postoga_tmp",
+    "postoga_table_tmp",
     "all_discarded_projections",
     "feature_extraction_joblist",
     "cesar_preprocess_joblist",
@@ -1117,6 +1123,9 @@ TOGA2_SLOT2ARG: Dict[str, str] = {
     "ucsc_prefix": "ucsc_prefix",
     "bedtobigbed_binary": "bedtobigbed_binary",
     "ignore_crashed_parallel_batches": "ignore_crashed_parallel_batches",
+    "container_image": "container_image",
+    "container_executor": "container_executor",
+    "bindings": "bindings",
 }
 
 TOGA2_ARG2SLOT: Dict[str, str] = {v: k for k, v in TOGA2_SLOT2ARG.items()}

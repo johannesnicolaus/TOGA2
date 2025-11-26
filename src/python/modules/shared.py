@@ -111,6 +111,59 @@ class MutexOption(click_option_group.GroupedOption):
         return super(MutexOption, self).handle_parse_result(ctx, opts, args)
 
 
+class TogaDirConfig:
+    ## NOTE: Slots are currently deprecated due to Postoga using vars() when logging starting args
+    ## TO be changed after the respective change is pushed to Postoga
+    # __slots__ = (
+    #     "togadir", 
+    #     "orthology_class",
+    #     "loss_status",
+    #     "orthology_score",
+    #     "to",
+    #     "bed_type",
+    #     "min_paralog_score",
+    #     "with_isoforms",
+    #     "extract",
+    #     "outdir",
+    #     "only_table",
+    #     "only_convert",
+    #     "log_level",
+    #     "depure",
+    # )
+
+    def __init__(
+        self,
+        togadir: os.PathLike,
+        by_loss_status: Optional[Union[str, None]] = None,
+        by_orthology_class: Optional[Union[str, None]] = None,
+        by_orthology_score: Optional[Union[float, None]] = None,
+        to: Optional[str] = "bed",
+        target: Optional[str] = "utr",
+        by_paralog_score: Optional[Union[float, None]] = None,
+        with_isoforms: Optional[Union[os.PathLike, None]] = None,
+        extract: Optional[Union[bool, str]] = False,
+        outdir: Optional[Union[os.PathLike, None]] = None,
+        only_table: Optional[bool] = True,
+        only_convert: Optional[bool] = False,
+        level: Optional[str] = "warning",
+        depure: Optional[bool] = True,
+    ) -> None:
+        self.togadir: os.PathLike = togadir
+        self.loss_status: Union[str, None] = by_loss_status
+        self.orthology_class: Union[str, None] = by_orthology_class
+        self.orthology_score: Union[float, None] = by_orthology_score
+        self.to: str = to
+        self.bed_type: str = target
+        self.min_paralog_score: Union[float, None] = by_paralog_score
+        self.with_isoforms: Union[os.PathLike, None] = with_isoforms
+        self.extract: Union[bool, str] = extract
+        self.outdir: Union[os.PathLike, None] = outdir
+        self.only_table: bool = only_table
+        self.only_convert: bool = only_convert
+        self.log_level: str = level
+        self.depure: bool = depure
+
+
 ## Executables
 def dir_name_by_date(prefix: str) -> str:
     """Returns current date and time preceded by a given prefix"""

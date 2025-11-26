@@ -447,6 +447,8 @@ class TogaMain(CommandLineManager):
         self.query_genes_for_gtf: str = os.path.join(
             self.annot_dir, "query_genes.for_gtf.tsv"
         )
+        self.postoga_tmp: str = os.path.join(self.tmp, "postoga")
+        self.postoga_table_tmp: str = os.path.join(self.postoga_tmp, "toga.table.gz")
 
         ## joblists
         self.feature_extraction_joblist: str = os.path.join(
@@ -576,6 +578,7 @@ class TogaMain(CommandLineManager):
             self.output, "query_annotation.with_utrs.bed"
         )
         self.query_gtf: str = os.path.join(self.output, "query_annotation.gtf")
+        self.postoga_table: str = os.path.join(self.output, "toga.table.gz")
         self.aa_fasta: str = os.path.join(self.output, "protein_aln.fa")
         self.cds_fasta: str = os.path.join(self.output, "nucleotide.fa")
         self.codon_fasta: str = os.path.join(self.output, "codon_aln.fa")
@@ -977,6 +980,8 @@ class TogaMain(CommandLineManager):
             self.rename_query_genes()
             self._to_log("Creating GTF version of the final annotation")
             self.create_gtf()
+            self._to_log("Creating Postoga summary table")
+            self.create_postoga_table()
             ## before moving to the final steps, record the failed batches
             self._to_log("Recording failed batches if any found")
             self.write_failed_batches()
@@ -2863,7 +2868,32 @@ class TogaMain(CommandLineManager):
 
     def create_postoga_table(self) -> None:
         """Creates Postoga summary table"""
-        pass
+        ## TODO: This is a workaround to beat the current path structure
+        ## likely will be obsolete once a proper pyproject.toml arrives
+        sys.path.append(LOCATION)
+        from postoga.run import TogaDir
+        from .shared import TogaDirConfig ## TODO: Create
+        ## TogaDir accepts Argparse parser as a sole argument by default,
+        ## which can be emulated with TogaDirConfig
+        config: TogaDirConfig = TogaDirConfig(
+            self.output,
+            with_isoforms=self.query_genes_for_gtf,
+            target=("utr" if not self.skip_utr else "bed"),
+            outdir=self.postoga_tmp
+        )
+        TogaDir(config).run()
+        sys.path.remove(LOCATION)
+        ## TODO: Enforce Postoga to write output directly to outdir
+        # self._mv(self.postoga_table_tmp, self.postoga_table)
+        postoga_contents: List[str] = os.listdir(self.postoga_tmp)
+        if not postoga_contents:
+            self._die("No Postoga output found in the output directory")
+        if len(postoga_contents) > 1:
+            self._die("Multiple alternative Postoga output directories found")
+        postoga_table_tmp: str = os.path.join(self.postoga_tmp, postoga_contents[0],"toga.table.gz")
+        if not os.path.exists(postoga_table_tmp):
+            self._die("Postoga output table is missing from the expected location %s" % postoga_table_tmp)
+        self._mv(postoga_table_tmp, self.postoga_table)
 
     def write_failed_batches(self) -> None:
         """
