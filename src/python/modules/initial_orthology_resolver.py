@@ -7,11 +7,7 @@ of respective transcripts in the query
 
 import os
 from collections import defaultdict
-from .constants import (
-    CONTAINER_ENGINE2BIND_KEY, 
-    PHYLO_NOT_FOUND, 
-    PRE_CLEANUP_LINE
-)
+from .constants import CONTAINER_ENGINE2BIND_KEY, PHYLO_NOT_FOUND, PRE_CLEANUP_LINE
 from .cesar_wrapper_constants import (
     CLASS_TO_NUM,
     FI,
@@ -51,9 +47,9 @@ __credits__ = "Bogdan M. Kirilenko"
 
 PYTHON_DIR: str = get_upper_dir(__file__, 2)
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-FINE_RESOLVER: str = os.path.join(PYTHON_DIR, 'fine_orthology_resolver.py')
+FINE_RESOLVER: str = os.path.join(PYTHON_DIR, "fine_orthology_resolver.py")
 FINE_RESOLVER_REL: str = os.path.join(
-    *PYTHON_DIR.split(os.sep)[-2:],'fine_orthology_resolver.py'
+    *PYTHON_DIR.split(os.sep)[-2:], "fine_orthology_resolver.py"
 )
 
 Q_PREFIX: str = "#Q#"
@@ -548,33 +544,33 @@ def is_homopolymer(record: str) -> bool:
     ),
 )
 @click.option(
-    '--container_image',
+    "--container_image",
     type=click.Path(exists=True),
     default=None,
     show_default=True,
     help=(
-        'A path to the executable TOGA2 container image. '
-        'All the parallel step scripts will be executed by invoking this container. '
-    )
+        "A path to the executable TOGA2 container image. "
+        "All the parallel step scripts will be executed by invoking this container. "
+    ),
 )
 @click.option(
-    '--container_executor',
+    "--container_executor",
     type=str,
-    default='apptainer',
+    default="apptainer",
     show_default=True,
-    help='A name for container executor engine'
+    help="A name for container executor engine",
 )
 @click.option(
-    '--bindings',
+    "--bindings",
     type=str,
     metavar="STRING",
     default=None,
     show_default=True,
     help=(
-        'A list of directory mounts to provide to the container instances at parallel steps. '
-        'Binginds should be provided as expected by the container executor engine and wrapped in '
+        "A list of directory mounts to provide to the container instances at parallel steps. "
+        "Binginds should be provided as expected by the container executor engine and wrapped in "
         'quotes, e.g. "/tmp,/src/,~/:/home"'
-    )
+    ),
 )
 @click.option(
     "--log_name",
@@ -586,13 +582,8 @@ def is_homopolymer(record: str) -> bool:
     help="Logger name to use; relevant only upon main class import",
 )
 @click.option(
-    "--verbose", 
-    "-v", 
-    is_flag=True, 
-    default=False, 
-    help="Control logging verbosity"
+    "--verbose", "-v", is_flag=True, default=False, help="Control logging verbosity"
 )
-
 class InitialOrthologyResolver(CommandLineManager):
     """
     Resolves orthology relationships from the raw TOGA output; if specified,
@@ -634,6 +625,9 @@ class InitialOrthologyResolver(CommandLineManager):
         "job_dir",
         "fasta_dir",
         "res_dir",
+        "container_image",
+        "container_executor",
+        "bindings",
         "graph",
         "orthology_report",
         "removed_edges",
@@ -1422,25 +1416,29 @@ class InitialOrthologyResolver(CommandLineManager):
                 table_path = os.path.abspath(table_path)
                 res_path = os.path.abspath(res_path)
                 if self.container_image is not None:
-                    executor: str = f'{self.container_executor} run {{}} {{}} {{}} {FINE_RESOLVER_REL}'
+                    executor: str = f"{self.container_executor} run {{}} {{}} {{}} {FINE_RESOLVER_REL}"
                 else:
                     executor: str = FINE_RESOLVER
                 cmd: str = (
-                    f'{executor} {table_path} {res_path} -t '
-                    f'-pb {self.prank_bin} -rb {self.tree_bin} '
-                    f'-rc {self.tree_cpus} -rs {self.tree_bootnum}'
+                    f"{executor} {table_path} {res_path} -t "
+                    f"-pb {self.prank_bin} -rb {self.tree_bin} "
+                    f"-rc {self.tree_cpus} -rs {self.tree_bootnum}"
                 )
                 if self.container_image is not None:
                     if self.binding_map is not None:
-                        bind_key: str = CONTAINER_ENGINE2BIND_KEY[self.container_executor]
-                        bindings: str = self.bindings if self.bindings is not None else ''
+                        bind_key: str = CONTAINER_ENGINE2BIND_KEY[
+                            self.container_executor
+                        ]
+                        bindings: str = (
+                            self.bindings if self.bindings is not None else ""
+                        )
                         for key, value in self.binding_map.items():
                             if not value:
                                 continue
                             cmd = cmd.replace(key, value)
                         cmd = cmd.format(bind_key, bindings, self.container_image)
                     else:
-                        cmd = cmd.format('', '', self.container_image)
+                        cmd = cmd.format("", "", self.container_image)
                 job_path = os.path.abspath(job_path)
                 with open(job_path, "w") as jf:
                     jf.write("\n".join(SPLIT_JOB_HEADER) + "\n")
