@@ -38,7 +38,7 @@ build_cython:
 build_rust:
 	cd src/rust && cargo build --release
 	echo ${DELIM}
-		cd bed2gtf && cargo build --release
+	cd bed2gtf && cargo build --release
 
 pull_submodules:
 	git submodule update --init --recursive
@@ -110,7 +110,7 @@ install_third_party:
 	python3 ${CHECK_DEPS} install_third_party
 
 install_postoga:
-	source ${VENV_NAME}/bin/activate && \
+#	source ${VENV_NAME}/bin/activate && \
 	cd postoga/rustools && \
 	maturin develop --release
 
