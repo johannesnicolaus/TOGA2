@@ -23,7 +23,7 @@ DEFAULT_ARGS: Dict[str, Union[str, int, float, bool, None]] = {
     "u12_file": None,
     "no_u12_file": False,
     "spliceai_dir": None,
-    "no_spliceai_dir": False,
+    "no_spliceai": False,
     "resume_from": "all",
     "halt_at": "all",
     "selected_feature_batches": None,
