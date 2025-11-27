@@ -616,6 +616,16 @@ class Headers:
     )
 
 
+class NameTemplates:
+    TWOBIT: str = "{}.2bit"
+    CHAINS: str = "{}.{}.chain"
+    CHAINS_GZ: str = "{}.{}.chain.gz"
+    REF_ANNOT: str = "{}.toga.transcripts.bed"
+    REF_ISOFORMS: str = "{}.toga.isoforms.tsv"
+    REF_U12: str = "{}.toga.U12introns.bed"
+    SPLICEAI: str = "spliceAi"
+    REF_LINKS: str = "{}.toga.links.tsv"
+
 # Standalone constants #
 
 TOGA2_EPILOG: str = """\b
@@ -687,7 +697,6 @@ COMPLEMENT_BASE: Dict[str, str] = {
     "c": "G",
     "n": "n",
 }
-
 
 GENETIC_CODE: Dict[str, str] = {
     "TTT": "F",
@@ -770,6 +779,9 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "no_u12_file",
     "spliceai_dir",
     "no_spliceai",
+    "input_dir",
+    "ref_name",
+    "query_name",
     "resume_from",
     "halt_at",
     "selected_feature_batches",
@@ -1028,7 +1040,12 @@ TOGA2_SLOT2ARG: Dict[str, str] = {
     "isoform_file": "isoform_file",
     "no_isoform_file": "no_isoform_file",
     "u12_file": "u12_file",
+    "no_u12_file": "no_u12_file",
     "spliceai_dir": "spliceai_dir",
+    "no_spliceai": "no_spliceai",
+    "input_dir": "input_directory",
+    "ref_name": "ref_name",
+    "query_name": "query_name",
     "resume_from": "resume_from",
     "halt_at": "halt_at",
     "selected_feature_batches": "selected_feature_batches",

@@ -6,6 +6,7 @@ Master script for TOGA2
 
 import logging
 import os
+import sys
 from typing import List, Optional
 
 import click
@@ -26,13 +27,18 @@ from src.python.modules.cesar_wrapper_constants import (
     LAST_DONOR,
     MIN_ASMBL_GAP_SIZE,
 )
+from src.python.modules.codon_alignment import ALIGNERS_TO_USE, MACSE
 from src.python.modules.constants import TOGA2_EPILOG, Constants
 from src.python.modules.input_producer import (
     DEFAULT_MEMORY_LIMIT,
     MIN_INTRON_LENGTH_FOR_CLASSIFICATION,
     MIN_INTRON_LENGTH_FOR_PROFILES,
 )
-from src.python.modules.shared import CONTEXT_SETTINGS, MutexOption, PrettyGroup
+from src.python.modules.shared import (
+    CONTEXT_SETTINGS,
+    DependentOption,
+    PrettyGroup,
+)
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2025"
@@ -53,6 +59,7 @@ HG38_CANON_U12_ACCEPTOR: str = os.path.join(LOCATION, *HG38_CANON_U12_ACCEPTOR)
 HG38_CANON_U12_DONOR: str = os.path.join(LOCATION, *HG38_CANON_U12_DONOR)
 HG38_NON_CANON_U12_ACCEPTOR: str = os.path.join(LOCATION, *HG38_NON_CANON_U12_ACCEPTOR)
 HG38_NON_CANON_U12_DONOR: str = os.path.join(LOCATION, *HG38_NON_CANON_U12_DONOR)
+EQUIPROBABLE_ACCEPTOR: str = os.path.join(LOCATION, *EQUIPROBABLE_ACCEPTOR)
 FIRST_ACCEPTOR: str = os.path.join(LOCATION, *FIRST_ACCEPTOR)
 LAST_DONOR: str = os.path.join(LOCATION, *LAST_DONOR)
 # HL_COMMON_ACCEPTOR: str = os.path.join(*HL_COMMON_ACCEPTOR)
@@ -63,38 +70,46 @@ LAST_DONOR: str = os.path.join(LOCATION, *LAST_DONOR)
 # HL_EQ_DONOR: str = os.path.join(LOCATION, *HL_EQ_DONOR)
 BLOSUM_FILE: str = os.path.join(LOCATION, *DEF_BLOSUM_FILE)
 
-
+## Option groups
 input_options: PrettyGroup = PrettyGroup("General input")
+bundle_options: PrettyGroup = PrettyGroup(
+    "Annotation bundle",
+    help="Input configuration through input directory structure template",
+)
 control_flow_options: PrettyGroup = PrettyGroup(
     "Pipeline", help="Control flow settings"
 )
 extraction_options: PrettyGroup = PrettyGroup(
-    "Feature extraction", help="Settings for the feature extraction step"
+    "Feature extraction",
+    help="Settings for the feature extraction step",
 )
 class_options: PrettyGroup = PrettyGroup(
-    "Classification", help="Projection classification settings"
+    "Classification",
+    help="Projection classification settings",
 )
 gene_select_options: PrettyGroup = PrettyGroup(
     "Query gene selection",
     help="Controls orthology/completeness classes of query projections to annotate",
 )
 prepr_options: PrettyGroup = PrettyGroup(
-    "Preprocessing", help="Data preprocessing for CESAR alignment"
+    "Preprocessing",
+    help="Data preprocessing for CESAR alignment",
 )
 cesar_options: PrettyGroup = PrettyGroup(
-    "CESAR alignment", help="Exon alignment & gene annotation with CESAR"
+    "CESAR alignment",
+    help="Exon alignment & gene annotation with CESAR",
 )
 parallel_options: PrettyGroup = PrettyGroup(
-    "Parallel execution", help="Execution parameters for the pipeline's parallel steps"
+    "Parallel execution",
+    help="Execution parameters for the pipeline's parallel steps",
 )
 container_options: PrettyGroup = PrettyGroup(
-    "Container execution", help="Container execution options"
+    "Container execution",
+    help="Container execution options",
 )
 spliceai_options: PrettyGroup = PrettyGroup(
     "SpliceAI use",
-    help=(
-        "SpliceAI use for exon annotation, splice site correction, and intron gain search"
-    ),
+    help="SpliceAI use for exon annotation, splice site correction, and intron gain search",
 )
 spliceai_run_options: PrettyGroup = PrettyGroup(
     "SpliceAI settings", help=("SpliceAI and SpliceAI wrapper options")
@@ -107,22 +122,23 @@ loss_options: PrettyGroup = PrettyGroup(
 )
 orth_options: PrettyGroup = PrettyGroup(
     "Orthology resolution",
-    help=(
-        "Orthology resolution settings, including the gene tree-based orthology refinement"
-    ),
+    help="Orthology resolution settings, including the gene tree-based orthology refinement",
 )
 browser_options: PrettyGroup = PrettyGroup(
-    "UCSC browser", help="UCSC genome browser report parameters"
+    "UCSC browser", help="UCSC genome browser report parameters",
 )
 utr_options: PrettyGroup = PrettyGroup(
-    "UTR annotation", help="Settings for the UTR annotation module"
+    "UTR annotation", help="Settings for the UTR annotation module",
 )
 legacy_and_experimental: PrettyGroup = PrettyGroup("Legacy & experimental features")
 verbosity_options: PrettyGroup = PrettyGroup(
-    "Verbosity", help="Verbosity & notifications controls"
+    "Verbosity", help="Verbosity & notifications controls",
 )
 binary_options: PrettyGroup = PrettyGroup(
-    "Executables", help=("Auxiliary executables & third party software")
+    "Executables", help="Auxiliary executables & third party software",
+)
+aligner_options: PrettyGroup = PrettyGroup(
+    "Aligner options", help="Nucleotide aligner selection & settings",
 )
 out_options: PrettyGroup = PrettyGroup("Output")
 misc_options: PrettyGroup = PrettyGroup("Miscellaneous")
@@ -156,21 +172,27 @@ def toga2() -> None:
     "--ref_2bit",
     type=click.Path(exists=True),
     metavar="REF_2BIT",
+    cls=DependentOption,
     required=True,
+    not_required_if=["input_directory"],
     help="Reference genome assembly file, in .2bit format",
 )
 @input_options.option(
     "--query_2bit",
     type=click.Path(exists=True),
     metavar="QUERY_2BIT",
+    cls=DependentOption,
     required=True,
+    not_required_if=["input_directory"],
     help="Query genome assembly file, in .2bit format",
 )
 @input_options.option(
     "--chain_file",
     type=click.Path(exists=True),
     metavar="ALIGNMENT_CHAINS",
+    cls=DependentOption,
     required=True,
+    not_required_if=["input_directory"],
     help="""Genome alignment chains, with REF_2BIT as reference and QUERY_2BIT as query. 
 TOGA2 annotates query genome by projecting reference transcripts through the chains 
 contained in this file. Can be compressed in .gzip format""",
@@ -179,8 +201,10 @@ contained in this file. Can be compressed in .gzip format""",
     "--ref_annotation",
     type=click.Path(exists=True),
     metavar="REF_ANNOTATION_BED",
+    cls=DependentOption,
     required=True,
-    help="""Reference annotation file, in BED12 format. TOGA2 annotates transcripts in the "
+    not_required_if=["input_directory"],
+    help="""Reference annotation file, in BED12 format. TOGA2 annotates transcripts in the 
 query genome by projecting reference transcripts contained in this file""",
 )
 @input_options.option(
@@ -188,30 +212,33 @@ query genome by projecting reference transcripts contained in this file""",
     "-i",
     type=click.Path(exists=True),
     metavar="ISOFORMS_FILE",
-    cls=MutexOption,
+    cls=DependentOption,
     competes_with=["no_isoform_file"],
     required_mutex=True,
+    not_required_if=["input_directory"],
     help="A path to a two-column tab-separated file containing gene-to-isoform mapping",
 )
 @input_options.option(
     "--no_isoform_file",
     is_flag=True,
     default=False,
-    cls=MutexOption,
+    cls=DependentOption,
     competes_with=["isoform_file"],
     required_mutex=True,
-    help="""A flag indicating that TOGA2 will be used without isoform file. 
-Use this if you do not have an isoform file or want each transcript 
-in REF_ANNOTATION_BED to be treated as a separate gene""",
+    not_required_if=["input_directory"],
+    help="""A flag indicating that TOGA2 will be used without an isoform file. 
+Highly discouraged unless assigning transcript to genes is complicated for your reference 
+or you want each transcript in REF_ANNOTATION_BED to be treated as a separate gene""",
 )
 @input_options.option(
     "--u12_file",
     "-u12",
     type=click.Path(exists=True),
     metavar="U12_FILE",
-    cls=MutexOption,
+    cls=DependentOption,
     competes_with=["no_u12_file"],
     required_mutex=True,
+    not_required_if=["input_directory"],
     help="""A three-column tab-separated file containing information on the 
 non-canonical splice sites""",
 )
@@ -219,21 +246,23 @@ non-canonical splice sites""",
     "--no_u12_file",
     is_flag=True,
     default=False,
-    cls=MutexOption,
+    cls=DependentOption,
     competes_with=["u12_file"],
     required_mutex=True,
-    help="""A flag indicating that TOGA2 will be used without U12/non-canonical U2 classification file. 
-Use this if you do not want to discriminate between GT/GC-AG U2 and other 
-intron classes in in your annotation (highly discouraged)""",
+    not_required_if=["input_directory"],
+    help="""A flag indicating that TOGA2 will be used without a U12/non-canonical U2 classification file. 
+Highly discouraged unless you really do not want to discriminate between GT/GC-AG U2 and other 
+intron classes in in your annotation""",
 )
 @input_options.option(
     "--spliceai_dir",
     "-sai",
     type=click.Path(exists=True),
     metavar="SPLICEAI_OUT_DIR",
-    cls=MutexOption,
+    cls=DependentOption,
     competes_with=["no_spliceai"],
     required_mutex=True,
+    not_required_if=["input_directory"],
     help="""A path to the SpliceAI predictions directory produced by TOGA2 `run_spliceai` mode. 
 These data are used for improved exon annotation in the query""",
 )
@@ -241,13 +270,50 @@ These data are used for improved exon annotation in the query""",
     "--no_spliceai",
     is_flag=True,
     default=False,
-    cls=MutexOption,
+    cls=DependentOption,
     competes_with=["spliceai_dir"],
     required_mutex=True,
+    not_required_if=["input_directory"],
     help="""A flag indicating that TOGA2 will be used without SpliceAI predictions for exon annotation. 
-Discouraged unless you cannot obtain SpliceAI annotation for your query genome, 
+Highly discouraged unless you cannot obtain SpliceAI annotation for your query genome, 
 suspect that SpliceAI performs suboptimally for your query species, or have concerns about 
 TOGA2 performance speed and memory consumption""",
+)
+@bundle_options.option(
+    '--input_directory',
+    type=click.Path(exists=True),
+    metavar="INPUT_DIR",
+    cls=DependentOption,
+    requires=["ref_name", "query_name"],
+    default=None,
+    show_default=True,
+    help="""A single input directory containing all the necessary input files (two genome assemblies 
+in 2bit format, alignment chains, reference annotation, reference isoforms, and U12 files). Note that:\b
+    a) you can override existing and complement missing files in the directory with respective flags from the "General input" section\b
+    b) you still can provide flag placeholders for isoform file, U12 intron file, and SpliceAI directories.\b
+See Manual for more details on input directory formatting"""
+)
+@bundle_options.option(
+    '--ref_name',
+    type=str,
+    metavar="REF_NAME",
+    cls=DependentOption,
+    requires=["input_directory", "query_name"],
+    default=None,
+    show_default=True,
+    help="""Reference organism/assembly name used in input files' names. 
+See Manual for more details on input directory formatting"""
+)
+@bundle_options.option(
+    '--query_name',
+    type=str,
+    metavar="REF_NAME",
+    cls=DependentOption,
+    requires=["input_directory", "ref_name"],
+    default=None,
+    show_default=True,
+    help="""Query organism/assembly name used in input files' names. 
+See Manual for more details on input directory formatting"""
 )
 @control_flow_options.option(
     "--resume_from",
@@ -410,7 +476,6 @@ from individual chains""",
 @gene_select_options.option(
     "--orthologs_only",
     "-o_only",
-    type=bool,
     is_flag=True,
     default=False,
     show_default=True,
@@ -419,7 +484,6 @@ from individual chains""",
 @gene_select_options.option(
     "--one2ones_only",
     "-o2o",
-    type=bool,
     is_flag=True,
     default=False,
     show_default=True,
@@ -428,7 +492,6 @@ from individual chains""",
 @gene_select_options.option(
     "--enable_spanning_chains",
     "-nospan",
-    metavar="FLAG",
     is_flag=True,
     default=False,
     show_default=True,
@@ -439,7 +502,6 @@ spanning chains are used only to discriminate between Lost and Missing projectio
 @gene_select_options.option(
     "--annotate_processed_pseudogenes",
     "-pp",
-    metavar="FLAG",
     is_flag=True,
     default=False,
     show_default=True,
@@ -777,7 +839,6 @@ Highly recommended not to increase this beyond 5-6""",
 @annot_options.option(
     "--mask_n_terminal_mutations",
     "-m10m",
-    type=bool,
     is_flag=True,
     default=False,
     show_default=True,
@@ -1027,7 +1088,7 @@ All the parallel step scripts will be executed by invoking this container. """,
     type=str,
     default="apptainer",
     show_default=True,
-    help="A name for container executor engine",
+    help="A name for container executor engine. WARNING: Currently only \"apptainer\" is supported",
 )
 @container_options.option(
     "--bindings",
@@ -1069,7 +1130,6 @@ benchmarking feature, do not use in real runs""",
 @legacy_and_experimental.option(
     "--account_for_alternative_frame",
     "-alt_frame",
-    type=bool,
     is_flag=True,
     default=False,
     show_default=True,
@@ -1106,7 +1166,10 @@ log and metadata files""",
     help="If set, temporary directory (tmp) is left intact after execution is complete",
 )
 @verbosity_options.option(
-    "--verbose", "-v", is_flag=True, default=False, help="Control logging verbosity"
+    "--verbose", "-v", 
+    is_flag=True, 
+    default=False, 
+    help="Control logging verbosity"
 )
 @verbosity_options.option(
     "--email",
@@ -1608,7 +1671,7 @@ def spliceai(**kwargs) -> None:
 
     \b
     spliceai - Predict putative splice sites in the query assembly with SpliceAI
-    NOTE: This mode is currently in test. The results might differ from those produced by the code used for TOGA2 companion dataset preparation. If you notice any substantial differences from the expected results, pleae contact TOGA2 developer team.
+    NOTE: This mode is currently in early access The results might differ from those produced by the code used for TOGA2 companion dataset preparation. If you notice any substantial differences from the expected results, pleae contact TOGA2 developer team.
 
     TOGA2 uses SpliceAI predictions for the query genome to improve exon annotation and record
     unique evolutionary events, such as distant splice site shifts and intron gains, in the query.
@@ -1641,7 +1704,7 @@ def merge(**kwargs) -> None:
 
     \b
     merge - Merge complementing TOGA2 results for the same reference and query
-    NOTE: This mode is currently under development
+    WARNING: This mode is currently under development
     """
 
 
@@ -1750,12 +1813,211 @@ def integrate(**kwargs) -> None:
        .JMML.     `"bmmd"'     `"bmmmdPY .AMA.   .AMMA.    .JMML..JMML.
 
     \b
-    integrate - Prepare an integrated TOGA2 annotation by combining annotation with different references
-    NOTE: This mode is currently under development
+    integrate - Prepare an integrated TOGA2 annotation by combining annotation with different references.
+    NOTE: This mode is currently in early access. Certain functionality might be currently unavailable or work differently from expected.
+
+
     """
     from src.python.modules.integrate import AnnotationIntegrator
 
     AnnotationIntegrator(**kwargs).run()
+
+
+@toga2.command(
+    context_settings=CONTEXT_SETTINGS,
+    no_args_is_help=True,
+    short_help="Align orthologous sequences from multiple TOGA2 results",
+)
+@click.argument(
+    "input_dirs", type=click.File("r", lazy=True), metavar="INPUT_DIRS_FILE"
+)
+@click.argument("transcript_id", type=str, metavar="TRANSCRIPT_ID")
+@click.option(
+    "--output",
+    "-o",
+    type=click.File("w", lazy=True),
+    metavar="OUTPUT_FILE",
+    default=sys.stdout,
+    show_default=False,
+    help="A path to write the results to [default: stdout]",
+)
+@click.option(
+    "--exon_numbers",
+    "-en",
+    type=str,
+    metavar="EXON_NUMS",
+    default=None,
+    show_default=True,
+    help=(
+        "Exon numbers to restrict the analysis to. "
+        "If not set, all exons for the projection will be used"
+    ),
+)
+@click.option(
+    "--reference_exons",
+    "-re",
+    type=click.Path(exists=True),
+    metavar="REF_EXON_STORAGE",
+    default=None,
+    show_default=True,
+    help=("A path to 2bit storage with reference exon sequences."),
+)
+@click.option(
+    "--reference_name",
+    "-asref",
+    type=str,
+    metavar="REFERENCE_NAME",
+    default=None,
+    show_default=True,
+    help=(
+        "Name of the reference assembly. "
+        "If --reference_exons were provided, this name will be applied to assembly "
+        "from which reference exon sequences come. Otherwise, the provided name is sought for among "
+        "the reference assemblies, and its exon sequences are used to restore reference exon phases."
+    ),
+)
+@click.option(
+    "--accepted_loss_status",
+    "-l",
+    type=str,
+    metavar="LOSS_STATUS_LIST",
+    default=None,
+    show_default=True,
+    help=(
+        "A comma-separated list of loss statuses to consider. If set, the script will parse loss_summary.py "
+        "to check whether the found orthologs comply with this loss status. If not set, all projections listed "
+        "in the orthology classification file are considered"
+    ),
+)
+@click.option(
+    "--confidence_threshold",
+    type=click.IntRange(min=0, max=9),
+    default=6,
+    show_default=True,
+    help=(
+        "If MUSCLE is set to be aligner of choice, bases with letter confidence "
+        "below this value will be replaced with gaps in the final alignment"
+    ),
+)
+@click.option(
+    "--aligner",
+    "-a",
+    type=click.Choice(ALIGNERS_TO_USE, case_sensitive=False),
+    metavar="ALIGNER_NAME",
+    default=MACSE,
+    show_default=True,
+    help=(
+        "Aligner program to use. Options are: %s. Case-insensitive"
+        % ",".join(ALIGNERS_TO_USE)
+    ),
+)
+@click.option(
+    "--aligner_exe",
+    type=click.Path(exists=True),
+    metavar="CALLER_NAME",
+    default=None,
+    show_default=True,
+    help=(
+        "A path to your aligner of choice. If not set, the path will be inferred from user's PATH"
+    ),
+)
+@click.option(
+    "--tree",
+    "-t",
+    type=click.Path(exists=True),
+    metavar="TREE_FILE",
+    default=None,
+    show_default=True,
+    help=("A path to the tree file to pass to the alignment command"),
+)
+@click.option(
+    "--amino_acids_output",
+    type=click.Path(exists=False),
+    default=None,
+    show_default=True,
+    help="""If set and MACSE is selected as aligner of choice, 
+saves amino acid sequence alignment to the specified file""",
+)
+@click.option(
+    "--show_ancestors",
+    "-anc",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="""Coerces PRANK to output ancestral sequence reconstruction. 
+Does not work with other aligners.""",
+)
+@click.option(
+    "--path_to_ancestor_files",
+    "-anc_path",
+    type=click.Path(exists=False),
+    default=None,
+    show_default=True,
+    help="""BETA: A path to an output directory containin exonwise 
+ancestral sequence reconstructions""",
+)
+@click.option(
+    "--confidence_scores",
+    type=click.File("w", lazy=True),
+    default=sys.stdout,
+    show_default=False,
+    help="""BETA: A path to the output file to write the column confidence scores to. Valid only 
+if aligner program is set to MUSCLE""",
+)
+@click.option(
+    "--muscle_threads",
+    type=click.IntRange(min=1),
+    default=1,
+    show_default=True,
+    help="BETA: Maximum number of threads for MUSCLE alignment jobs to use",
+)
+@click.option(
+    "--twobit2fa",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    help="""A path to UCSC twoBitToFa executable. If not set, 
+the executable will be sought for in PATH""",
+)
+@click.option(
+    "--tmp_dir",
+    type=click.Path(exists=True),
+    metavar="TMP_DIR",
+    default=os.getcwd(),
+    show_default=False,
+    help=("A directory to store temporary files in [default: current directory]"),
+)
+@click.option(
+    "--keep_tmp",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="""If set, all temporary files (inlcuding tmp_dir, if it had not existed before the run) 
+will be kept""",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Controls logging verbosity",
+)
+def sequence_alignment(**kwargs) -> None:
+    """
+    \b
+    MMP""MM""YMM   .g8""8q.     .g8\"""bgd      db          `7MMF'`7MMF'
+    P'   MM   `7 .dP'    `YM. .dP'     `M     ;MM:           MM    MM
+         MM     dM'      `MM dM'       `     ,V^MM.          MM    MM
+         MM     MM        MM MM             ,M  `MM          MM    MM
+         MM     MM.      ,MP MM.    `7MMF'  AbmmmqMA         MM    MM
+         MM     `Mb.    ,dP' `Mb.     MM   A'     VML        MM    MM
+       .JMML.     `"bmmd"'     `"bmmmdPY .AMA.   .AMMA.    .JMML..JMML.
+
+    \b
+    sequence_alignment - Align orthologous sequences from multiple TOGA2 queries.
+    Spiritual successor of `extract_codon_alignment.py` companion script from TOGA1 suite.
+    """
 
 
 @toga2.command(
@@ -1899,7 +2161,7 @@ def cookbook() -> None:
 
     \b
     cookbook - A detailed list of TOGA2 example commands & best practices.
-    NOTE: This mode is currently under development, with the list of commands being gradually expanded
+    WARNING: This mode is currently under development, with the list of commands being gradually expanded
     """
     pass
 
