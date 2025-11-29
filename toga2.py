@@ -287,11 +287,14 @@ TOGA2 performance speed and memory consumption""",
     requires=["ref_name", "query_name"],
     default=None,
     show_default=True,
-    help="""A single input directory containing all the necessary input files (two genome assemblies 
-in 2bit format, alignment chains, reference annotation, reference isoforms, and U12 files). Note that:\b
-    a) you can override existing and complement missing files in the directory with respective flags from the "General input" section\b
-    b) you still can provide flag placeholders for isoform file, U12 intron file, and SpliceAI directories.\b
-See Manual for more details on input directory formatting"""
+    help="""A single input directory containing all the necessary for reference (genome assembly 
+in 2bit format, reference annotation, reference isoforms, and U12 files), query (genome assembly 
+in 2bit format, SpliceAI annotation), and genome alignment (a single chain file). Note that:\n
+    \ta) you can override existing and complement missing files in the directory with respective flags 
+from the "General input" section\n
+    \tb) you can provide flag placeholders for isoform file, U12 intron file, and SpliceAI directories, 
+if you don't have the respective data\n
+See Manual for more details on input directory structure and formatting"""
 )
 @bundle_options.option(
     '--ref_name',

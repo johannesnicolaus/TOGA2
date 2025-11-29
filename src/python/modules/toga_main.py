@@ -1571,100 +1571,105 @@ class TogaMain(CommandLineManager):
                 "and --query_name are not provided"
             )
         if self.ref_2bit is None:
-            ref_genome: str = os.path.join(
-                self.input_dir, NameTemplates.TWOBIT.format(self.ref_name)
-            )
+            ref_genome_name: str = NameTemplates.TWOBIT.format(self.ref_name, self.ref_name)
+            ref_genome: str = os.path.join(self.input_dir, ref_genome_name)
             if not os.path.exists(ref_genome):
                 self._die(
                     "Reference genome file %s is missing from input "
                     "directory %s, with no alternatives provided"
-                    % (NameTemplates.TWOBIT.format(self.ref_name), self.input_dir)
+                    % (ref_genome_name, self.input_dir)
                 )
             self.ref_2bit = ref_genome
         if self.query_2bit is None:
-            query_genome: str = os.path.join(
-                self.input_dir, NameTemplates.TWOBIT.format(self.query_name)
-            )
+            query_genome_name: str = NameTemplates.TWOBIT.format(self.query_name, self.query_name)
+            query_genome: str = os.path.join(self.input_dir, query_genome_name)
             if not os.path.exists(query_genome):
                 self._die(
                     "Query genome file %s is missing from input "
                     "directory %s, with no alternatives provided"
-                    % (NameTemplates.TWOBIT.format(self.query_name), self.input_dir)
+                    % (query_genome_name, self.input_dir)
                 )
             self.query_2bit = query_genome
         if not self.chain_file:
-            chains: str = os.path.join(
-                self.input_dir, NameTemplates.CHAINS.format(self.ref_name, self.query_name)
+            chains_name: str = NameTemplates.CHAINS.format(
+                self.ref_name,
+                self.query_name,
+                self.ref_name, 
+                self.query_name
             )
-            gz_chains: str = os.path.join(
-                self.input_dir, NameTemplates.CHAINS_GZ.format(self.ref_name, self.query_name)
+            chains: str = os.path.join(self.input_dir, chains_name)
+            gz_chains_name: str = NameTemplates.CHAINS_GZ.format(
+                self.ref_name,
+                self.query_name,
+                self.ref_name, 
+                self.query_name
             )
+            gz_chains: str = os.path.join(self.input_dir, gz_chains_name)
             if not os.path.exists(chains):
                 if not os.path.exists(gz_chains):
                     self._die(
                     "Alignment chain file %s is missing from input "
                     "directory %s, with no alternatives provided"
-                    % (
-                        NameTemplates.CHAINS.format(self.ref_name, self.query_name), self.input_dir
-                    )
+                    % (chains_name, self.input_dir)
                 )
                 self.chain_file = gz_chains
             else:
-                self.chain_fle
+                self.chain_file = chains
         if self.ref_annotation is None:
-            ref_annotation: str = os.path.join(
-                self.input_dir, NameTemplates.REF_ANNOT.format(self.ref_name)
-            )
+            ref_annotation_name: str = NameTemplates.REF_ANNOT.format(self.ref_name, self.ref_name)
+            ref_annotation: str = os.path.join(self.input_dir, ref_annotation_name)
             if not os.path.exists(ref_annotation):
                 self._die(
                     "Reference annotation file %s is missing from input "
                     "directory %s, with no alternatives provided"
-                    % (NameTemplates.REF_ANNOT.format(self.ref_name), self.input_dir)
+                    % (ref_annotation_name, self.input_dir)
                 )
             self.ref_annotation = ref_annotation
         if self.isoform_file is None and not self.no_isoform_file:
+            ref_isoforms_name: str = NameTemplates.REF_ISOFORMS.format(self.ref_name, self.ref_name)
             ref_isoforms: str = os.path.join(
-                self.input_dir, NameTemplates.REF_ISOFORMS.format(self.ref_name)
+                self.input_dir, ref_isoforms_name
             )
             if not os.path.exists(ref_isoforms):
                 self._die(
                     "Reference isoform file %s is missing from input "
                     "directory %s, with no alternatives provided and "
                     "no explicit deprecation"
-                    % (NameTemplates.REF_ISOFORMS.format(self.ref_name), self.input_dir)
+                    % (ref_isoforms_name, self.input_dir)
                 )
             self.isoform_file = ref_isoforms
         if self.u12_file is None and not self.no_u12_file:
+            u12_file_name: str = NameTemplates.REF_U12.format(self.ref_name, self.ref_name)
             u12_file: str = os.path.join(
-                self.input_dir, NameTemplates.REF_U12.format(self.ref_name)
+                self.input_dir, u12_file_name
             )
             if not os.path.exists(u12_file):
                 self._die(
                     "Reference U12 intron file %s is missing from input "
                     "directory %s, with no alternatives provided and "
                     "no explicit deprecation"
-                    % (NameTemplates.REF_U12.format(self.ref_name), self.input_dir)
+                    % (u12_file_name, self.input_dir)
                 )
             self.u12_file = u12_file
         if self.spliceai_dir is None and not self.no_spliceai:
-            spliceai_dir: str = os.path.join(self.input_dir, NameTemplates.SPLICEAI)
+            spliceai_dir_name: str = NameTemplates.SPLICEAI.format(self.query_name)
+            spliceai_dir: str = os.path.join(self.input_dir, spliceai_dir_name)
             if not os.path.exists(spliceai_dir):
                 self._die(
                     "SpliceAI output directory %s is missing from input "
                     "directory %s, with no alternatives provided and "
                     "no explicit deprecation"
-                    % (NameTemplates.SPLICEAI, self.input_dir)
+                    % (spliceai_dir_name, self.input_dir)
                 )
             self.spliceai_dir = spliceai_dir
         if self.ref_link_file is None:
-            links: str = os.path.join(
-                self.input_dir, NameTemplates.REF_LINKS.format(self.ref_name)
-            )
+            links_name: str = NameTemplates.REF_LINKS.format(self.ref_name, self.ref_name)
+            links: str = os.path.join(self.input_dir, links_name)
             if not os.path.exists(links):
                 self._to_log(
                     "Reference annotation file %s is missing from input "
                     "directory %s, with no alternatives provided"
-                    % (NameTemplates.REF_LINKS.format(self.ref_name), self.input_dir),
+                    % (links_name, self.input_dir),
                     "warning",
                 )
             else:

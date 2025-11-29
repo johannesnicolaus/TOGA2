@@ -617,14 +617,14 @@ class Headers:
 
 
 class NameTemplates:
-    TWOBIT: str = "{}.2bit"
-    CHAINS: str = "{}.{}.chain"
-    CHAINS_GZ: str = "{}.{}.chain.gz"
-    REF_ANNOT: str = "{}.toga.transcripts.bed"
-    REF_ISOFORMS: str = "{}.toga.isoforms.tsv"
-    REF_U12: str = "{}.toga.U12introns.bed"
-    SPLICEAI: str = "spliceAi"
-    REF_LINKS: str = "{}.toga.links.tsv"
+    TWOBIT: str = os.path.join("{}", "{}.2bit")
+    CHAINS: str = os.path.join("{}", "lastz", "vs_{}", "axtChain", "{}.{}.allfilled.chain")
+    CHAINS_GZ: str = os.path.join("{}", "lastz", "vs_{}", "axtChain", "{}.{}.allfilled.chain.gz")
+    REF_ANNOT: str = os.path.join("{}", "TOGA2", "currentAnnotation", "{}.toga.transcripts.bed")
+    REF_ISOFORMS: str = os.path.join("{}", "TOGA2", "currentAnnotation", "{}.toga.isoforms.tsv")
+    REF_U12: str = os.path.join("{}", "TOGA2", "currentAnnotation", "{}.toga.U12introns.bed")
+    SPLICEAI: str = os.path.join("{}", "spliceAi")
+    REF_LINKS: str = os.path.join("{}", "TOGA2", "currentAnnotation", "{}.toga.links.tsv")
 
 # Standalone constants #
 

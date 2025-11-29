@@ -89,7 +89,7 @@ class DependentOption(click_option_group.GroupedOption):
                 )
             if self.requires is not None:
                 kwargs["help"] += (
-                    "Requires the following options:: " + 
+                    "Requires the following options: " + 
                     ", ".join(self.requires) + 
                     ". "
                 )
