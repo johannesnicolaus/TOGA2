@@ -8,12 +8,16 @@ _toga2.py
 patch_scripts/
 extra/
 _extra/
+conda/
 src/python/modules/final_orthology_aggregator_old.py
 src/python/modules/_run_postoga.py
 call_toga2.py
 
 # current Conda configuration attempts
 _meta.yaml
+
+# current pyproject
+pyproject.toml
 
 # compiled Rust code
 src/rust/target
