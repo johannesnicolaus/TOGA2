@@ -271,8 +271,8 @@ class TogaMain(CommandLineManager):
         self.min_intron_prob_unsupported: bool = min_intron_prob_unsupported
         self.max_intron_number: int = max_intron_number
         self.cesar_binary: Union[str, None] = cesar_binary
-        self.cesar_memory_bins: str = memory_bins
-        self.job_nums_per_bin: str = job_nums_per_bin
+        self.cesar_memory_bins: Union[str, List[int]] = memory_bins
+        self.job_nums_per_bin: Union[str, List[int]] = job_nums_per_bin
         self.allow_heavy_jobs: bool = allow_heavy_jobs
         self.matrix_file: str = self._abspath(matrix)
         self.mask_terminal_mutations: bool = mask_n_terminal_mutations
@@ -1474,26 +1474,32 @@ class TogaMain(CommandLineManager):
                         "warning",
                     )
                     deprecated_bins.append(i)
-            self.cesar_memory_bins = ",".join(
-                map(
-                    str,
-                    [
-                        x
-                        for i, x in enumerate(memory_bins_split)
-                        if i not in deprecated_bins
-                    ],
-                )
-            )
-            self.job_nums_per_bin = ",".join(
-                map(
-                    str,
-                    [
-                        x
-                        for i, x in enumerate(job_bins_split)
-                        if i not in deprecated_bins
-                    ],
-                )
-            )
+            # self.cesar_memory_bins = ",".join(
+            #     map(
+            #         str,
+            #         [
+            #             x
+            #             for i, x in enumerate(memory_bins_split)
+            #             if i not in deprecated_bins
+            #         ],
+            #     )
+            # )
+            self.cesar_memory_bins = [
+                x for i, x in enumerate(memory_bins_split) if i not in deprecated_bins
+            ]
+            # self.job_nums_per_bin = ",".join(
+            #     map(
+            #         str,
+            #         [
+            #             x
+            #             for i, x in enumerate(job_bins_split)
+            #             if i not in deprecated_bins
+            #         ],
+            #     )
+            # )
+            self.job_nums_per_bin = [
+                x for i, x in enumerate(job_bins_split) if i not in deprecated_bins
+            ]
         ## check whether loss classes accepted for orthology resolution
         ## are consistent with the TOGA notation
         if self.accepted_loss_symbols == "ALL":
@@ -1718,7 +1724,7 @@ class TogaMain(CommandLineManager):
             **Constants.UNIQUE_CONFIGS,
             **{
                 x: Constants.ALN_CONFIG.format(x)
-                for x in self.cesar_memory_bins.split(",")
+                for x in self.cesar_memory_bins#.split(",")
             },
         }
         for process, file in expected_configs.items():
@@ -2227,9 +2233,9 @@ class TogaMain(CommandLineManager):
             self.alignment_job_dir,
             self.alignment_res_dir,
             "-b",
-            self.cesar_memory_bins,
+            ",".join(map(str, self.cesar_memory_bins)),#self.cesar_memory_bins,
             "-jb",
-            self.job_nums_per_bin,
+            ",".join(map(str, self.job_nums_per_bin)),#self.job_nums_per_bin
             "-cs",
             self.cesar_binary,
             "-m",
