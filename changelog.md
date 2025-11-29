@@ -1,10 +1,24 @@
 ## v2.0.7
-* Postoga integration; standalone `postoga` mode + `postoga` table creation (`toga.table.gz`) for `run` mode
-* IntronIC classification for TOGA2 results added
-* Fixed `integrate` mode + help message
-* Updated local installation 
-* Support for batch managers in the containerized state
-* Conda support
+* `run` mode:
+    * Replacing positional arguments with keyword arguments
+    * `--isoform_file`, `--u12_file`, and `--spliceai_dir` options are now "semi-mandatory"; the user is expected to provide the respective arguments unless the explicit deprecative flags are set
+    * Alternative input formatting with `--input_directory`, `--ref_name`, and `--query_name` shortcuts: Format your data storage tree and enjoy 
+    * Postoga summary table (`toga.table.gz`) added to the output for `run` mode
+    * IntronIC classification for TOGA2 results added
+* NEW MODE: `postoga` for Postoga integration
+* NEW MODE: `sequence-alignment` for orthologous sequence alignment across multiple same-referenced TOGA2 runs (alpha version)
+* Apptainer support (see `supply/containers`):
+    * Stable local execution container image
+    * Batch manager-compatible image template
+* Updated local installation
+    * Postoga installation
+    * Conda environment support
+* Minor additions + bug fixes:
+    * `run`:
+        * Suppressed logging for XGBoost at `classification` step
+        * Setting default non-canonical U12 acceptor to `equiprobable_acceptor.tsv`
+    * `integrate`:
+        * Fixed fragmented projection handling
 
 ## v2.0.6
 * New TOGA2 mode added: `integrate` (early access functionality)
