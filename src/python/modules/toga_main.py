@@ -271,8 +271,8 @@ class TogaMain(CommandLineManager):
         self.min_intron_prob_unsupported: bool = min_intron_prob_unsupported
         self.max_intron_number: int = max_intron_number
         self.cesar_binary: Union[str, None] = cesar_binary
-        self.cesar_memory_bins: Union[str, List[int]] = memory_bins
-        self.job_nums_per_bin: Union[str, List[int]] = job_nums_per_bin
+        self.cesar_memory_bins: Union[str, List[Union[int, str]]] = memory_bins
+        self.job_nums_per_bin: Union[str, List[Union[int, str]]] = job_nums_per_bin
         self.allow_heavy_jobs: bool = allow_heavy_jobs
         self.matrix_file: str = self._abspath(matrix)
         self.mask_terminal_mutations: bool = mask_n_terminal_mutations
