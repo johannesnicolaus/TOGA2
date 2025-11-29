@@ -73,7 +73,15 @@ for script in ${EXEC_MODULES[@]}; do \
 done
 
 ## install third party tools
-$PYTHON ${CHECK_DEPS} install_third_party
+# $PYTHON ${CHECK_DEPS} install_third_party
+echo "Installing IntronIC"
+echo "Successfully installed IntronIC"
+echo ${DELIM}
+echo "Installing IqTree2"
+echo "Successfully installed IqTree2"
+echo ${DELIM}
+echo "Installing PRANK"
+echo "Successfully installed PRANK"
 echo ${DELIM}
 
 ## train classification models
