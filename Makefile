@@ -110,7 +110,7 @@ install_third_party:
 	./${CHECK_DEPS} install_third_party
 
 install_postoga:
-	source ${VENV_NAME}/bin/activate && \
+#	source ${VENV_NAME}/bin/activate && \
 	cd postoga/rustools && \
 	maturin develop --release
 
