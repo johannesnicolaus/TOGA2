@@ -1,4 +1,6 @@
 # TOGA2
+<img src="https://github.com/hillerlab/TOGA2/blob/main/LOGO_TOGA2.png" width="350">
+
 TOGA2: A faster, more versatile successor of Tool to infer Orthologs from Genome Alignments
 
 > [!IMPORTANT]  
