@@ -16,20 +16,21 @@ Detailed explanations of all output files can be found in our
     * `--isoform_file`, `--u12_file`, and `--spliceai_dir` options are now "semi-mandatory"; the user is expected to provide the respective arguments unless the explicit deprecative flags are set
     * Alternative input formatting with `--input_directory`, `--ref_name`, and `--query_name` shortcuts: Format your data storage tree and enjoy 
     * Postoga summary table (`toga.table.gz`) added to the output for `run` mode
-* NEW MODE: `postoga` for Postoga integration
-* NEW MODE: `sequence-alignment` for orthologous sequence alignment across multiple same-referenced TOGA2 runs (alpha version)
+* **NEW MODE**: `postoga` for Postoga integration
+* **NEW MODE**: `sequence-alignment` for orthologous sequence alignment across multiple same-referenced TOGA2 runs (alpha version)
 * Apptainer support (see `supply/containers`):
     * Stable local execution container image
     * Batch manager-compatible image template
 * Updated local installation
     * Postoga installation
     * Conda environment support
+    * Updated `bigWigToWig` version (`-bed` and `-header` options) now distributed with TOGA2
 * Minor additions + bug fixes:
     * `run`:
         * Suppressed logging for XGBoost at `classification` step
         * Setting default non-canonical U12 acceptor to `equiprobable_acceptor.tsv`
-    * `integrate`:
-        * Fixed fragmented projection handling
+        * Setting separate splice site treatment by default, replacing `--separate_splice_site_treatment` flag with `--joint_splice_site_treatment`
+        * Fixed memory bin mem-to-jobs mapping for `alignment` step
 
 ## Installation
 
