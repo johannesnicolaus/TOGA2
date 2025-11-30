@@ -728,13 +728,13 @@ Value of 0 denotes unlimited memory""",
     help="A (relative to CESAR2 location) path to last exon donor profile",
 )
 @cesar_options.option(
-    "--separate_splice_site_treatment",
-    "-ssst",
+    "--joint_splice_site_treatment",
+    "-j_sst",
     is_flag=True,
     default=False,
     show_default=True,
     help="""If set, donor and acceptor intron splice sites are treated 
-as (non-)canonical indepent of each other""",
+in conjunction in terms of their `canonicity`""",
 )
 @spliceai_options.option(
     "--spliceai_correction_mode",

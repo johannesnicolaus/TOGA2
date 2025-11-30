@@ -48,7 +48,7 @@ cesar_non_canon_u12_acceptor	supply/CESAR2.0/profiles/human/canon_U12_acceptor.t
 cesar_non_canon_u12_donor	supply/CESAR2.0/profiles/human/non_canon_U12_acceptor.tsv
 cesar_first_acceptor	supply/CESAR2.0/profiles/firstCodon_profile.tsv
 cesar_last_donor	supply/CESAR2.0/profiles/lastCodon_profile.tsv
-separate_splice_site_treatment	False
+joint_splice_site_treatment	False
 bigwig2wig_binary	None
 min_splice_prob	0.02
 splice_prob_margin	0.02

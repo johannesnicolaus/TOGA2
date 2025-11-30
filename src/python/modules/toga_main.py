@@ -113,7 +113,7 @@ class TogaMain(CommandLineManager):
         cesar_non_canon_u12_donor: Optional[os.PathLike],
         cesar_first_acceptor: Optional[os.PathLike],
         cesar_last_donor: Optional[os.PathLike],
-        separate_splice_site_treatment: Optional[bool],
+        joint_splice_site_treatment: Optional[bool],
         spliceai_correction_mode: Optional[int],
         min_splice_prob: Optional[float],
         splice_prob_margin: Optional[float],
@@ -257,7 +257,7 @@ class TogaMain(CommandLineManager):
         )
         self.cesar_first_acceptor: os.PathLike = self._abspath(cesar_first_acceptor)
         self.cesar_last_donor: os.PathLike = self._abspath(cesar_last_donor)
-        self.separate_site_treat: bool = separate_splice_site_treatment
+        self.joint_site_treat: bool = joint_splice_site_treatment
 
         self.min_splice_prob: float = min_splice_prob
         self.splice_prob_margin: float = splice_prob_margin
@@ -2140,7 +2140,7 @@ class TogaMain(CommandLineManager):
             kwargs["disable_spanning_chains"] = True
         if self.u12_file is not None:
             kwargs["u12"] = self.u12_hdf5
-        if self.separate_site_treat:
+        if not self.joint_site_treat:
             kwargs["separate_splice_site_treatment"] = True
         if self.spliceai_dir is not None:
             kwargs["spliceai_dir"] = self.spliceai_dir
