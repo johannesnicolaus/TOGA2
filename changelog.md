@@ -4,7 +4,6 @@
     * `--isoform_file`, `--u12_file`, and `--spliceai_dir` options are now "semi-mandatory"; the user is expected to provide the respective arguments unless the explicit deprecative flags are set
     * Alternative input formatting with `--input_directory`, `--ref_name`, and `--query_name` shortcuts: Format your data storage tree and enjoy 
     * Postoga summary table (`toga.table.gz`) added to the output for `run` mode
-    * IntronIC classification for TOGA2 results added
 * NEW MODE: `postoga` for Postoga integration
 * NEW MODE: `sequence-alignment` for orthologous sequence alignment across multiple same-referenced TOGA2 runs (alpha version)
 * Apptainer support (see `supply/containers`):
@@ -45,4 +44,4 @@
     * Projections discarded at gene tree filtering step now removed from the final output files
     * Added post-gene-tree orthology resolution step to the main logging channel
     * 'missing_' query gene inference;
-    * Parially Intact consistently removed from accepted retrogene/trusted second-level ortholog statuses
+    * Partially Intact consistently removed from accepted retrogene/trusted second-level ortholog statuses

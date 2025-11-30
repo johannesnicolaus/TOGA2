@@ -19,7 +19,6 @@ sys.path.extend([LOCATION, PARENT])
 from datetime import datetime as dt
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-# from version import __version__
 import click
 from modules.common import (
     bed_extract_id,

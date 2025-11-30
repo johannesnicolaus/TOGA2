@@ -16,7 +16,6 @@ from .shared import CONTEXT_SETTINGS, base_proj_name, parse_single_column
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"
-__version__ = "2.0"
 __email__ = "yury.malovichko@senckenberg.de"
 __credits__ = ("Bogdan Kirilenko", "Michael Hiller", "Virag Sharma", "David Jebb")
 

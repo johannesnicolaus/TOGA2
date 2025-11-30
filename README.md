@@ -9,6 +9,27 @@ TOGA2 is currently in early access phase. This means, certain TOGA2 features and
 Detailed explanations of all output files can be found in our
 [TOGA2 Wiki](https://github.com/hillerlab/TOGA2/wiki).
 
+## Changelog
+### v2.0.7
+* `run` mode:
+    * Replacing positional arguments with keyword arguments
+    * `--isoform_file`, `--u12_file`, and `--spliceai_dir` options are now "semi-mandatory"; the user is expected to provide the respective arguments unless the explicit deprecative flags are set
+    * Alternative input formatting with `--input_directory`, `--ref_name`, and `--query_name` shortcuts: Format your data storage tree and enjoy 
+    * Postoga summary table (`toga.table.gz`) added to the output for `run` mode
+* NEW MODE: `postoga` for Postoga integration
+* NEW MODE: `sequence-alignment` for orthologous sequence alignment across multiple same-referenced TOGA2 runs (alpha version)
+* Apptainer support (see `supply/containers`):
+    * Stable local execution container image
+    * Batch manager-compatible image template
+* Updated local installation
+    * Postoga installation
+    * Conda environment support
+* Minor additions + bug fixes:
+    * `run`:
+        * Suppressed logging for XGBoost at `classification` step
+        * Setting default non-canonical U12 acceptor to `equiprobable_acceptor.tsv`
+    * `integrate`:
+        * Fixed fragmented projection handling
 
 ## Installation
 

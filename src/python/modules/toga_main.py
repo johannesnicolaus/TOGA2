@@ -25,7 +25,6 @@ from .results_checks import ResultChecker, SanityCheckResult
 from .shared import CommandLineManager, dir_name_by_date, get_upper_dir, hex_dir_name
 
 __author__ = "Yury V. Malovichko"
-__version__ = "2.0.6"
 __year__ = "2024"
 __credits__ = ("Bogdan M. Kirilenko", "Michael Hiller")
 
@@ -1087,7 +1086,9 @@ class TogaMain(CommandLineManager):
         return exec_started and exec_not_finished
 
     def write_project_meta(self) -> None:
-        """ """
+        """Dumps run parameters to a text file"""
+        sys.path.append(LOCATION)
+        from __version__ import __version__
         with open(self.arg_file, "w") as h:
             h.write(f"version\t{__version__}\n")
             for arg, option in TOGA2_SLOT2ARG.items():  ## TODO: Double-check the number
@@ -1100,6 +1101,7 @@ class TogaMain(CommandLineManager):
                     else arg_value
                 )
                 h.write("\t".join(map(str, (option, value))) + "\n")
+        sys.path.remove(LOCATION)
 
     def _rsync(self, from_: str, to_: str) -> None:
         """

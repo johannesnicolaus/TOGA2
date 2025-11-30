@@ -26,7 +26,6 @@ PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
 
 __author__ = "Yury V. Malovichko"
-__version__ = "1.0"
 __year__ = "2023"
 
 

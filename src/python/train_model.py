@@ -12,8 +12,6 @@ from modules.shared import CONTEXT_SETTINGS, CommandLineManager, get_upper_dir
 from numpy import log10, ndarray
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 
-# from version import __version__
-
 __author__ = ("Bogdan Kirilenko", "Yury V. Malovichko")
 __year__ = "2025"
 __credits__ = ("Michael Hiller", "Virag Sharma", "David Jebb")
