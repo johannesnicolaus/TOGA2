@@ -4,8 +4,6 @@ DELIM="=============================="
 MAIN=toga2.py
 EXEC_SCRIPTS=cesar_exec.py cesar_preprocess.py classify_chains.py feature_extractor.py fine_orthology_resolver.py get_contig_sizes.py predict_with_spliceai.py train_model.py
 EXEC_MODULES=chain_bst_index.py get_names_from_bed.py
-VENV ?= false
-VENV_NAME ?= toga2
 .PHONY: all build build_cesar build_c build_cython build_rust pull_submodules check check_essentials check_managers check_python check_shell check_third_party chmod install_python_packages install_binaries install_postoga train_models
 
 all: build
@@ -79,7 +77,7 @@ install_binaries:
 	wget -P bin/ http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/twoBitToFa && \
 	wget -P bin/ http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/faToTwoBit && \
 	wget -P bin/ http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/wigToBigWig && \
-	wget -P bin/ http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/bigWigToWig && \
+#	wget -P bin/ http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/bigWigToWig && \
 	wget -P bin/ http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/bigBedToBed && \
 	wget -P bin/ http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/bedToBigBed && \
 	wget -P bin/ http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64.v479/ixIxx && \
@@ -87,20 +85,7 @@ install_binaries:
 	echo ${DELIM}
 
 install_python_packages:
-	if [[ ! -f missing_packages.txt ]] && [[ ${VENV} == false ]]; then \
-		echo "No missing Python packages in the current environment; exiting"; \
-	else \
-		if [[ ${VENV} == true ]]; then \
-			echo "Creating a separate Python environment called ${VENV_NAME}"; \
-			python3 -m venv ${VENV_NAME} && \
-			source ${VENV_NAME}/bin/activate && \
-			python3 -m pip install -r requirements.txt; \
-		else \
-			echo "Installing missing packages globally"; \
-						cat missing_packages.txt ; \
-			python3 -m pip install -r missing_packages.txt --root-user-action=ignore; \
-		fi; \
-	fi ; \
+	python3 -m pip install -r requirements.txt; \
 	echo ${DELIM}
 
 install_python:
@@ -110,7 +95,6 @@ install_third_party:
 	python3 ${CHECK_DEPS} install_third_party
 
 install_postoga:
-#	source ${VENV_NAME}/bin/activate && \
 	cd postoga/rustools && \
 	maturin develop --release
 
