@@ -44,7 +44,7 @@ EXEC_DIR=/opt/slurm/bin,SLURM_CONF=/opt/slurm/etc/slurm.conf,LIB_DIR=/host/usr/l
 ### Confuring TOGA2 run at runtime
 An obvious limitation of running TOGA2 from within the container is code availability: If run from the container, scripts used in parallel steps are inaccessible to your batch manager. One possible way to circumvent this limitation is to run every parallel batch from its own container instance:
 
-[[https://github.com/hillerlab/TOGA2/blob/develop/wiki/container_parallel_run.png]]
+<img src="https://github.com/hillerlab/TOGA2/blob/develop/wiki/container_parallel_run.png">
 
 In this case, TOGA2 needs a path to the container from which the parallel jobs will be executed, as well as necessary settings and bindings for parallel container invocation. These can be provided with the following options (added in v2.0.7):
 * `--container_image`: a path to the container image to run the code from. This can be any container starting from TOGA2 directory, including containers built from any of the two recipes supplied.
