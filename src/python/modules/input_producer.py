@@ -16,13 +16,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 import click
 
 from .constants import Headers, RejectionReasons
-from .filter_ref_bed import (
-    CONTIG_REJ_REASON,
-    FRAME_REJ_REASON,
-    NAME_REJ_REASON,
-    NON_CODING_REJ_REASON,
-    consistent_name,
-)
+from .filter_ref_bed import consistent_name
 from .shared import CommandLineManager, dir_name_by_date, get_upper_dir, hex_dir_name
 
 logging.basicConfig(level=logging.INFO)
@@ -295,7 +289,7 @@ class InputProducer(CommandLineManager):
             )
             self.rejected_transcripts.extend(illegal_name)
             self.rejected_lines.extend(
-                [NAME_REJ_REASON.format(x) for x in illegal_name]
+                [RejectionReasons.NAME_REJ_REASON.format(x) for x in illegal_name]
             )
         if rejected_contigs:
             self._to_log(
@@ -308,7 +302,7 @@ class InputProducer(CommandLineManager):
             )
             self.rejected_transcripts.extend(rejected_contigs)
             self.rejected_lines.extend(
-                [CONTIG_REJ_REASON.format(x) for x in rejected_contigs]
+                [RejectionReasons.CONTIG_REJ_REASON.format(x) for x in rejected_contigs]
             )
         if non_coding:
             self._to_log(
@@ -321,7 +315,7 @@ class InputProducer(CommandLineManager):
             )
             self.rejected_transcripts.extend(non_coding)
             self.rejected_lines.extend(
-                [NON_CODING_REJ_REASON.format(x) for x in non_coding]
+                [RejectionReasons.NON_CODING_REJ_REASON.format(x) for x in non_coding]
             )
         if out_of_frame:
             self._to_log(
@@ -334,7 +328,7 @@ class InputProducer(CommandLineManager):
             )
             self.rejected_transcripts.extend(out_of_frame)
             self.rejected_lines.extend(
-                [FRAME_REJ_REASON.format(x) for x in out_of_frame]
+                [RejectionReasons.FRAME_REJ_REASON.format(x) for x in out_of_frame]
             )
         ## proceed further
 
