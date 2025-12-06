@@ -484,7 +484,7 @@ class RejectionReasons:
             "L",
         )
     )
-    PREPROCESSING_REJ: str = "\t".join("PROJECTION", "{}", "{}", "{}", "{}", "{}")
+    PREPROCESSING_REJ: str = "\t".join(("PROJECTION", "{}", "{}", "{}", "{}", "{}"))
     SPANNING_CHAIN_REASON: str = "\t".join(
         "PROJECTION", "{}", "0", "Spanning chain", "SPANNING", "{}"
     )
