@@ -21,6 +21,8 @@ Detailed explanations of all output files can be found in our
 * Apptainer support (see `supply/containers`):
     * Stable local execution container image
     * Batch manager-compatible image template
+    * Removing `toga2.py` as a container entry point
+    * Adding container support for parallel step scripts (see `supply/containers/README.md`)
 * Updated local installation
     * Postoga installation
     * Conda environment support
@@ -32,19 +34,20 @@ Detailed explanations of all output files can be found in our
         * Setting separate splice site treatment by default, replacing `--separate_splice_site_treatment` flag with `--joint_splice_site_treatment`
         * Fixed memory bin mem-to-jobs mapping for `alignment` step
 
+
 ## Installation
 
-### via `git clone`
-> [!IMPORTANT]  
-> Local installation is currently under development. If you encounter any problems with installation, please open a new Issue or contact TOGA2 developers
-> 
-
+### from Github
+TOGA2 Makefile provided in this repository contains directives for code compilation, third party software installation, Python package download, and model training. 
 ```bash
 git clone --recurse-submodules https://github.com/hillerlab/TOGA2
 cd TOGA2
 make
 ```
-Since the Make directive also installs Python packages globally, you might want to create a dedicated virtual environment beforehand (Python version 3.9 or higher:
+>[!IMPORTANT]
+> Executing the Makefile <u>will not</u> install Nextflow and Cargo on your machine.
+
+Since the Make directive also installs Python packages globally, you might want to create a dedicated virtual environment beforehand (Python version 3.13 or higher): 
 ```bash
 git clone --recurse-submodules https://github.com/hillerlab/TOGA2
 cd TOGA2
@@ -52,9 +55,17 @@ python3 -m venv toga2
 source toga2/bin/activate
 make
 ```
+As an alternative to Python virtual environment, you can also use Conda for environment creation. TOGA2 comes with a Conda configuration file which creates an environment with Python, Cargo, and Nextflow:
+```bash
+git clone --recurse-submodules https://github.com/hillerlab/TOGA2
+cd TOGA2
+conda env create -f conda.yaml
+conda activate toga2
+make
+```
 
 ### via Apptainer
-Container image definition file for Apptainer is provided with TOGA2 under `supply/apptainer.def`. To build the container, make sure you have Apptainer installed, then run the following commands:
+Container image definition file for Apptainer is provided with TOGA2 under `supply/containers/apptainer.def`. To build the container, make sure you have Apptainer installed, then run the following commands:
 ```bash
 git clone --recurse-submodules https://github.com/hillerlab/TOGA2
 TMPDIR=${tmp_dir} apptainer build ${container.sif} supply/apptainer.def
@@ -65,12 +76,12 @@ where:
 
 The resulting container has `toga2.py` as an entry point. If you run the following or similar command:
 ```bash
-TMPDIR=${tmp_dir} apptainer run --bind ${bound_dir1},${bound_dir2} ${container.sif}
+TMPDIR=${tmp_dir} apptainer run --bind ${bound_dir1},${bound_dir2} ${container.sif} toga2.py
 ```
 you should see the TOGA2 start menu.
 
 >[!NOTE]
-> The image provided in `supply/` directory contains the latest TOGA2 release, third-party software used for input preparation and TOGA2 annotation, and Nextflow for parallel process management. The container does <ins>not</ins> contain any Nextflow-compatible parallel job executor, and running parallel jobs from the container seems highly unlikely due to the code organization.  
+> The image provided in `supply/` directory contains the latest TOGA2 release, third-party software used for input preparation and TOGA2 annotation, and Nextflow for parallel process management. The container, however, does <ins>not</ins> contain any Nextflow-compatible parallel job executor. To set up your container for batch manager compatibility, see README at `supply/containers` and example recipe at `supply/containters/apptainer_slurm.def`
 
 ## Running TOGA2
 If activated without additional arguments (`toga2.py`), the following start screen is displayed in the user's terminal:
@@ -110,5 +121,8 @@ toga2.py test
 ```
 Provided the successful installation, you will see the TOGA2 execution log printed to stdout, with the results stored at TOGA2/sample_output.
 >[!NOTE]
-> If you are running TOGA2 from Apptainer, you might have to provide a custom output directory with `--output/-o` option to bypass the read-only container configuration.
+> If you are running TOGA2 from Apptainer, you might have to provide a custom output directory with `--output/-o` option to bypass the read-only container configuration:
+```
+TMPDIR=${tmp_dir} apptainer run --bind ${bound_dir1},${bound_dir2} ${container.sif} toga2.py test -o ${output_dir}
+```
 

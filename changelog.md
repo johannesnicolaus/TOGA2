@@ -9,6 +9,8 @@
 * Apptainer support (see `supply/containers`):
     * Stable local execution container image
     * Batch manager-compatible image template
+    * Removing `toga2.py` as a container entry point
+    * Adding container support for parallel step scripts (see `supply/containers/README.md`)
 * Updated local installation
     * Postoga installation
     * Conda environment support

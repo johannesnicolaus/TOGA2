@@ -46,7 +46,6 @@ Stage: build
     rm /bin/sh && ln -f /bin/bash /bin/sh
 
     ## clone the current TOGA2 repo
-    ## Note: for development purposes, the `develop` branch is being cloned here
     git clone --recurse-submodules https://github.com/hillerlab/TOGA2 /opt/TOGA2
     cd /opt/TOGA2
     ## create TOGA2 running environment

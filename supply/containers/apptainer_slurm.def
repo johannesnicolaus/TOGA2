@@ -47,7 +47,7 @@ Stage: build
 
     ## clone the current TOGA2 repo
     ## Note: for development purposes, the `develop` branch is being cloned here
-    git clone -b develop --single-branch --recurse-submodules https://github.com/hillerlab/TOGA2 /opt/TOGA2
+    git clone --single-branch --recurse-submodules https://github.com/hillerlab/TOGA2 /opt/TOGA2
     cd /opt/TOGA2
     ## build TOGA2
     make
