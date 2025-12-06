@@ -10,6 +10,7 @@ from typing import List, Optional, Set, Tuple, Union
 
 import click
 
+from .constants import RejectionReasons
 from .shared import CONTEXT_SETTINGS, CommandLineManager
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
@@ -24,16 +25,6 @@ __all__ = None
 ALLOWED_CHARSET: Tuple[int, ...] = tuple(
     [35, 45, 46, *range(48, 58), *range(65, 91), 95, *range(97, 123), 124]
 )
-NAME_REJ_REASON: str = (
-    "TRANSCRIPT\t{}\t0\tIllegal character used in transcript name\tILLEGAL_NAME\tN"
-)
-CONTIG_REJ_REASON: str = (
-    "TRANSCRIPT\t{}\t0\tLocated outside of user-preferred contigs\tREJECTED_CONTIG\tN"
-)
-NON_CODING_REJ_REASON: str = (
-    "TRANSCRIPT\t{}\t0\tDoes not have a coding sequence\tNON_CODING\tN"
-)
-FRAME_REJ_REASON: str = "TRANSCRIPT\t{}\t0\tTranscript is out of frame\tOUT_OF_FRAME\tN"
 
 
 def consistent_name(name: str) -> bool:
@@ -164,7 +155,9 @@ class AnnotationFilter(CommandLineManager):
             name: str = data[3]
             ## reject the transcripts
             if not consistent_name(name):
-                self.rejection_log.write(NAME_REJ_REASON.format(name) + "\n")
+                self.rejection_log.write(
+                    RejectionReasons.NAME_REJ_REASON.format(name) + "\n"
+                )
                 continue
             if name in transcript_names:
                 self._die(
@@ -178,13 +171,17 @@ class AnnotationFilter(CommandLineManager):
                 self._to_log(
                     "Transcript %s is located on a deprecated contig" % chrom, "warning"
                 )
-                self.rejection_log.write(CONTIG_REJ_REASON.format(name) + "\n")
+                self.rejection_log.write(
+                    RejectionReasons.CONTIG_REJ_REASON.format(name) + "\n"
+                )
                 continue
             if self.excluded_contigs is not None and chrom in self.excluded_contigs:
                 self._to_log(
                     "Transcript %s is located on a deprecated contig" % chrom, "warning"
                 )
-                self.rejection_log.write(CONTIG_REJ_REASON.format(name) + "\n")
+                self.rejection_log.write(
+                    RejectionReasons.CONTIG_REJ_REASON.format(name) + "\n"
+                )
                 continue
             thin_start: int = int(data[1])
             # thin_end: int = int(data[2])
@@ -196,7 +193,9 @@ class AnnotationFilter(CommandLineManager):
                     f"coordinates at line {i}"
                 )
             if cds_start == cds_end:
-                self.rejection_log.write(NON_CODING_REJ_REASON.format(name) + "\n")
+                self.rejection_log.write(
+                    RejectionReasons.NON_CODING_REJ_REASON.format(name) + "\n"
+                )
                 continue
             ## iterate over exon entries to infer the CDS length
             frame_length: int = 0
@@ -221,7 +220,9 @@ class AnnotationFilter(CommandLineManager):
                         continue
                 frame_length += size
             if frame_length % 3 and not self.no_frame_filter:
-                self.rejection_log.write(FRAME_REJ_REASON.format(name) + "\n")
+                self.rejection_log.write(
+                    RejectionReasons.FRAME_REJ_REASON.format(name) + "\n"
+                )
                 continue
             self.output.write(line)
             transcript_names.add(name)

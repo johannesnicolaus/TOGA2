@@ -15,6 +15,7 @@ import joblib
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+from modules.constants import RejectionReasons
 from modules.shared import CONTEXT_SETTINGS, CommandLineManager
 
 __author__ = "Yury V. Malovichko"
@@ -57,10 +58,6 @@ class Constants:
     P_PGENE: str = "P_PGENE"
     TR2CHAIN_HEADER: str = "TRANSCRIPT\tORTH\tPARA\tSPAN\tP_PGENE"
     FINAL_COLUMNS: List[str] = ["transcript", "chain", "pred"]
-    UNCLASS_TEMPLATE: str = (
-        "TRANSCRIPT\t{}\t0\tNo classifiable projections found\tNO_PROJ\tM"
-    )
-    UNDERSCORED_TEMPLATE: str = "PROJECTION\t{}\t0\tChain score below set threshold ({})\tINSUFFICIENT_CHAIN_SCORE\tL"
 
 
 @click.command(context_settings=CONTEXT_SETTINGS, no_args_is_help=True)
@@ -439,10 +436,10 @@ class ChainClassifier(CommandLineManager):
             return
         with open(self.rejection_log, "w") as h:
             for tr in rejected_transcripts:
-                rej_line: str = Constants.UNCLASS_TEMPLATE.format(tr)
+                rej_line: str = RejectionReasons.UNCLASS_REJ_REASON.format(tr)
                 h.write(rej_line + "\n")
             for proj in self.underscored_chain_projections:
-                rej_line: str = Constants.UNDERSCORED_TEMPLATE.format(
+                rej_line: str = RejectionReasons.UNDERSCORED_REJ_REASON.format(
                     proj, self.min_orth_chain_score
                 )
                 h.write(rej_line + "\n")

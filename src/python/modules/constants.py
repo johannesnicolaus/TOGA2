@@ -424,6 +424,135 @@ reporting the following warning at the {} step:\n{}
     DEFAULT_OUTPUT_DIR: str = "sample_output"
 
 
+## rejection reason templates
+class RejectionReasons:
+    REJ_GENE: str = "\t".join(
+        (
+            "GENE",
+            "{}",
+            "0",
+            "No (valid) transcripts found in the reference annotation",
+            "ZERO_TRANSCRIPT_INPUT",
+            "N",
+        )
+    )
+    ORPHAN_TR: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "No corresponding gene found in the isoform file",
+            "ZERO_GENE_INPUT",
+            "N",
+        )
+    )
+    NAME_REJ_REASON: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "Illegal character used in transcript name",
+            "ILLEGAL_NAME",
+            "N",
+        )
+    )
+    CONTIG_REJ_REASON: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0Located outside of user-preferred contigs",
+            "REJECTED_CONTIG",
+            "N",
+        )
+    )
+    NON_CODING_REJ_REASON: str = "\t".join(
+        ("TRANSCRIPT", "{}", "0", "Does not have a coding sequence", "NON_CODING", "N")
+    )
+    FRAME_REJ_REASON: str = "\t".join(
+        ("TRANSCRIPT", "{}", "0", "Transcript is out of frame", "OUT_OF_FRAME", "N")
+    )
+    UNCLASS_REJ_REASON: str = "\t".join(
+        ("TRANSCRIPT", "{}", "0", "No classifiable projections found", "NO_PROJ", "M")
+    )
+    UNDERSCORED_REJ_REASON: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Chain score below set threshold ({})",
+            "INSUFFICIENT_CHAIN_SCORE",
+            "L",
+        )
+    )
+    PREPROCESSING_REJ: str = "\t".join("PROJECTION", "{}", "{}", "{}", "{}", "{}")
+    SPANNING_CHAIN_REASON: str = "\t".join(
+        "PROJECTION", "{}", "0", "Spanning chain", "SPANNING", "{}"
+    )
+    REJ_ORTH_REASON: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Insufficiently covered exons in second-best projection",
+            "SECOND_BEST",
+            "{}",
+        )
+    )
+    REJ_PARA_REASON: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Redundant paralog overlapping orthologous projections",
+            "REDUNDANT_PARALOG",
+            "{}",
+        )
+    )
+    REJ_PPGENE_REASON: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Processed pseudogene overlapping ortholog or paralog",
+            "REDUNDANT_PPGENE",
+            "{}",
+        )
+    )
+    OUTCOMPETED_PARALOG_REASON: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "All paralogous projections outcompeted by orthologous predictions of other items",
+            "ALL_PARALOGS_REDUNDANT",
+            "M",
+        )
+    )
+    REMOVED_ORTH_REASON: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "No projections reached the orthology step",
+            "ALL_ORTHS_DISCARDED",
+            "{}",
+        )
+    )
+    WEAK_EDGE_REASON: str = "\t".join(
+        ("PROJECTION", "{}", "0", "Weak orthology graph edge", "WEAK_EDGE", "{}")
+    )
+    ORTH_REJ_TEMPLATE: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "Rejected after the gene resolution step",
+            "GENE_TREE_REJECTION",
+            "{}",
+        )
+    )
+
+
 class ConstColors:
     BLUE = "0,0,200"
     LIGHT_BLUE = "0,200,255"
@@ -618,13 +747,26 @@ class Headers:
 
 class NameTemplates:
     TWOBIT: str = os.path.join("{}", "{}.2bit")
-    CHAINS: str = os.path.join("{}", "lastz", "vs_{}", "axtChain", "{}.{}.allfilled.chain")
-    CHAINS_GZ: str = os.path.join("{}", "lastz", "vs_{}", "axtChain", "{}.{}.allfilled.chain.gz")
-    REF_ANNOT: str = os.path.join("{}", "TOGA2", "currentAnnotation", "{}.toga.transcripts.bed")
-    REF_ISOFORMS: str = os.path.join("{}", "TOGA2", "currentAnnotation", "{}.toga.isoforms.tsv")
-    REF_U12: str = os.path.join("{}", "TOGA2", "currentAnnotation", "{}.toga.U12introns.bed")
+    CHAINS: str = os.path.join(
+        "{}", "lastz", "vs_{}", "axtChain", "{}.{}.allfilled.chain"
+    )
+    CHAINS_GZ: str = os.path.join(
+        "{}", "lastz", "vs_{}", "axtChain", "{}.{}.allfilled.chain.gz"
+    )
+    REF_ANNOT: str = os.path.join(
+        "{}", "TOGA2", "currentAnnotation", "{}.toga.transcripts.bed"
+    )
+    REF_ISOFORMS: str = os.path.join(
+        "{}", "TOGA2", "currentAnnotation", "{}.toga.isoforms.tsv"
+    )
+    REF_U12: str = os.path.join(
+        "{}", "TOGA2", "currentAnnotation", "{}.toga.U12introns.bed"
+    )
     SPLICEAI: str = os.path.join("{}", "spliceAi")
-    REF_LINKS: str = os.path.join("{}", "TOGA2", "currentAnnotation", "{}.toga.links.tsv")
+    REF_LINKS: str = os.path.join(
+        "{}", "TOGA2", "currentAnnotation", "{}.toga.links.tsv"
+    )
+
 
 # Standalone constants #
 
@@ -666,10 +808,7 @@ BEST_PRACTICES: str = """\bExamples:
 
     """
 
-CONTAINER_ENGINE2BIND_KEY: Dict[str, str]= {
-    'apptainer': '--bind',
-    'docker': '--mount'
-}
+CONTAINER_ENGINE2BIND_KEY: Dict[str, str] = {"apptainer": "--bind", "docker": "--mount"}
 PRE_CLEANUP_LINE: str = "rm -rf {}/*"
 IQTREE_ACCEPTED_MODELS: str = ",".join(
     (

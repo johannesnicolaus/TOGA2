@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 import click
 
 from .cesar_wrapper_constants import CLASS_TO_NUM
-from .constants import Headers
+from .constants import Headers, RejectionReasons
 from .shared import CONTEXT_SETTINGS, base_proj_name, parse_single_column
 
 __author__ = "Yury V. Malovichko"
@@ -30,8 +30,6 @@ REDUNDANT_PARALOG: str = "REDUNDANT_PARALOG"
 REDUNDANT_PPGENE: str = "REDUNDANT_PPGENE"
 SECOND_BEST: str = "SECOND_BEST"
 IGNORED_ITEMS: Tuple[str] = ("REDUNDANT_PARALOG", "REDUNDANT_PPGENE", "SECOND_BEST")
-OUTCOMPETED_PARALOG_REASON: str = "TRANSCRIPT\t{}\t0\tAll paralogous projections outcompeted by orthologous predictions of other items\tALL_PARALOGS_REDUNDANT\tM"
-
 
 def parse_precedence_file(file: TextIO) -> Dict[str, str]:
     """ """
@@ -435,7 +433,7 @@ def main(
     if confirmed_rejected_paralogs and rejected_projections is not None:
         with open(rejected_projections, "a") as h:
             for transcript in confirmed_rejected_paralogs:
-                h.write(OUTCOMPETED_PARALOG_REASON.format(transcript) + "\n")
+                h.write(RejectionReasons.OUTCOMPETED_PARALOG_REASON.format(transcript) + "\n")
 
 
 if __name__ == "__main__":

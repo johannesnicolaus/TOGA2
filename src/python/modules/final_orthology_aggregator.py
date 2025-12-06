@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 
 import click
 
-from .constants import Headers
+from .constants import Headers, RejectionReasons
 from .shared import CONTEXT_SETTINGS, CommandLineManager, base_proj_name
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
@@ -33,7 +33,6 @@ ONE2ONE: str = "one2one"
 ONE2MANY: str = "one2many"
 MANY2ONE: str = "many2one"
 MANY2MANY: str = "many2many"
-ORTH_REJ_TEMPLATE: str = "TRANSCRIPT\t{}\t0\tRejected after the gene resolution step\tGENE_TREE_REJECTION\t{}"
 
 
 def restore_fragmented_proj_id(proj: str) -> str:
@@ -250,10 +249,10 @@ class FinalOrthologyResolver(CommandLineManager):
             if line == Headers.ORTHOLOGY_TABLE_HEADER:
                 continue
             line = line.rstrip()
-            data: List[str] = line.split('\t')
+            data: List[str] = line.split("\t")
             if not data or not data[0]:
                 continue
-            if data[0] == 't_gene':
+            if data[0] == "t_gene":
                 continue
             ## The commented section has never been a problem in production runs
             ## but might incur some problems upon patching
@@ -329,13 +328,17 @@ class FinalOrthologyResolver(CommandLineManager):
             ref_tr = "#".join(ref_tr.split("#")[:-1])
             ref_gene: str = self.ref_tr2gene.get(ref_tr, None)
             if ref_gene is None:
-                self._to_log("Missing gene for reference transcipt %s" % ref_tr, "warning")
+                self._to_log(
+                    "Missing gene for reference transcipt %s" % ref_tr, "warning"
+                )
                 continue
             query_gene: str = self.query_tr2gene.get(query_tr, None)
             if query_gene is None:
-                self._to_log("Missing gene for query transcipt %s" % query_tr, "warning")
+                self._to_log(
+                    "Missing gene for query transcipt %s" % query_tr, "warning"
+                )
                 continue
-            ### CURRENT IDEA: First, check whether all the query genes 
+            ### CURRENT IDEA: First, check whether all the query genes
             ### actually have projections from the reference orthologs
             ### does not seem trivial since the input does not contain any indications of the original clique
             if (
@@ -398,7 +401,9 @@ class FinalOrthologyResolver(CommandLineManager):
                     # self.out_lines.append(out_line)
                     recorded_lines: bool = True
                 for other_query_tr in self.query_gene2tr[query_gene]:
-                    other_ref_tr: str = get_tr(other_query_tr)#'#'.join(other_query_tr.split('#')[:-1])
+                    other_ref_tr: str = get_tr(
+                        other_query_tr
+                    )  #'#'.join(other_query_tr.split('#')[:-1])
                     if other_ref_tr not in self.ref_tr2gene:
                         continue
                     ## projections from other genes are counted as rejected
@@ -478,11 +483,14 @@ class FinalOrthologyResolver(CommandLineManager):
             #         'from the resolved pairs file: %s|%s' % (ref_gene, ','.join(query_genes))
             #     )
             status: str = (
-                ONE2ONE 
-                if ref_gene_num == query_gene_num == 1 
-                else ONE2MANY if ref_gene_num == 1 
-                else MANY2ONE if query_gene_num == 1 
-                else ONE2ZERO if not query_gene_num 
+                ONE2ONE
+                if ref_gene_num == query_gene_num == 1
+                else ONE2MANY
+                if ref_gene_num == 1
+                else MANY2ONE
+                if query_gene_num == 1
+                else ONE2ZERO
+                if not query_gene_num
                 else MANY2MANY
             )
             for query_gene in query_genes:
@@ -515,7 +523,9 @@ class FinalOrthologyResolver(CommandLineManager):
                     self.rejected_list.write(item + "\n")
                 if self.rejection_log is not None:
                     loss_status: str = self.proj2loss.get(item, "N")
-                    rej_line: str = ORTH_REJ_TEMPLATE.format(item, loss_status)
+                    rej_line: str = RejectionReasons.ORTH_REJ_TEMPLATE.format(
+                        item, loss_status
+                    )
                     self.rejection_log.write(rej_line + "\n")
 
     def _restore_original_clique(self, start: str) -> List[str]:

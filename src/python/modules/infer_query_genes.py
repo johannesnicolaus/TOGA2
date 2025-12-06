@@ -20,6 +20,7 @@ import click
 import networkx as nx
 
 from .cesar_wrapper_executables import AnnotationEntry, Exon, ExonDict
+from .constants import RejectionReasons
 from .shared import (
     CONTEXT_SETTINGS,
     CommandLineManager,
@@ -49,38 +50,6 @@ EXTENDED_HIGH_CONFIDENCE: Tuple[str, str] = (
     "I",
 )  ## NOTE: Previously ('FI', 'PI') => likely a bug
 MIN_RELIABLE_EXON_COV: float = 0.6
-
-REJ_ORTH_REASON: str = "\t".join(
-    (
-        "PROJECTION",
-        "{}",
-        "0",
-        "Insufficiently covered exons in second-best projection",
-        "SECOND_BEST",
-        "{}",
-    )
-)
-REJ_PARA_REASON: str = "\t".join(
-    (
-        "PROJECTION",
-        "{}",
-        "0",
-        "Redundant paralog overlapping orthologous projections",
-        "REDUNDANT_PARALOG",
-        "{}",
-    )
-)
-REJ_PPGENE_REASON: str = "\t".join(
-    (
-        "PROJECTION",
-        "{}",
-        "0",
-        "Processed pseudogene overlapping ortholog or paralog",
-        "REDUNDANT_PPGENE",
-        "{}",
-    )
-)
-
 
 def parse_single_column(file: Union[TextIO, None]) -> Set[str]:
     """Parses a file as a newline-separated list of strings"""
@@ -1045,21 +1014,21 @@ class QueryGeneCollapser(CommandLineManager):
                 self.discarded_extensions_file.write(rej_orth + "\n")
             if self.rejected_items_file is not None:
                 status: str = self.proj2status[rej_orth]
-                orth_rej_line: str = REJ_ORTH_REASON.format(rej_orth, status)
+                orth_rej_line: str = RejectionReasons.REJ_ORTH_REASON.format(rej_orth, status)
                 self.rejected_items_file.write(orth_rej_line + "\n")
         for rej_par in self.discarded_paralogs:
             if self.discarded_paralogs_file is not None:
                 self.discarded_paralogs_file.write(rej_par + "\n")
             if self.rejected_items_file is not None:
                 status: str = self.proj2status[rej_par]
-                par_rej_line: str = REJ_PARA_REASON.format(rej_par, status)
+                par_rej_line: str = RejectionReasons.REJ_PARA_REASON.format(rej_par, status)
                 self.rejected_items_file.write(par_rej_line + "\n")
         for rej_ppgene in self.discarded_ppgenes:
             if self.discarded_ppgenes_file is not None:
                 self.discarded_ppgenes_file.write(rej_ppgene + "\n")
             if self.rejected_items_file is not None:
                 status: str = self.proj2status[rej_ppgene]
-                ppgene_rej_line: str = REJ_PPGENE_REASON.format(rej_ppgene, status)
+                ppgene_rej_line: str = RejectionReasons.REJ_PPGENE_REASON.format(rej_ppgene, status)
                 self.rejected_items_file.write(ppgene_rej_line + "\n")
 
     def write_redundant_paralogs(self) -> None:

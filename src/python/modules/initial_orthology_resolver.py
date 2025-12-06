@@ -7,7 +7,14 @@ of respective transcripts in the query
 
 import os
 from collections import defaultdict
-from .constants import CONTAINER_ENGINE2BIND_KEY, PHYLO_NOT_FOUND, PRE_CLEANUP_LINE
+from heapq import heappop, heappush
+from shutil import which
+from typing import Any, Dict, Iterable, List, Optional, Set, TextIO, Tuple, Union
+
+import click
+import h5py
+import networkx as nx
+
 from .cesar_wrapper_constants import (
     CLASS_TO_NUM,
     FI,
@@ -22,7 +29,12 @@ from .cesar_wrapper_constants import (
     M,
     N,
 )
-from heapq import heappop, heappush
+from .constants import (
+    CONTAINER_ENGINE2BIND_KEY,
+    PHYLO_NOT_FOUND,
+    PRE_CLEANUP_LINE,
+    RejectionReasons,
+)
 from .shared import (
     CONTEXT_SETTINGS,
     SPLIT_JOB_HEADER,
@@ -34,12 +46,6 @@ from .shared import (
     get_upper_dir,
     segment_base,
 )
-from shutil import which
-from typing import Any, Dict, Iterable, List, Optional, Set, TextIO, Tuple, Union
-
-import click
-import h5py
-import networkx as nx
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"
@@ -64,8 +70,6 @@ ONE2MANY: str = "one2many"
 MANY2ONE: str = "many2one"
 MANY2MANY: str = "many2many"
 HEADER: str = "t_gene\tt_transcript\tq_gene\tq_transcript\torthology_class\n"
-REMOVED_ORTH_REASON: str = "TRANSCRIPT\t{}\t0\tNo projections reached the orthology step\tALL_ORTHS_DISCARDED\t{}"
-WEAK_EDGE_REASON: str = "PROJECTION\t{}\t0\tWeak orthology graph edge\tWEAK_EDGE\t{}"
 TOUCH: str = "touch {}"
 
 
@@ -1186,7 +1190,7 @@ class InitialOrthologyResolver(CommandLineManager):
                     )
                 else:
                     status: str = "N"
-                line: str = REMOVED_ORTH_REASON.format(tr, status)
+                line: str = RejectionReasons.REMOVED_ORTH_REASON.format(tr, status)
                 h.write(line + "\n")
             for r_gene, q_gene in self.removed_edges:
                 if r_gene not in self.gene2tr_ref:
@@ -1202,7 +1206,7 @@ class InitialOrthologyResolver(CommandLineManager):
                 self.removed_projections.extend(removed_projections)
                 for proj in removed_projections:
                     status: str = self.loss_status[proj]
-                    line: str = WEAK_EDGE_REASON.format(proj, status)
+                    line: str = RejectionReasons.WEAK_EDGE_REASON.format(proj, status)
                     h.write(line + "\n")
                     h1.write(proj + "\n")
 
