@@ -24,6 +24,7 @@ __year__ = "2025"
 ALIGNERS_TO_USE: List[str] = ["macse2", "prank", "magus", "muscle"]
 PRANK: str = "prank"
 MACSE: str = "macse2"
+MAGUS: str = "magus"
 MUSCLE: str = "muscle"
 TWOBIT2FA: str = "twoBitToFa"
 ONE_TO_ONE: str = "one2one"
@@ -40,6 +41,7 @@ PRANK_BEST_PRACTICE: str = "{} -d={} -F -DNA -o={}"
 PRANK_FOR_REGULAR_ALN: str = " -iterate=10"
 PRANK_FOR_ANCESTRAL: str = " -once -showanc"
 MACSE_BEST_PRACTICE: str = "{} -prog alignSequences -seq {} -out_NT {} -out_AA {}"
+MAGUS_BEST_PRACTICE: str = "{} -i {} --datatype dna -o {}"
 MUSCLE_ALIGN_CMD: str = "muscle -super5 {} -output {}"
 MUSCLE_ENSEMBLE_CMD: str = "muscle -align {} -diversified -output {} -threads {}"
 MUSCLE_MAXCC_CMD: str = "muscle -maxcc {} -output {}"
@@ -564,6 +566,8 @@ class CodonAligner(CommandLineManager):
                     else:
                         cmd += PRANK_FOR_REGULAR_ALN
                     tmp_fasta_out_path += ".best.fas"
+                elif self.aligner == MAGUS:
+                    cmd: str = MAGUS_BEST_PRACTICE.format(*aln_format)
                 self._to_log("Running alignment for exon %s" % exon)
                 self._echo(f"Alignment command: {cmd}")
                 self._exec(cmd, ALN_ERROR.format(self.aligner, self.transcript, exon))
