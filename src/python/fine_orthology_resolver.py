@@ -24,6 +24,7 @@ __year__ = "2024"
 
 R_PREFIX: str = "#R#"
 Q_PREFIX: str = "#Q#"
+PRANK_SEED: str = "12345"
 IQTREE_R_PREFIX: str = "_R_"
 IQTREE_Q_PREFIX: str = "_Q_"
 PARENT_REF: str = ".."
@@ -347,7 +348,7 @@ class FineOrthologyResolver(CommandLineManager):
         """
         Runs PRANK alignment command
         """
-        cmd: str = f"{self.prank_bin} -d={in_file} -o={out_pref} -protein "  # -nomafft'
+        cmd: str = f"{self.prank_bin} -seed={PRANK_SEED} -d={in_file} -o={out_pref} -protein "  # -nomafft'
         _ = self._exec(cmd, "ERROR: PRANK alignment failed with the following error:")
 
     def run_tree(self, aln_file: str, tree_file: str, tmp_dir: str) -> None:
