@@ -1720,7 +1720,7 @@ def merge(**kwargs) -> None:
 by combining annotation with different references""",
 )
 @mandatory.option(
-    "ref_data", 
+    "--ref_data", 
     type=click.Path(exists=True), 
     metavar="INPUT_JSON",
     cls=DependentOption,
