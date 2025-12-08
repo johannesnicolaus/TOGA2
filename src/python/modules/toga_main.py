@@ -2486,10 +2486,10 @@ class TogaMain(CommandLineManager):
 
     def convert_fasta_to_hdf5(self) -> None:
         """Converts TOGA2 output FASTA file into an HDF5 storage"""
+        from .pairwise_fasta_to_hdf5 import FastaToHdf5Converter
+        
         in_file: str = self.aa_fasta
         out_file: str = self.aa_hdf5
-        from pairwise_fasta_to_hdf5 import FastaToHdf5Converter
-
         args: List[str] = [in_file, out_file, "-ln", self.project_id, "-v"]
         FastaToHdf5Converter(args, standalone_mode=False)
 
