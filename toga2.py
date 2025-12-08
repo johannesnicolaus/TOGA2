@@ -1717,7 +1717,14 @@ def merge(**kwargs) -> None:
     short_help="""Prepare an integrated TOGA2 annotation 
 by combining annotation with different references""",
 )
-@click.argument("ref_data", type=click.Path(exists=True), metavar="INPUT_JSON")
+@click.option(
+    "ref_data", 
+    type=click.Path(exists=True), 
+    metavar="INPUT_JSON",
+    cls=DependentOption,
+    required=True,
+    help="Input map, in JSON format"
+)
 @click.option(
     "--output",
     "-o",
@@ -1818,8 +1825,59 @@ def integrate(**kwargs) -> None:
     \b
     integrate - Prepare an integrated TOGA2 annotation by combining annotation with different references.
     NOTE: This mode is currently in early access. Certain functionality might be currently unavailable or work differently from expected.
-
-
+    \n\n
+    Integrated annotation is prepared from multiple independent TOGA2 runs for a single query. 
+    Since you are most likely interested in integrating annotation from multiple references, each of the 
+    individual input instances is referenced here and in the code as reference for simplcity, and 
+    the TOGA2 annotation produced with a given reference and the query of choice are called a run.\n
+    \n
+    To simplify the otherwise convoluted input structure, TOGA2 expects you to provide a run:{files} 
+    mapping in JSON format as a single mandatory argument. Each run must have the following mandatory input files:\n
+    \t* "query_bed": a reference query file for this run ("query_annotation.bed" or "query_annotation.with_utrs.bed");\n
+    \t* "exon_meta": a query exon metafata file for this run ("meta/exon_meta.tsv(.gz)")\n
+    The following files are not mandatory but facilitate proper gene integration and annotation refinement:\n
+    \t* "paralog_list": a list of confirmed paralogous projections for this run 
+    ("meta/paralogous_projections_to_align.txt");\n
+    \t* "processed_pseudogene_list": a list of confirmed processed pseudogene/retrogene 
+    projections for this run ("meta/processed_pseudogenes_to_align.txt");\n
+    \t* "ucsc_bigbed": a BigBed file produced by TOGA2 for visualising this run's results in UCSC Browser. 
+    Used for both preparing the BigBed file for the combined annotation and extracting nucleotide and protein sequences 
+    if the respective arguments are not provided ("ucsc_browser_files/${your_prefix}.bb");\n
+    \t* "protein_file": a FASTA file of query protein sequences for this run; if not provided, 
+    sequences will be extracted from the "ucsc_bigbed" file ("protein.fa(.gz)");\n
+    \t* "nucleotide_file": a FASTA file of query nucleotide sequences for this run; 
+    if not provided, sequences will be extracted from the the "ucsc_bigbed" file ("nucleotide.fa(.gz)");\n
+    \t* "reference_isoforms": a two-column file with gene-to-transcript mapping for the reference genome. NOTE: 
+    this is a REFERENCE isoforms file, potentially used as TOGA2 input, not the "query_genes.tsv" 
+    file produced by TOGA2 for this run.\n
+    Finally, for each run you can provide "priority" specifying which runs' results are retained in case 
+    of a tie. If not set, priority is inferred based on the order the runs appear in the JSON file.\n
+    \n
+    An example JSON file looks as follows:\n
+    {\n
+        "hg38": {\n
+            "query_bed": "hg38/TOGA2/vs_my_query/query_annotation.bed",\n
+            "exon_meta": "hg38/TOGA2/vs_my_query/meta/exon_meta.tsv.gz",\n
+            "reference_isoforms": "hg38/TOGA2/currentAnnotation/hg38.toga.isoforms.tsv",\n
+            "paralog_list": "hg38/TOGA2/vs_my_query/meta/paralogous_projections_to_align.txt",\n
+            "processed_pseudogene_list": "hg38/TOGA2/vs_my_query/meta/processed_pseudogenes_to_align.txt",\n
+            "protein_file": "hg38/TOGA2/vs_my_query/protein.fa.gz",\n
+            "nucleotide_file": "hg38/TOGA2/vs_my_query/nucleotide.fa.gz",\n
+            "ucsc_bigbed": "hg38/TOGA2/vs_my_query/ucsc_browser_files/HLTOGAannotVsHg38.bb",\n
+            "priority": 1\n
+        },\n
+        "mm10": {\n
+            "query_bed": "mm10/TOGA2/vs_my_query/query_annotation.bed",\n
+            "exon_meta": "mm10/TOGA2/vs_my_query/meta/exon_meta.tsv.gz",\n
+            "reference_isoforms": "mm10/TOGA2/currentAnnotation/mm10.toga.isoforms.tsv",\n
+            "paralog_list": "mm10/TOGA2/vs_my_query/meta/paralogous_projections_to_align.txt",\n
+            "processed_pseudogene_list": "mm10/TOGA2/vs_my_query/meta/processed_pseudogenes_to_align.txt",\n
+            "protein_file": "mm10/TOGA2/vs_my_query/protein.fa.gz",\n
+            "nucleotide_file": "mm10/TOGA2/vs_my_query/nucleotide.fa.gz",\n
+            "ucsc_bigbed": "mm10/TOGA2/vs_my_query/ucsc_browser_files/HLTOGAannotVsHg38.bb",\n
+            "priority": 2\n
+        },\n
+    }
     """
     from src.python.modules.integrate import AnnotationIntegrator
 
