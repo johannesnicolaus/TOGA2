@@ -472,7 +472,7 @@ class AnnotationIntegrator(CommandLineManager):
                 gene, tr = data
                 self.ref_proj2gene[tr] = gene
 
-    def read_paralogs(self, species: str) -> None:
+    def read_paralogs(self, species: str) -> None: ## TODO: Can be replaced with postfixes
         """Extracts paralogous projections' names"""
         file: Union[str, None] = self.ref_data[species].paralogs
         if file is None:
@@ -489,7 +489,7 @@ class AnnotationIntegrator(CommandLineManager):
                 line = line.strip()
                 self.paralog_pool.add(line)
 
-    def read_ppgenes(self, species: str) -> None:
+    def read_ppgenes(self, species: str) -> None: ## TODO: Can be replaced with postfixes
         """Extracts processed pseudogene/retrogene projections' names"""
         file: Union[str, None] = self.ref_data[species].ppgenes
         if file is None:
@@ -510,7 +510,13 @@ class AnnotationIntegrator(CommandLineManager):
         """
         Infers query genes from combined reference annotations.
         The logic is effectively borrowed from infer_query_genes.py :
-        any two projections overlapping by at least one coding base
+        any two projections overlapping by at least one coding base 
+        on the same strand are collapsed into a single gene, 
+        with the following exceptions:
+        1) paralogs overlapping orthologs are not included 
+        in the gene composition and are further discarded;
+        2) retrogenes overlapping either orthologs or paralogs 
+        are not included in the gene composition and are further discarded
         """
         self._to_log(
             "Inferring query genes from the combined annotation; might take a while"
@@ -578,15 +584,15 @@ class AnnotationIntegrator(CommandLineManager):
                             self.discarded_items.add(name_out)
                             discarded = True
                             break
-                        ## ppgene + paralog: discard the paralog - TODO: Discuss
-                        if out_ppgene and in_paralog:
+                        ## ppgene + paralog: discard the ppgene
+                        if out_paralog and in_ppgene:
                             self.discarded_items.add(name_in)
                             continue
-                        if out_paralog and in_ppgene:
+                        if out_ppgene and in_paralog:
                             self.discarded_items.add(name_out)
                             discarded = True
                             break
-                        ## namesakes: add the edge
+                        ## same orthology class: add the edge
                         edges.append(name_in)
                 if discarded:
                     continue
@@ -638,7 +644,7 @@ class AnnotationIntegrator(CommandLineManager):
                             selected.clear()
                         allowed_class_found = True
                     else:
-                        ## do not let the items worse than the best currentl
+                        ## do not let the items worse than the current best
                         if status < best_status:
                             continue
                     ## at this point, this is a likely candidate
@@ -662,7 +668,8 @@ class AnnotationIntegrator(CommandLineManager):
                                 continue
                         ## otherwise, the new prediction is the winner
                     best_status = max(best_status, status)
-                    selected[proj.lines[0]] = name
+                    for line in proj.lines:
+                        selected[line] = name
                 ## all the projections have been processed; name the gene and define its coordinates
                 all_projs: List[BedRecord] = [
                     self.query_projections[x] for x in selected.values()
