@@ -346,7 +346,10 @@ class FinalOrthologyResolver(CommandLineManager):
                 and ref_gene not in self.q2r[query_gene]
             ):
                 self._to_log(
-                    "Ortholog pair resolved in the gene tree has no connection in the original graph: %s and %s"
+                    (
+                        "Ortholog pair resolved in the gene tree has no connection in "
+                        "the original graph: %s and %s"
+                    )
                     % (ref_tr, query_tr),
                     "warning",
                 )
@@ -401,15 +404,14 @@ class FinalOrthologyResolver(CommandLineManager):
                     # self.out_lines.append(out_line)
                     recorded_lines: bool = True
                 for other_query_tr in self.query_gene2tr[query_gene]:
-                    other_ref_tr: str = get_tr(
-                        other_query_tr
-                    )  #'#'.join(other_query_tr.split('#')[:-1])
+                    other_ref_tr: str = get_tr(other_query_tr)  #'#'.join(other_query_tr.split('#')[:-1])
                     if other_ref_tr not in self.ref_tr2gene:
                         continue
                     ## projections from other genes are counted as rejected
                     if self.ref_tr2gene[other_ref_tr] != ref_gene:
                         self._to_log(
-                            f"Skipping {other_query_tr} since it does not belong to the original reference gene"
+                            f"Skipping {other_query_tr} since it does not "
+                            "belong to the original reference gene"
                         )
                         self.rejected_items.append(other_query_tr)
                         continue
@@ -446,10 +448,10 @@ class FinalOrthologyResolver(CommandLineManager):
         to the output
         """
         for ref_gene, query_genes in self.r2q.items():
-            ## sanity check
-            if ref_gene in self.removed_genes:
-                continue
             query_genes = {x for x in query_genes if x not in self.removed_genes}
+            ## sanity check
+            if ref_gene in self.removed_genes and not query_genes:
+                    continue
             ref_genes: Set[str] = {
                 x
                 for q in query_genes
@@ -494,8 +496,20 @@ class FinalOrthologyResolver(CommandLineManager):
                 else MANY2MANY
             )
             for query_gene in query_genes:
+                if not ref_gene_num:
+                    self._to_log(
+                        "Query gene %s rendered orphan after the gene tree step" % query_gene,
+                        "warning",
+                    )
                 query_trs: List[str] = self.query_gene2tr[query_gene]
                 for query_tr in query_trs:
+                    if not ref_gene_num:
+                        self._to_log(
+                            "Projection %s rendered orphan after the gene tree step" % query_tr,
+                            "warning",
+                        )
+                        self.rejected_items.add(query_tr)
+                        continue
                     ref_tr: str = "#".join(query_tr.split("#")[:-1])
                     if self.ref_tr2gene[ref_tr] != ref_gene:
                         continue

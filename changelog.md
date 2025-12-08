@@ -21,6 +21,7 @@
         * Setting default non-canonical U12 acceptor to `equiprobable_acceptor.tsv`
         * Setting separate splice site treatment by default, replacing `--separate_splice_site_treatment` flag with `--joint_splice_site_treatment`
         * Fixed memory bin mem-to-jobs mapping for `alignment` step
+        * Fixed random seed for PRANK
 
 ## v2.0.6
 * New TOGA2 mode added: `integrate` (early access functionality)
