@@ -71,6 +71,7 @@ LAST_DONOR: str = os.path.join(LOCATION, *LAST_DONOR)
 BLOSUM_FILE: str = os.path.join(LOCATION, *DEF_BLOSUM_FILE)
 
 ## Option groups
+mandatory: PrettyGroup = PrettyGroup("Mandatory arguments for this mode")
 input_options: PrettyGroup = PrettyGroup("General input")
 bundle_options: PrettyGroup = PrettyGroup(
     "Annotation bundle",
@@ -1672,17 +1673,18 @@ def spliceai(**kwargs) -> None:
          MM     `Mb.    ,dP' `Mb.     MM   A'     VML        MM    MM
        .JMML.     `"bmmd"'     `"bmmmdPY .AMA.   .AMMA.    .JMML..JMML.
 
-    \b
-    spliceai - Predict putative splice sites in the query assembly with SpliceAI
-    NOTE: This mode is currently in early access The results might differ from those produced by the code used for TOGA2 companion dataset preparation. If you notice any substantial differences from the expected results, pleae contact TOGA2 developer team.
-
+    spliceai - Predict putative splice sites in the query assembly with SpliceAI\n
+    NOTE: This mode is currently in early access The results might differ from those produced 
+    by the code used for TOGA2 companion dataset preparation. 
+    If you notice any substantial differences from the expected results, pleae contact TOGA2 developer team.\n
+    \n
     TOGA2 uses SpliceAI predictions for the query genome to improve exon annotation and record
     unique evolutionary events, such as distant splice site shifts and intron gains, in the query.
-    To learn more on how TOGA2 uses SpliceAI predictions, consult `toga2.py cookbook` or GitHub Wiki page.
-
-    NOTE: TOGA2 does not invoke SpliceAI during runtime and relies on predictions provided beforehand. If you want
-    to improve your TOGA2 annotation results with SpliceAI data, please run this mode for query genome or constul
-    GitHub Wiki page for alternative solutions.
+    To learn more on how TOGA2 uses SpliceAI predictions, consult `toga2.py cookbook` or GitHub Wiki page.\n
+    \n
+    NOTE: TOGA2 does not invoke SpliceAI during runtime and relies on predictions provided beforehand. 
+    If you want to improve your TOGA2 annotation results with SpliceAI data, 
+    please run this mode for query genome or consult GitHub Wiki page for alternative solutions.
     """
     from src.python.modules.spliceai_manager import SpliceAiManager
 
@@ -1717,7 +1719,7 @@ def merge(**kwargs) -> None:
     short_help="""Prepare an integrated TOGA2 annotation 
 by combining annotation with different references""",
 )
-@click.option(
+@mandatory.option(
     "ref_data", 
     type=click.Path(exists=True), 
     metavar="INPUT_JSON",
@@ -1725,7 +1727,7 @@ by combining annotation with different references""",
     required=True,
     help="Input map, in JSON format"
 )
-@click.option(
+@out_options.option(
     "--output",
     "-o",
     type=click.Path(exists=False),
@@ -1733,7 +1735,7 @@ by combining annotation with different references""",
     show_default=True,
     help="A path to a directory to save the results to",
 )
-@click.option(
+@loss_options.option(
     "--accepted_statuses",
     "-l",
     type=str,
@@ -1747,7 +1749,7 @@ of these statuses occurs in a query locus.
 Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
     % ",".join(Constants.ALL_LOSS_SYMBOLS),
 )
-@click.option(
+@browser_options.option(
     "--prefix",
     "-p",
     type=str,
@@ -1756,7 +1758,7 @@ Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
     show_default=True,
     help="A prefix to use in UCSC browser file names for integrated annotation",
 )
-@click.option(
+@browser_options.option(
     "--skip_ucsc",
     is_flag=True,
     default=False,
@@ -1764,7 +1766,7 @@ Supported symbols are: %s. Keyword ALL lets all possible statuses in."""
     help="""If set, skips the integrated UCSC BigBed preparation step altogether, 
 even if the reference-wise UCSC files were provided""",
 )
-@click.option(
+@browser_options.option(
     "--chrom_sizes",
     type=click.Path(exists=True),
     metavar="CHROM_SIZES_FILE",
@@ -1774,7 +1776,7 @@ even if the reference-wise UCSC files were provided""",
 (contig, scaffold, etc.) sizes, in bp. Required if UCSC BigBed file 
 preparation is requested""",
 )
-@click.option(
+@binary_options.option(
     "--bigbedtobed_binary",
     type=click.Path(exists=True),
     default=None,
@@ -1803,7 +1805,7 @@ and then for an available executable in $PATH""",
 If none provided, the code will look for the binary in bin/ directory 
 and then for an available executable in $PATH""",
 )
-@click.option(
+@misc_options.option(
     "--verbose",
     "-v",
     is_flag=True,
