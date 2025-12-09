@@ -1491,7 +1491,7 @@ def prepare_input(**kwargs) -> None:
     no_args_is_help=True,
     short_help="Generate SpliceAI predictions for query assembly",
 )
-@mandatory.argument(
+@mandatory.option(
     "--query_2bit", 
     type=click.Path(exists=True), 
     metavar="QUERY_2BIT",
