@@ -496,20 +496,8 @@ class FinalOrthologyResolver(CommandLineManager):
                 else MANY2MANY
             )
             for query_gene in query_genes:
-                if not ref_gene_num:
-                    self._to_log(
-                        "Query gene %s rendered orphan after the gene tree step" % query_gene,
-                        "warning",
-                    )
                 query_trs: List[str] = self.query_gene2tr[query_gene]
                 for query_tr in query_trs:
-                    if not ref_gene_num:
-                        self._to_log(
-                            "Projection %s rendered orphan after the gene tree step" % query_tr,
-                            "warning",
-                        )
-                        self.rejected_items.add(query_tr)
-                        continue
                     ref_tr: str = "#".join(query_tr.split("#")[:-1])
                     if self.ref_tr2gene[ref_tr] != ref_gene:
                         continue
@@ -520,6 +508,22 @@ class FinalOrthologyResolver(CommandLineManager):
                         (ref_gene, ref_tr, query_gene, query_tr, status)
                     )
                     self.out_lines.append(out_line)
+        orphans: Set[str] = {
+            x for x,y in self.q2r.items() if all(z not in self.r2q for z in y)
+        }
+        for orphan in orphans:
+            self._to_log(
+                "Query gene %s rendered orphan after the gene tree step" % orphan,
+                "warning",
+            )
+            # self.rejected_items.add(orphan) ## TODO: Revise once loss statuses for query genes are settled
+            orphan_trs: List[str] = self.query_gene2tr[query_gene]
+            for orphan_tr in orphan_trs:
+                self._to_log(
+                    "Projection %s rendered orphan after the gene tree step" % query_tr,
+                    "warning",
+                )
+                self.rejected_items.add(query_tr)
 
     def write_output(self) -> None:
         """
