@@ -141,6 +141,9 @@ binary_options: PrettyGroup = PrettyGroup(
 aligner_options: PrettyGroup = PrettyGroup(
     "Aligner options", help="Nucleotide aligner selection & settings",
 )
+intronic_options: PrettyGroup = PrettyGroup(
+    "IntronIC options", help="IntronIC execution settings & control",
+)
 out_options: PrettyGroup = PrettyGroup("Output")
 misc_options: PrettyGroup = PrettyGroup("Miscellaneous")
 
@@ -1302,9 +1305,21 @@ def from_config(config_file: click.File, override: Optional[str]) -> None:
     no_args_is_help=True,
     short_help="Prepare reference annotation files for TOGA2 input",
 )
-@click.argument("ref_2bit", type=click.Path(exists=True), metavar="REF_2BIT")
-@click.argument("ref_annot", type=click.Path(exists=True), metavar="REF_ANNOTATION_BED")
-@click.option(
+@mandatory.option(
+    "--ref_2bit", 
+    type=click.Path(exists=True), 
+    metavar="REF_2BIT",
+    cls=DependentOption,
+    required=True,
+)
+@mandatory.option(
+    "--ref_annot", 
+    type=click.Path(exists=True), 
+    metavar="REF_ANNOTATION_BED",
+    cls=DependentOption,
+    required=True,
+)
+@input_options.option(
     "--ref_isoforms",
     "-i",
     type=click.Path(exists=True),
@@ -1315,16 +1330,7 @@ def from_config(config_file: click.File, override: Optional[str]) -> None:
 The contents will be also checked for consistency, with transcripts missing 
 gene mapping further removed from the annotation file""",
 )
-@click.option(
-    "--output",
-    "-o",
-    type=click.Path(exists=False),
-    metavar="PATH",
-    default=None,
-    show_default=False,
-    help="A path to save the results to [default: TOGA2_ref_annotation_<hex_code>]",
-)
-@click.option(
+@input_options.option(
     "--disable_transcript_filtering",
     "-no_filter",
     is_flag=True,
@@ -1334,7 +1340,7 @@ gene mapping further removed from the annotation file""",
 with no filtering. Highly discouraged unless you want to use compromised transcripts 
 for intron classificaiton/CESAR2 profile generation""",
 )
-@click.option(
+@input_options.option(
     "--contigs",
     type=str,
     metavar="CONTIG_LIST",
@@ -1344,7 +1350,7 @@ for intron classificaiton/CESAR2 profile generation""",
 to restrict the fitlered annotation to. Transcripts located in other contigs 
 will be excluded from the annotation.""",
 )
-@click.option(
+@input_options.option(
     "--excluded_contigs",
     type=str,
     metavar="CONTIG_LIST",
@@ -1355,7 +1361,7 @@ to exclude from the filtered annotation. Transcripts located in this contigs
 will be excluded from the annotation. Contigs appearing in both --contigs 
 and --excluded_contigs are treated as excluded.""",
 )
-@click.option(
+@control_flow_options.option(
     "--disable_intron_classification",
     "-no_intronic",
     is_flag=True,
@@ -1364,7 +1370,7 @@ and --excluded_contigs are treated as excluded.""",
 you already have U12 intron file list or do not have access to intronIC. 
 NOTE: Setting this flag will also disable CESAR2 profile generation.""",
 )
-@click.option(
+@control_flow_options.option(
     "--disable_cesar_profiles",
     "-no_cesar",
     is_flag=True,
@@ -1376,7 +1382,7 @@ references; generating custom profiles is recommended if your reference belongs 
 distant clade with highly divergent intron structure. 
 NOTE: The step is skipped automatically if --disable_intron_classification flag is set.""",
 )
-@click.option(
+@intronic_options.option(
     "--intronic_binary",
     type=click.Path(exists=True),
     metavar="INTRONIC_PATH",
@@ -1385,7 +1391,7 @@ NOTE: The step is skipped automatically if --disable_intron_classification flag 
     help="""A path to intronIC binary. If not set, will check 
 for executable intronIC instance in $PATH""",
 )
-@click.option(
+@intronic_options.option(
     "--intronic_cores",
     type=click.IntRange(min=1),
     metavar="INT",
@@ -1393,7 +1399,7 @@ for executable intronIC instance in $PATH""",
     show_default=True,
     help="Number of CPUs to run intronIC with",
 )
-@click.option(
+@intronic_options.option(
     "--min_intron_length_intronic",
     type=click.IntRange(min=1),
     metavar="INT",
@@ -1401,7 +1407,7 @@ for executable intronIC instance in $PATH""",
     show_default=True,
     help="Minimal intron length for intronIC to consider for classification",
 )
-@click.option(
+@binary_options.option(
     "--twobittofa_binary",
     type=click.Path(exists=True),
     metavar="PATH",
@@ -1410,7 +1416,7 @@ for executable intronIC instance in $PATH""",
     help="""A path to UCSC twoBitToFa executable; if not set, the executable with this name 
 will be sought for in $PATH""",
 )
-@click.option(
+@cesar_options.option(
     "--min_intron_length_cesar",
     "-cesar_min_l",
     type=click.IntRange(min=1),
@@ -1419,7 +1425,16 @@ will be sought for in $PATH""",
     show_default=True,
     help="Minimal intron length to consider for CESAR2 profile generation",
 )
-@click.option(
+@out_options.option(
+    "--output",
+    "-o",
+    type=click.Path(exists=False),
+    metavar="PATH",
+    default=None,
+    show_default=False,
+    help="A path to save the results to [default: TOGA2_ref_annotation_<hex_code>]",
+)
+@out_options.option(
     "--keep_temporary",
     "-k",
     is_flag=True,
@@ -1476,7 +1491,13 @@ def prepare_input(**kwargs) -> None:
     no_args_is_help=True,
     short_help="Generate SpliceAI predictions for query assembly",
 )
-@click.argument("query_2bit", type=click.Path(exists=True), metavar="QUERY_2BIT")
+@mandatory.argument(
+    "--query_2bit", 
+    type=click.Path(exists=True), 
+    metavar="QUERY_2BIT",
+    cls=DependentOption,
+    required=True
+)
 @spliceai_run_options.option(
     "--chunk_size",
     "-c",
@@ -1891,20 +1912,21 @@ def integrate(**kwargs) -> None:
     no_args_is_help=True,
     short_help="Align orthologous sequences from multiple TOGA2 results",
 )
-@click.argument(
-    "input_dirs", type=click.File("r", lazy=True), metavar="INPUT_DIRS_FILE"
+@mandatory.option(
+    "--input_dirs", 
+    type=click.File("r", lazy=True), 
+    metavar="INPUT_DIRS_FILE",
+    cls=DependentOption,
+    required=True,
 )
-@click.argument("transcript_id", type=str, metavar="TRANSCRIPT_ID")
-@click.option(
-    "--output",
-    "-o",
-    type=click.File("w", lazy=True),
-    metavar="OUTPUT_FILE",
-    default=sys.stdout,
-    show_default=False,
-    help="A path to write the results to [default: stdout]",
+@mandatory.option(
+    "--transcript_id", 
+    type=str, 
+    metavar="TRANSCRIPT_ID",
+    cls=DependentOption,
+    required=True,
 )
-@click.option(
+@input_options.option(
     "--exon_numbers",
     "-en",
     type=str,
@@ -1916,7 +1938,7 @@ def integrate(**kwargs) -> None:
         "If not set, all exons for the projection will be used"
     ),
 )
-@click.option(
+@input_options.option(
     "--reference_exons",
     "-re",
     type=click.Path(exists=True),
@@ -1925,7 +1947,7 @@ def integrate(**kwargs) -> None:
     show_default=True,
     help=("A path to 2bit storage with reference exon sequences."),
 )
-@click.option(
+@input_options.option(
     "--reference_name",
     "-asref",
     type=str,
@@ -1939,7 +1961,17 @@ def integrate(**kwargs) -> None:
         "the reference assemblies, and its exon sequences are used to restore reference exon phases."
     ),
 )
-@click.option(
+@input_options.option(
+    "--tree",
+    "-t",
+    type=click.Path(exists=True),
+    metavar="TREE_FILE",
+    default=None,
+    show_default=True,
+    help="""A path to the tree file to pass to the alignment command.
+Relevant if PRANK aligner is selected""",
+)
+@loss_options.option(
     "--accepted_loss_status",
     "-l",
     type=str,
@@ -1952,17 +1984,7 @@ def integrate(**kwargs) -> None:
         "in the orthology classification file are considered"
     ),
 )
-@click.option(
-    "--confidence_threshold",
-    type=click.IntRange(min=0, max=9),
-    default=6,
-    show_default=True,
-    help=(
-        "If MUSCLE is set to be aligner of choice, bases with letter confidence "
-        "below this value will be replaced with gaps in the final alignment"
-    ),
-)
-@click.option(
+@aligner_options.option(
     "--aligner",
     "-a",
     type=click.Choice(ALIGNERS_TO_USE, case_sensitive=False),
@@ -1974,7 +1996,7 @@ def integrate(**kwargs) -> None:
         % ",".join(ALIGNERS_TO_USE)
     ),
 )
-@click.option(
+@aligner_options.option(
     "--aligner_exe",
     type=click.Path(exists=True),
     metavar="CALLER_NAME",
@@ -1984,24 +2006,17 @@ def integrate(**kwargs) -> None:
         "A path to your aligner of choice. If not set, the path will be inferred from user's PATH"
     ),
 )
-@click.option(
-    "--tree",
-    "-t",
-    type=click.Path(exists=True),
-    metavar="TREE_FILE",
-    default=None,
+@aligner_options.option(
+    "--confidence_threshold",
+    type=click.IntRange(min=0, max=9),
+    default=6,
     show_default=True,
-    help=("A path to the tree file to pass to the alignment command"),
+    help=(
+        "If MUSCLE is set to be aligner of choice, bases with letter confidence "
+        "below this value will be replaced with gaps in the final alignment"
+    ),
 )
-@click.option(
-    "--amino_acids_output",
-    type=click.Path(exists=False),
-    default=None,
-    show_default=True,
-    help="""If set and MACSE is selected as aligner of choice, 
-saves amino acid sequence alignment to the specified file""",
-)
-@click.option(
+@aligner_options.option(
     "--show_ancestors",
     "-anc",
     is_flag=True,
@@ -2010,7 +2025,31 @@ saves amino acid sequence alignment to the specified file""",
     help="""Coerces PRANK to output ancestral sequence reconstruction. 
 Does not work with other aligners.""",
 )
-@click.option(
+@aligner_options.option(
+    "--muscle_threads",
+    type=click.IntRange(min=1),
+    default=1,
+    show_default=True,
+    help="BETA: Maximum number of threads for MUSCLE alignment jobs to use",
+)
+@out_options.option(
+    "--output",
+    "-o",
+    type=click.File("w", lazy=True),
+    metavar="OUTPUT_FILE",
+    default=sys.stdout,
+    show_default=False,
+    help="A path to write the results to [default: stdout]",
+)
+@out_options.option(
+    "--amino_acids_output",
+    type=click.Path(exists=False),
+    default=None,
+    show_default=True,
+    help="""If set and MACSE is selected as aligner of choice, 
+saves amino acid sequence alignment to the specified file""",
+)
+@out_options.option(
     "--path_to_ancestor_files",
     "-anc_path",
     type=click.Path(exists=False),
@@ -2019,7 +2058,7 @@ Does not work with other aligners.""",
     help="""BETA: A path to an output directory containin exonwise 
 ancestral sequence reconstructions""",
 )
-@click.option(
+@out_options.option(
     "--confidence_scores",
     type=click.File("w", lazy=True),
     default=sys.stdout,
@@ -2027,22 +2066,7 @@ ancestral sequence reconstructions""",
     help="""BETA: A path to the output file to write the column confidence scores to. Valid only 
 if aligner program is set to MUSCLE""",
 )
-@click.option(
-    "--muscle_threads",
-    type=click.IntRange(min=1),
-    default=1,
-    show_default=True,
-    help="BETA: Maximum number of threads for MUSCLE alignment jobs to use",
-)
-@click.option(
-    "--twobit2fa",
-    type=click.Path(exists=True),
-    default=None,
-    show_default=True,
-    help="""A path to UCSC twoBitToFa executable. If not set, 
-the executable will be sought for in PATH""",
-)
-@click.option(
+@out_options.option(
     "--tmp_dir",
     type=click.Path(exists=True),
     metavar="TMP_DIR",
@@ -2050,7 +2074,7 @@ the executable will be sought for in PATH""",
     show_default=False,
     help=("A directory to store temporary files in [default: current directory]"),
 )
-@click.option(
+@out_options.option(
     "--keep_tmp",
     is_flag=True,
     default=False,
@@ -2058,7 +2082,15 @@ the executable will be sought for in PATH""",
     help="""If set, all temporary files (inlcuding tmp_dir, if it had not existed before the run) 
 will be kept""",
 )
-@click.option(
+@binary_options.option(
+    "--twobit2fa",
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    help="""A path to UCSC twoBitToFa executable. If not set, 
+the executable will be sought for in PATH""",
+)
+@misc_options.option(
     "--verbose",
     "-v",
     is_flag=True,
