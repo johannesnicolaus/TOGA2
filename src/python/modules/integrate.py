@@ -58,8 +58,8 @@ class ReferenceBundle:  ## initialized from a JSON object
         "query_bed",
         "exon_meta",
         "ref_isoforms",
-        "paralogs",
-        "ppgenes",
+        # "paralogs",
+        # "ppgenes",
         "ucsc_bigbed",
         "protein_file",
         "nucleotide_file",
@@ -74,8 +74,8 @@ class ReferenceBundle:  ## initialized from a JSON object
         self.query_bed: str = kwargs["query_bed"]
         self.exon_meta: str = kwargs["exon_meta"]
         self.ref_isoforms: Union[str, None] = kwargs.get("reference_isoforms", None)
-        self.paralogs: Union[str, None] = kwargs.get("paralog_list", None)
-        self.ppgenes: Union[str, None] = kwargs.get("processed_pseudogene_list", None)
+        # self.paralogs: Union[str, None] = kwargs.get("paralog_list", None)
+        # self.ppgenes: Union[str, None] = kwargs.get("processed_pseudogene_list", None)
         self.ucsc_bigbed: Union[str, None] = kwargs.get("ucsc_bigbed", None)
         self.protein_file: Union[str, None] = kwargs.get("protein_file", None)
         self.nucleotide_file: Union[str, None] = kwargs.get("nucleotide_file", None)
@@ -261,8 +261,9 @@ class AnnotationIntegrator(CommandLineManager):
             self.read_annotation(species)
             self.read_exon_meta(species)
             self.read_ref_isoforms(species)
-            self.read_paralogs(species)
-            self.read_ppgenes(species)
+            ## the fol
+            # self.read_paralogs(species)
+            # self.read_ppgenes(species)
 
     def _check_binaries(self) -> None:
         """
@@ -412,6 +413,10 @@ class AnnotationIntegrator(CommandLineManager):
                     self.query_projections[name] = record
                 self.query_proj2ref[name] = species
                 self.query_annotation[chrom].append(name)
+                if "#paralog" in name:
+                    self.paralog_pool.add(base_proj_name(name))
+                if "#retro" in name:
+                    self.ppgene_pool.add(base_proj_name(name))
 
     def read_exon_meta(self, species) -> None:
         """
@@ -473,7 +478,7 @@ class AnnotationIntegrator(CommandLineManager):
                 self.ref_proj2gene[tr] = gene
 
     def read_paralogs(self, species: str) -> None: ## TODO: Can be replaced with postfixes
-        """Extracts paralogous projections' names"""
+        """DEPRECATED: Extracts paralogous projections' names"""
         file: Union[str, None] = self.ref_data[species].paralogs
         if file is None:
             self._to_log(
@@ -490,7 +495,7 @@ class AnnotationIntegrator(CommandLineManager):
                 self.paralog_pool.add(line)
 
     def read_ppgenes(self, species: str) -> None: ## TODO: Can be replaced with postfixes
-        """Extracts processed pseudogene/retrogene projections' names"""
+        """DEPRECATED: Extracts processed pseudogene/retrogene projections' names"""
         file: Union[str, None] = self.ref_data[species].ppgenes
         if file is None:
             self._to_log(
