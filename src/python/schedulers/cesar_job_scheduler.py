@@ -860,19 +860,7 @@ class CesarScheduler(CommandLineManager):
         for tr, chroms in tr2chrom2graph.items():
             for chrom in chroms:
                 proj_graph: nx.Graph = tr2chrom2graph[tr][chrom]
-                # debug = any(x.name == 'ENST00000006724.CEACAM7.201279' for x in proj_graph.nodes())
-                # if debug:
-                #     for ooo in proj_graph.nodes():
-                #         print(ooo)
-                #     print('-'*30)
-                #     for aaa in proj_graph.edges():
-                #         print(aaa)
-                #     print('-'*30 + '\n')
-                # print(proj_graph)
-                # print(f'{proj_graph.nodes()=}')
-                # print(f'{proj_graph.edges()=}')
                 if len(proj_graph.nodes()) == 1:
-                    # print('Solitary node:')
                     sole_node: ProjectionMeta = next(iter(proj_graph.nodes()))
                     proj_: str = sole_node.name
                     self.proj2max_mem[proj_] = sole_node.max_mem
