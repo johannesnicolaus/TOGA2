@@ -8,7 +8,7 @@ Given a projection feature table, classifies projections in terms of their ortho
 
 import os
 from collections import Counter, defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, TextIO, Union
 
 import click
 import joblib
@@ -24,6 +24,7 @@ __credits__ = ["Bogdan M. Kirilenko"]
 __all__ = [None]
 
 xgb.set_config(verbosity=0)
+
 
 class Constants:
     # __slots__ = (
@@ -77,6 +78,18 @@ class Constants:
     default=0.5,
     show_default=True,
     help="Probability threshold for classifying projections as orthologous",
+)
+@click.option(
+    "--initial_transcript_bed",
+    type=click.File("r", lazy=True),
+    metavar="INPUT_BED_FILE",
+    default=None,
+    show_default=True,
+    help=(
+        "BED file with transcript for which the features were extracted. "
+        "Transcripts which do not have any valid/chains projections in the "
+        "results of the rejection step"
+    ),
 )
 @click.option(
     "--long_distance_model",
@@ -155,7 +168,8 @@ class ChainClassifier(CommandLineManager):
         output_dir: click.Path,
         single_exon_model: click.Path,
         multi_exon_model: click.Path,
-        orthology_threshold: float,
+        orthology_threshold: Optional[float],
+        initial_transcript_bed: Optional[click.File],
         long_distance_model: Optional[click.Path],
         min_orthologous_chain_score: Optional[int],
         legacy: Optional[bool],
@@ -194,6 +208,8 @@ class ChainClassifier(CommandLineManager):
             else None
         )
 
+        self.initial_transcript_bed: Union[TextIO, None] = initial_transcript_bed
+
         self.orthology_threshold: float = orthology_threshold
         self.min_orth_chain_score: int = min_orthologous_chain_score
 
@@ -224,6 +240,19 @@ class ChainClassifier(CommandLineManager):
             )
             self._die(err_msg)
 
+    def _extract_transcript_names(self, file: TextIO) -> Set[str]:
+        """Extracts transcript names from a BED file"""
+        if self.initial_transcript_bed is None:
+            return
+        names: Set[str] = set()
+        for line in file:
+            data: List[str] = line.strip().split("\t")
+            if not data or not data[0]:
+                continue
+            name: str = data[3]
+            names.add(name)
+        return names
+
     def run(self) -> None:
         """
         Main executing method
@@ -232,11 +261,10 @@ class ChainClassifier(CommandLineManager):
         self._mkdir(self.output)
 
         ## extract unique names
-        init_tr_set: Set[str] = set(self.df["transcript"])
-
-        ## get indices of processed pseudogene projections
-        ## if a projection has synteny = 1, introns are deleted, and exon number > 1,
-        ## this is likely a processed pseudogene
+        if self.initial_transcript_bed is not None:
+            init_tr_set: Set[str] = self._extract_transcript_names()
+        else:
+            init_tr_set: Set[str] = set(self.df["transcript"])
 
         ## extract spanning projections: chains do not cover any coding exons
         ## but have high synteny due to flanking sequence alignment
@@ -358,7 +386,6 @@ class ChainClassifier(CommandLineManager):
         ## override predictions for chains with scores less than that
         ## unless they correspond to retrogenes/processed pseudogenes
         if self.min_orth_chain_score > 0:
-            # underscored_chain_projections: List[str] = []
             if df_se.shape[0]:
                 deprecated_se_names: pd.core.frame.DataFrame = df_se.loc[
                     df_se["gl_score"] < self.min_orth_chain_score
