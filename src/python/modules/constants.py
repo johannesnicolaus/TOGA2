@@ -1256,6 +1256,7 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "failed_preprocessing_batches",
     "failed_alignment_batches",
     "failed_orthology_batches",
+    "rejection_log_cleaned",
     "CHAIN_FILTER_SCRIPT",
     "INDEX_CHAIN_SCRIPT",
     "REF_BED_FILTER",
