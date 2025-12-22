@@ -27,7 +27,9 @@ from modules.cesar_wrapper_constants import (
     LAST_DONOR,
     MIN_ASMBL_GAP_SIZE,
 )
-from modules.constants import CONTAINER_ENGINE2BIND_KEY, PRE_CLEANUP_LINE
+from modules.constants import (
+    CONTAINER_ENGINE2BIND_KEY, PRE_CLEANUP_LINE, RejectionReasons
+)
 from modules.shared import (
     CONTEXT_SETTINGS,
     SPLIT_JOB_HEADER,
@@ -62,17 +64,6 @@ LAST_DONOR: str = os.path.join(TOGA2_ROOT, *LAST_DONOR)
 # HL_LAST_DONOR: str = os.path.join(*HL_LAST_DONOR)
 # HL_EQ_ACCEPTOR: str = os.path.join(TOGA2_ROOT, *HL_EQ_ACCEPTOR)
 # HL_EQ_DONOR: str = os.path.join(TOGA2_ROOT, *HL_EQ_DONOR)
-LIMIT_EXCEED_REJ: str = (
-    "PROJECTION\t{}\t0\tNumber of homologous chains exceeds the set limit ({})\t"
-    "CHAIN_LIMIT_EXCEEDED\tN"
-)
-MULTIPLE_ORTHOLOG_REJ: str = (
-    "TRANSCRIPT\t{}\t0\tMultiple orthologs detected\tMULTIPLE_ORTHOLOGY\tN"
-)
-NO_CHAINS_REJ: str = "TRANSCRIPT\t{}\t0\tNo covering chains detected\tNO_CHAINS\tN"
-ZERO_ORTHOLOGY_REJ: str = (
-    "TRANSCRIPT\t{}\t0\tNo orthologous chains detected\tZERO_ORTHOLOGY\tN"
-)
 OK: str = ".ok"
 TOUCH: str = "touch {}"
 
@@ -361,7 +352,7 @@ class PreprocessingScheduler(CommandLineManager):
                 self.ppgene_list.append(f"{tr}#{chain}")
         for chain in dropped:
             self.rejected_transcripts.append(
-                LIMIT_EXCEED_REJ.format(f"{tr}#{chain}", self.max_chain_number)
+                RejectionReasons.LIMIT_EXCEED_REJ.format(f"{tr}#{chain}", self.max_chain_number)
             )
 
     def parse_mapper_file(self) -> None:
@@ -377,7 +368,7 @@ class PreprocessingScheduler(CommandLineManager):
                 orth: List[str] = sorted(data[1].split(",")) if data[1] != "0" else []
                 if self.one2one_only and (len(orth) > 1 or tr in self.tr2orth):
                     self.rejected_transcripts.append(
-                        MULTIPLE_ORTHOLOG_REJ.format(
+                        RejectionReasons.MULTIPLE_ORTHOLOG_REJ.format(
                             tr
                         )  ## TODO: Clarify loss status with Michael
                     )
@@ -386,9 +377,7 @@ class PreprocessingScheduler(CommandLineManager):
                 if self.orthologs_only:
                     if not orth:
                         self.rejected_transcripts.append(
-                            ZERO_ORTHOLOGY_REJ.format(
-                                tr
-                            )  ## Clarify loss status with Michael
+                            RejectionReasons.ZERO_ORTHOLOGY_REJ.format(tr)
                         )
                     continue
                 par: List[str] = sorted(data[2].split(",")) if data[2] != "0" else []
@@ -405,7 +394,7 @@ class PreprocessingScheduler(CommandLineManager):
                 )
                 if not orth and not par and not spanning and not ppgenes:
                     self.rejected_transcripts.append(
-                        NO_CHAINS_REJ.format(tr)  ## Clarify loss status with Michael
+                        RejectionReasons.NO_CHAINS_REJ.format(tr)
                     )
                 ## processed pseudogenes, if they are considered,
                 ## are added regardless of what other projections are present

@@ -236,6 +236,40 @@ class Constants:
         "ucsc_report": ("ucsc_dir",),
     }
 
+    ## Rejection-reason-pipeline-step mapping
+    REJ2STEP: Dict[str, str] = {
+        "ILLEGAL_NAME": "setup",
+        "REJECTED_CONTIG": "setup",
+        "NON_CODING": "setup",
+        "OUT_OF_FRAME": "setup",
+        "CHROM_UNALIGNED": "feature_extraction",
+        "TRANSCRIPT_UNALIGNED": "feature_extraction",
+        "NO_PROJ": "classification",
+        "INSUFFICIENT_CHAIN_SCORE": "classification",
+        "CHAIN_LIMIT_EXCEEDED": "preprocessing",
+        "EXCEEDS_MEMORY": "preprocessing",
+        "EXCEEDS_MEMORY+GAP": "preprocessing",
+        "EXCEEDS_SPACE": "preprocessing",
+        "EXCEEDS_SPACE+GAP": "preprocessing",
+        "INSUFFICIENT_SEARCH_SPACE": "preprocessing",
+        "INSUFFICIENT_SEARCH_SPACE+GAP": "alignment",
+        "MULTIPLE_ORTHOLOGY": "preprocessing",
+        "NO_CHAINS": "preprocessing",
+        "SPANNING": "preprocessing",
+        "ZERO_ORTHOLOGY": "preprocessing",
+        "CHIMERIC": "alignment",
+        "HEAVY": "alignment",
+        "REDUNDANT": "alignment",
+        "SECOND_BEST": "gene_inference",
+        "REDUNDANT_PARALOG": "gene_inference",
+        "REDUNDANT_PPGENE": "gene_inference",
+        "ALL_PARALOGS_REDUNDANT": "loss_summary",
+        "ALL_ORTHS_DISCARDED": "orthology",
+        "WEAK_EDGE": "orthology",
+        "GENE_TREE_REJECTION": "summarize_trees",
+    }
+
+    ## Table file headers
     FILE2HEADER: Dict[str, str] = {
         "selenocysteine_codons": "SELENO_HEADER",
         "gained_intron_summary": "GAINED_INTRON_HEADER",
@@ -471,6 +505,26 @@ class RejectionReasons:
     FRAME_REJ_REASON: str = "\t".join(
         ("TRANSCRIPT", "{}", "0", "Transcript is out of frame", "OUT_OF_FRAME", "N")
     )
+    UNCOV_CHROM: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "No chain corresponds to reference chromosome",
+            "CHROM_UNALIGNED",
+            "M",
+        )
+    )
+    UNALIGNED_TR: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "No chain corresponds to the transcript",
+            "TRANSCRIPT_UNALIGNED",
+            "M",
+        )
+    )
     UNCLASS_REJ_REASON: str = "\t".join(
         ("TRANSCRIPT", "{}", "0", "No classifiable projections found", "NO_PROJ", "M")
     )
@@ -484,9 +538,58 @@ class RejectionReasons:
             "L",
         )
     )
+    LIMIT_EXCEED_REJ: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Number of homologous chains exceeds the set limit ({})"
+            "CHAIN_LIMIT_EXCEEDED",
+            "N",
+        )
+    )
+    MULTIPLE_ORTHOLOG_REJ: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "Multiple orthologs detected",
+            "MULTIPLE_ORTHOLOGY",
+            "M",
+        )
+    )
+    NO_CHAINS_REJ: str = "\t".join(
+        ("TRANSCRIPT", "{}", "0", "No covering chains detected", "NO_CHAINS", "M")
+    )
     PREPROCESSING_REJ: str = "\t".join(("PROJECTION", "{}", "{}", "{}", "{}", "{}"))
     SPANNING_CHAIN_REASON: str = "\t".join(
         ("PROJECTION", "{}", "0", "Spanning chain", "SPANNING", "{}")
+    )
+    ZERO_ORTHOLOGY_REJ: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "No orthologous chains detected",
+            "ZERO_ORTHOLOGY",
+            "M",
+        )
+    )
+    CHIMERIC_ENTRY: str = "\t".join(
+        ("PROJECTION", "{}", "0", "Potential chimeric projection", "CHIMERIC", "N")
+    )
+    HEAVY_ENTRY: str = "\t".join(
+        ("PROJECTION", "{}", "0", "Maximum memory limit exceeded", "HEAVY", "N")
+    )
+    REDUNDANT_ENTRY: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Redundant projection to the given locus",
+            "REDUNDANT",
+            "N",
+        )
     )
     REJ_ORTH_REASON: str = "\t".join(
         (

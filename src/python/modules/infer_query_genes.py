@@ -744,13 +744,15 @@ class QueryGeneCollapser(CommandLineManager):
                     ## do not overlap lost projections and (putatively) intact projections
                     if basename_in in self.lost_projections and not out_is_lost:
                         continue
-                    if proj_out.end < proj_in.start:
+                    # if proj_out.end < proj_in.start:
+                    if proj_out.start > proj_in.end:
                         # print('Not reached')
                         continue
                     graph_name_in: str = segment_base(proj_in.name)
                     ## if the `out` projection has not been discarded by that point,
                     ## edges starting in it can be safely added to the graph
-                    if proj_out.start > proj_in.end:
+                    # if proj_out.start > proj_in.end:
+                    if proj_out.end < proj_in.start:
                         ## retrogenes/processed pseudogenes do not participate in gene inference
                         if not out_is_pseudo or out_is_intact:  # and not was_discarded:
                             if graph_name_out not in graph.nodes:

@@ -15,7 +15,9 @@ from typing import Dict, List, Optional, Tuple, Type, Union
 
 import click
 import networkx as nx
-from modules.constants import CONTAINER_ENGINE2BIND_KEY, PRE_CLEANUP_LINE
+from modules.constants import (
+    CONTAINER_ENGINE2BIND_KEY, PRE_CLEANUP_LINE, RejectionReasons
+)
 from modules.cesar_wrapper_constants import (
     DEF_BLOSUM_FILE, 
     MIN_PROJ_OVERLAP_THRESHOLD,
@@ -33,9 +35,6 @@ from modules.shared import (
 )
 from shared import get_connected_components
 
-# import sys
-# sys.path.extend([LOCATION, PARENT])
-
 __author__ = "Yury V. Malovichko"
 __credits__ = ["Bogdan Kirilenko", "Michael Hiller"]
 __year__ = "2024"
@@ -50,11 +49,6 @@ CESAR_WRAPPER_SCRIPT_REL: str = os.path.join(
 )
 
 BLOSUM_FILE: str = os.path.join(TOGA2_ROOT, *DEF_BLOSUM_FILE)
-REDUNDANT_ENTRY: str = (
-    "PROJECTION\t{}\t0\tRedundant projection to the given locus\tREDUNDANT\tN"
-)
-HEAVY_ENTRY: str = "PROJECTION\t{}\t0\tMaximum memory limit exceeded\tHEAVY\tN"
-CHIMERIC_ENTRY: str = "PROJECTION\t{}\t0\tPotential chimeric projection\tCHIMERIC\tN"
 
 HG38_CANON_U2_ACCEPTOR: str = os.path.join(TOGA2_ROOT, *HG38_CANON_U2_ACCEPTOR)
 HG38_CANON_U2_DONOR: str = os.path.join(TOGA2_ROOT, *HG38_CANON_U2_DONOR)
@@ -63,16 +57,6 @@ LAST_DONOR: str = os.path.join(TOGA2_ROOT, *LAST_DONOR)
 
 OK: str = ".ok"
 TOUCH: str = "touch {}"
-
-# @dataclass
-# class ProjectionMeta:
-#     __slots__ = ('chrom', 'start', 'stop', 'max_mem', 'sum_mem', 'path')
-#     chrom: str
-#     start: int
-#     end: int
-#     max_mem: float
-#     sum_mem: float
-#     path: str
 
 ProjectionMeta: Type = namedtuple(
     "ProjectionMeta",
@@ -723,83 +707,12 @@ class CesarScheduler(CommandLineManager):
             raise AttributeError("Invalid value provided in the comma-separated list")
         return out_list
 
-    # def parse_memory_report(self) -> None: ## DONE
-    #     """
-    #     Given the path to a CESAR preprocessing report,
-    #     parses the results producing a storage class instances
-    #     """
-    #     ## TODO:
-    #     ## 1) Save the cumulative RAM requirements
-    #     ## 2) Add the same-locus filter by maximal RAM requirements
-    #     tr2proj2coords: Dict[str, Dict[str, Tuple[str, int]]] = defaultdict(dict)
-    #     for line in self.memory_report.readlines():
-    #         data: List[str] = line.rstrip().split('\t')
-    #         tr: str = data[0]
-    #         chain: str = data[1]
-    #         proj: str = f'{tr}.{chain}' ## TODO: For some reasons, I'm still using legacy format in the memory file; switch to storing projection name in a single column and update the code accordingly
-    #         max_mem: float = float(data[2].split()[0])
-    #         sum_mem: int = ceil(float(data[3].split()[0]) + 0.1)
-    #         chrom: str = data[6]
-    #         start: int = int(data[7])
-    #         stop: int = int(data[8])
-    #         max_inter: int = int((stop - start) * 0.3)
-    #         path: str = data[-1]
-    #         ## check if there are other projections of the same transcripts
-    #         ## corresponding to the same locus; if so, check the one with the least
-    #         ## memory requirements
-    #         if tr not in tr2proj2coords:
-    #             self.proj2max_mem[proj] = max_mem
-    #             self.proj2sum_mem[proj] = sum_mem
-    #             self.proj2storage[proj] = path
-    #             tr2proj2coords[tr][chain] = (chrom, start, stop)
-    #             print(f'First occurrence; adding {proj}')
-    #         else:
-    #             to_del: List[str] = []
-    #             for _chain in tr2proj2coords[tr]:
-    #                 _chrom, _start, _stop = tr2proj2coords[tr][_chain]
-    #                 if chrom != _chrom:
-    #                     continue
-    #                 _max_inter: int = int((_stop - _start) * 0.3)
-    #                 inter: int = intersection(start, stop, _start, _stop)
-    #                 if inter >= max_inter or inter >= _max_inter:
-    #                     _proj: str = f'{tr}.{_chain}'
-    #                     _max_mem: float = self.proj2max_mem[_proj]
-    #                     if max_mem > _max_mem:
-    #                         print(f'{proj} intersects {_proj} but consumes more memory; breaking')
-    #                         rej_reason: Tuple[str] = REDUNDANT_ENTRY.format(proj)
-    #                         self.rejected_transcripts.append(rej_reason)
-    #                         break
-    #                     elif max_mem == _max_mem and int(_chain) > (chain):
-    #                         rej_reason: Tuple[str] = REDUNDANT_ENTRY.format(proj)
-    #                         self.rejected_transcripts.append(rej_reason)
-    #                         break
-    #                     else:
-    #                         print(f'{proj} intersects {_proj} and consumes less memory; removing {_proj}')
-    #                         del self.proj2max_mem[_proj]
-    #                         del self.proj2sum_mem[_proj]
-    #                         del self.proj2storage[_proj]
-    #                         to_del.append(_chain)
-    #                         rej_reason: str = REDUNDANT_ENTRY.format(_proj)
-    #                         self.rejected_transcripts.append(rej_reason)
-    #             else:
-    #                 self.proj2max_mem[proj] = max_mem
-    #                 self.proj2sum_mem[proj] = sum_mem
-    #                 self.proj2storage[proj] = path
-    #                 tr2proj2coords[tr][chain] = (chrom, start, stop)
-    #                 print(f'No intersections among the previous records; adding {proj}')
-    #             for chain_to_del in to_del:
-    #                 del tr2proj2coords[tr][chain_to_del]
-    #         print('*'*30)
-
     def parse_memory_report(self) -> None:
         """
         Given the path to a CESAR preprocessing report,
         parses the results producing a storage class instances
         """
-        ## TODO:
-        # tr2proj2coords: Dict[str, Dict[str, Tuple[str, int]]] = defaultdict(dict)
         tr2chrom2graph: Dict[str, Dict[str, nx.Graph]] = defaultdict(dict)
-        # print('UAAAAA')
         for line in self.memory_report.readlines():
             data: List[str] = line.rstrip().split("\t")
             if not data or not data[0]:
@@ -823,18 +736,14 @@ class CesarScheduler(CommandLineManager):
                 self.processed_pseudogene_list is not None
                 and proj in self.processed_pseudogene_list
             )
-            # print(f'{entry=}')
-            # print(f'{tr2chrom2graph=}, {tr=}, {chrom=}')
             if (
                 tr not in tr2chrom2graph.keys()
                 or chrom not in tr2chrom2graph[tr].keys()
             ):
-                # print(f'Creating a new graph for {proj}')
                 new_graph: nx.Graph = nx.Graph()
                 new_graph.add_node(entry)
                 tr2chrom2graph[tr][chrom] = new_graph
             else:
-                # print(f'Adding {proj} to an existing graph')
                 tr2chrom2graph[tr][chrom].add_node(entry)
                 ## do not intersect fragmented and whole projections
                 if fragmented_projection(chain):
@@ -875,7 +784,7 @@ class CesarScheduler(CommandLineManager):
                     # if debug and art_nodes:
                     #     print(f'The following nodes are likely chimeric: {[x.name for x in art_nodes]}')
                     for art_node in art_nodes:
-                        rej_reason: Tuple[str] = CHIMERIC_ENTRY.format(art_node.name)
+                        rej_reason: Tuple[str] = RejectionReasons.CHIMERIC_ENTRY.format(art_node.name)
                         self.rejected_transcripts.append(rej_reason)
                     comp.remove_nodes_from(art_nodes)
                     subcliques: List[nx.Graph] = get_connected_components(comp)
@@ -916,11 +825,8 @@ class CesarScheduler(CommandLineManager):
                                 self.proj2sum_mem[proj_] = node.sum_mem
                                 self.proj2storage[proj_] = node.path
                             else:
-                                rej_reason: Tuple[str] = REDUNDANT_ENTRY.format(proj_)
+                                rej_reason: Tuple[str] = RejectionReasons.REDUNDANT_ENTRY.format(proj_)
                                 self.rejected_transcripts.append(rej_reason)
-                        # print('-'*30)
-                    # print('*'*30)
-        # print(f'{self.proj2storage=}')
 
     def allocate_job_numbers(self) -> None:
         """
@@ -974,7 +880,7 @@ class CesarScheduler(CommandLineManager):
                         memory_buckets["big"].append((proj, max_mem))
                         self.heavy_job_max_mem = max(self.heavy_job_max_mem, max_mem)
                     else:
-                        rej_reason: Tuple[str] = HEAVY_ENTRY.format(proj)
+                        rej_reason: Tuple[str] = RejectionReasons.HEAVY_ENTRY.format(proj)
                         self.rejected_transcripts.append(
                             rej_reason
                         )  ## In need of Michael's advice here

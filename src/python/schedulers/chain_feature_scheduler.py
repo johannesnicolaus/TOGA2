@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 import click
 from _chain_bed_intersect import get_bed_coords, retrieve_chain_headers
+from modules.constants import RejectionReasons
 from modules.shared import (
     CONTEXT_SETTINGS,
     SPLIT_JOB_HEADER,
@@ -34,10 +35,6 @@ __all__ = None
 FEATURE_EXTRACTION_SCRIPT: str = os.path.join(PARENT, "chain_runner.py")
 # print(f'{FEATURE_EXTRACTION_SCRIPT=}')
 CMD_STUB: str = f"{FEATURE_EXTRACTION_SCRIPT} {{}} {{}} -i {{}} -o {{}}"
-UNCOV_CHROM: str = "TRANSCRIPT\t{}\t0\tNo chain corresponds to reference chromosome\tCHROM_UNALIGNED\tN"
-UNALIGNED_TR: str = (
-    "TRANSCRIPT\t{}\t0\tNo chain corresponds to the transcript\tTRANSCRIPT_UNALIGNED\tN"
-)
 OK: str = "ok"
 TOUCH: str = "touch {}"
 
@@ -183,7 +180,7 @@ class ChainFeatureScheduler(CommandLineManager):
         for chrom in self.bed_coords:
             if chrom not in self.chain_coords:
                 for tr in self.bed_coords[chrom]:
-                    rej_report: str = UNCOV_CHROM.format(tr[0])
+                    rej_report: str = RejectionReasons.UNCOV_CHROM.format(tr[0])
                     self.rejected_transcripts.add(rej_report)
                 continue
             curr_tr: int = 0
@@ -223,7 +220,7 @@ class ChainFeatureScheduler(CommandLineManager):
                         chain_start >= tr_stop
                     ):  ## chain lies dowstream to this transcript; proceed further
                         if tr_name not in aligned_transcripts:
-                            rej_report: str = UNALIGNED_TR.format(tr_name)
+                            rej_report: str = RejectionReasons.UNALIGNED_TR.format(tr_name)
                             self.rejected_transcripts.add(rej_report)
                         continue
                     if (
@@ -263,13 +260,9 @@ class ChainFeatureScheduler(CommandLineManager):
                     self.chain2trs[chain_id].append(tr_name)
                     aligned_transcripts.add(tr_name)
             ## add all the unaligned downstream transcripts to the rejection report
-            # last_tr: str = self.bed_coords[chrom][curr_tr][0]
-            # if last_tr not in aligned_transcripts:
-            #     rej_report: str = UNALIGNED_TR.format(last_tr)
-            #     self.rejected_transcripts.append(rej_report)
             for tr in self.bed_coords[chrom][curr_tr:]:
                 if tr[0] not in aligned_transcripts:
-                    rej_report: str = UNALIGNED_TR.format(tr[0])
+                    rej_report: str = RejectionReasons.UNALIGNED_TR.format(tr[0])
                     self.rejected_transcripts.add(rej_report)
 
     def lpt(self) -> None:

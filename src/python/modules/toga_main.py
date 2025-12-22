@@ -2,6 +2,7 @@
 TOGA2 main class
 """
 
+import in_place
 import logging
 import os
 import subprocess
@@ -330,6 +331,9 @@ class TogaMain(CommandLineManager):
         ## benchmarking flags
         self.toga1: bool = toga1_compatible
         self.toga1_plus_cesar: bool = toga1_plus_corrected_cesar
+
+        ## runtime semaphores
+        self.rejection_log_cleaned: bool = False
 
         ## input genome file status flags; OBSOLETE??
         # self.ref_is_2bit: bool = False
@@ -868,8 +872,9 @@ class TogaMain(CommandLineManager):
         ## Step 6: Infer query gene structure
         if self._execute_step("gene_inference"):
             ## 6a: Aggregate rejection reports from all the previous steps
-            self._to_log("Aggregating rejection reports")
-            self.aggregate_rejection_reports()
+            if not self.rejection_log_cleaned:
+                self._to_log("Aggregating rejection reports")
+                self.aggregate_rejection_reports()
             self._to_log(
                 "Rejected items from all the finished steps are aggregated at %s"
                 % (self.final_rejection_log),
@@ -1372,6 +1377,31 @@ class TogaMain(CommandLineManager):
                     continue
                 cmd: str = f"gunzip {filepath}"
                 _ = self._exec(cmd, "Decompression failed for file %s:" % filepath)
+        self._filter_rejection_log()
+
+    def _filter_rejection_log(self) -> None:
+        """
+        Filters the rejection log left from the previous run(s) 
+        by removing items discarded at steps subjected to rerunning
+        """
+        from .constants import Headers
+        if not os.path.exists(self.final_rejection_log):
+            return
+        step_priority: int = Constants.RESUME_ORDER[self.resume_from]
+        self.rejection_log_cleaned = True
+        with in_place.InPlace(self.final_rejection_log) as h:
+            for line in h:
+                if line == Headers.REJ_LOG_HEADER:
+                    h.write(line)
+                    continue
+                data: List[str] = line.strip().split("\t")
+                if not data or not data[0]:
+                    continue
+                reason: str = data[5].split(":")[0]
+                reason_step: str = Constants.REJ2STEP[reason]
+                reason_step_priority: int = Constants.RESUME_ORDER[reason_step]
+                if reason_step_priority < step_priority:
+                    h.write(line)
 
     def _email(self, subject: str, text: str) -> None:
         """Sends an e-mail notification to the provided mail box via mailx utilitiy"""
@@ -2024,6 +2054,8 @@ class TogaMain(CommandLineManager):
             self.me_model,
             "-t",
             f"{self.orthology_threshold}",
+            "--initial_transcript_bed",
+            self.bed_file_copy,
             "-ln",
             self.project_id,
             "-minscore",

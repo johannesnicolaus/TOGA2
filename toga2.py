@@ -1846,8 +1846,8 @@ def integrate(**kwargs) -> None:
        .JMML.     `"bmmd"'     `"bmmmdPY .AMA.   .AMMA.    .JMML..JMML.
 
     \b
-    integrate - Prepare an integrated TOGA2 annotation by combining annotation with different references.
-    NOTE: This mode is currently in early access. Certain functionality might be currently unavailable or work differently from expected.
+    integrate - Prepare an integrated TOGA2 annotation by combining annotation with different references.  
+
     \n\n
     Integrated annotation is prepared from multiple independent TOGA2 runs for a single query. 
     Since you are most likely interested in integrating annotation from multiple references, each of the 
@@ -1859,10 +1859,6 @@ def integrate(**kwargs) -> None:
     \t* "query_bed": a reference query file for this run ("query_annotation.bed" or "query_annotation.with_utrs.bed");\n
     \t* "exon_meta": a query exon metafata file for this run ("meta/exon_meta.tsv(.gz)")\n
     The following files are not mandatory but facilitate proper gene integration and annotation refinement:\n
-    \t* "paralog_list": a list of confirmed paralogous projections for this run 
-    ("meta/paralogous_projections_to_align.txt");\n
-    \t* "processed_pseudogene_list": a list of confirmed processed pseudogene/retrogene 
-    projections for this run ("meta/processed_pseudogenes_to_align.txt");\n
     \t* "ucsc_bigbed": a BigBed file produced by TOGA2 for visualising this run's results in UCSC Browser. 
     Used for both preparing the BigBed file for the combined annotation and extracting nucleotide and protein sequences 
     if the respective arguments are not provided ("ucsc_browser_files/${your_prefix}.bb");\n
@@ -1882,8 +1878,6 @@ def integrate(**kwargs) -> None:
             "query_bed": "hg38/TOGA2/vs_my_query/query_annotation.bed",\n
             "exon_meta": "hg38/TOGA2/vs_my_query/meta/exon_meta.tsv.gz",\n
             "reference_isoforms": "hg38/TOGA2/currentAnnotation/hg38.toga.isoforms.tsv",\n
-            "paralog_list": "hg38/TOGA2/vs_my_query/meta/paralogous_projections_to_align.txt",\n
-            "processed_pseudogene_list": "hg38/TOGA2/vs_my_query/meta/processed_pseudogenes_to_align.txt",\n
             "protein_file": "hg38/TOGA2/vs_my_query/protein.fa.gz",\n
             "nucleotide_file": "hg38/TOGA2/vs_my_query/nucleotide.fa.gz",\n
             "ucsc_bigbed": "hg38/TOGA2/vs_my_query/ucsc_browser_files/HLTOGAannotVsHg38.bb",\n
@@ -1893,8 +1887,6 @@ def integrate(**kwargs) -> None:
             "query_bed": "mm10/TOGA2/vs_my_query/query_annotation.bed",\n
             "exon_meta": "mm10/TOGA2/vs_my_query/meta/exon_meta.tsv.gz",\n
             "reference_isoforms": "mm10/TOGA2/currentAnnotation/mm10.toga.isoforms.tsv",\n
-            "paralog_list": "mm10/TOGA2/vs_my_query/meta/paralogous_projections_to_align.txt",\n
-            "processed_pseudogene_list": "mm10/TOGA2/vs_my_query/meta/processed_pseudogenes_to_align.txt",\n
             "protein_file": "mm10/TOGA2/vs_my_query/protein.fa.gz",\n
             "nucleotide_file": "mm10/TOGA2/vs_my_query/nucleotide.fa.gz",\n
             "ucsc_bigbed": "mm10/TOGA2/vs_my_query/ucsc_browser_files/HLTOGAannotVsHg38.bb",\n
