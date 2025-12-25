@@ -23,6 +23,7 @@ __year__ = "2024"
 __credits__ = ["Bogdan M. Kirilenko"]
 __all__ = [None]
 
+pd.options.mode.copy_on_write = True
 xgb.set_config(verbosity=0)
 
 
