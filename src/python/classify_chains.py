@@ -160,6 +160,7 @@ class ChainClassifier(CommandLineManager):
         "rejection_log",
         "df",
         "underscored_chain_projections",
+        "initial_transcript_bed",
     ]
 
     def __init__(
