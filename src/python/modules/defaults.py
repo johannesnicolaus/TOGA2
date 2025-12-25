@@ -14,10 +14,10 @@ HUMAN_PROFILES: str = os.path.join(PROFILES, "human")
 BIN: str = os.path.join(TOGA_DIR, "bin")
 
 DEFAULT_ARGS: Dict[str, Union[str, int, float, bool, None]] = {
-    "ref_2bit": os.path.join(TEST_INPUT, "hg38.micro_sample.2bit"),
-    "query_2bit": os.path.join(TEST_INPUT, "q2bit_micro_sample.2bit"),
-    "chain_file": os.path.join(TEST_INPUT, "align_micro_sample.chain"),
-    "ref_annotation": os.path.join(TEST_INPUT, "annot_micro_sample.bed"),
+    "ref_2bit": os.path.join(TEST_INPUT, "hg38.2bit"),
+    "query_2bit": os.path.join(TEST_INPUT, "mm10.2bit"),
+    "chain_file": os.path.join(TEST_INPUT, "hg38.mm10.allfilled.chain"),
+    "ref_annotation": os.path.join(TEST_INPUT, "hg38.toga.transcripts.bed"),
     "isoform_file": None,
     "no_isoform_file": False,
     "u12_file": None,
@@ -60,14 +60,14 @@ DEFAULT_ARGS: Dict[str, Union[str, int, float, bool, None]] = {
     "cesar_canon_u12_acceptor": os.path.join(HUMAN_PROFILES, "canon_U12_acceptor.tsv"),
     "cesar_canon_u12_donor": os.path.join(HUMAN_PROFILES, "canon_U12_donor.tsv"),
     "cesar_non_canon_u12_acceptor": os.path.join(
-        HUMAN_PROFILES, "canon_U12_acceptor.tsv"
+        HUMAN_PROFILES, "equiprobable_acceptor.tsv"
     ),
     "cesar_non_canon_u12_donor": os.path.join(
-        HUMAN_PROFILES, "non_canon_U12_acceptor.tsv"
+        HUMAN_PROFILES, "non_canon_U12_donor.tsv"
     ),
     "cesar_first_acceptor": os.path.join(PROFILES, "firstCodon_profile.tsv"),
     "cesar_last_donor": os.path.join(PROFILES, "lastCodon_profile.tsv"),
-    "separate_splice_site_treatment": False,
+    "joint_site_treat": False,
     "bigwig2wig_binary": None,
     "min_splice_prob": 0.02,
     "splice_prob_margin": 0.02,
