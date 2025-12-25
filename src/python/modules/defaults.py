@@ -67,7 +67,7 @@ DEFAULT_ARGS: Dict[str, Union[str, int, float, bool, None]] = {
     ),
     "cesar_first_acceptor": os.path.join(PROFILES, "firstCodon_profile.tsv"),
     "cesar_last_donor": os.path.join(PROFILES, "lastCodon_profile.tsv"),
-    "joint_site_treat": False,
+    "joint_splice_site_treatment": False,
     "bigwig2wig_binary": None,
     "min_splice_prob": 0.02,
     "splice_prob_margin": 0.02,
