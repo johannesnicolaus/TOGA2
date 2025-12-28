@@ -2346,6 +2346,7 @@ class TogaMain(CommandLineManager):
                             "Alignment joblist %s does not exist" % joblist, "warning"
                         )
                         continue
+                    mem = int(mem) if mem.isdigit() else mem
                     job_num: int = int(
                         self.job_nums_per_bin[self.cesar_memory_bins.index(mem)]
                     )
