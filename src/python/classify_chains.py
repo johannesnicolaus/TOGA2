@@ -242,12 +242,12 @@ class ChainClassifier(CommandLineManager):
             )
             self._die(err_msg)
 
-    def _extract_transcript_names(self, file: TextIO) -> Set[str]:
+    def _extract_transcript_names(self) -> Set[str]:
         """Extracts transcript names from a BED file"""
         if self.initial_transcript_bed is None:
             return
         names: Set[str] = set()
-        for line in file:
+        for line in self.initial_transcript_bed:
             data: List[str] = line.strip().split("\t")
             if not data or not data[0]:
                 continue
