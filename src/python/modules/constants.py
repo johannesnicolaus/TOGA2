@@ -543,7 +543,7 @@ class RejectionReasons:
             "PROJECTION",
             "{}",
             "0",
-            "Number of homologous chains exceeds the set limit ({})"
+            "Number of homologous chains exceeds the set limit ({})",
             "CHAIN_LIMIT_EXCEEDED",
             "N",
         )
