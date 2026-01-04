@@ -380,7 +380,7 @@ class FineOrthologyResolver(CommandLineManager):
         #     f'-s {aln_file} -n {tree_file} -w {formatted_dir} '
         #     f'-m PROTGAMMAAUTO -x 12345 -p 12345 -# {self.tree_bootnum}'
         # )
-        _ = self._exec(cmd, "ERROR: RAxML run failed with the following error:")
+        _ = self._exec(cmd, "ERROR: Phylogeny run failed with the following error")
 
     def midpoint_root(self, unroot_path: str, root_path: str) -> None:
         """
