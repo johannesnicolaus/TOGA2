@@ -290,7 +290,7 @@ class FineOrthologyResolver(CommandLineManager):
             prank_path: Union[str, None] = which("prank")
             if prank_path is None:
                 self._die(
-                    "ERROR: PRANK executable is missing from both PATH and user input"
+                    "PRANK executable is missing from both PATH and user input"
                 )
             self.prank_bin = os.path.abspath(prank_path)
         if self.tree_bin is None:
@@ -313,7 +313,7 @@ class FineOrthologyResolver(CommandLineManager):
                     continue
                 if not os.path.exists(path):
                     self._die(
-                        f"ERROR: path {path} listed in the input file {table} "
+                        f"Path {path} listed in the input file {table} "
                         "does not exist. Please check that all paths in the "
                         "input table lead to valid FASTA files"
                     )
@@ -327,7 +327,7 @@ class FineOrthologyResolver(CommandLineManager):
         cmd: str = "mktemp -d TEMPtreeResolveXXXXX"
 
         # run prank time
-        stdout: str = self._exec(cmd, "ERROR: temporary directory creation failed")
+        stdout: str = self._exec(cmd, "Temporary directory creation failed")
         return stdout.strip()
 
     def save_fasta_names(self, file: str) -> None:
@@ -349,7 +349,7 @@ class FineOrthologyResolver(CommandLineManager):
         Runs PRANK alignment command
         """
         cmd: str = f"{self.prank_bin} -seed={PRANK_SEED} -d={in_file} -o={out_pref} -protein "  # -nomafft'
-        _ = self._exec(cmd, "ERROR: PRANK alignment failed with the following error:")
+        _ = self._exec(cmd, "PRANK alignment failed with the following error:")
 
     def run_tree(self, aln_file: str, tree_file: str, tmp_dir: str) -> None:
         """ """
@@ -380,7 +380,7 @@ class FineOrthologyResolver(CommandLineManager):
         #     f'-s {aln_file} -n {tree_file} -w {formatted_dir} '
         #     f'-m PROTGAMMAAUTO -x 12345 -p 12345 -# {self.tree_bootnum}'
         # )
-        _ = self._exec(cmd, "ERROR: Phylogeny run failed with the following error")
+        _ = self._exec(cmd, "Phylogeny run failed with the following error")
 
     def midpoint_root(self, unroot_path: str, root_path: str) -> None:
         """
