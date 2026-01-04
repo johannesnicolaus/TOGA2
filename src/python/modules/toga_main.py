@@ -1387,6 +1387,7 @@ class TogaMain(CommandLineManager):
         from .constants import Headers
         if not os.path.exists(self.final_rejection_log):
             return
+        self._to_log("Filtering the rejection log from the previous TOGA2 run")
         step_priority: int = Constants.RESUME_ORDER[self.resume_from]
         self.rejection_log_cleaned = True
         with in_place.InPlace(self.final_rejection_log) as h:
@@ -1397,7 +1398,8 @@ class TogaMain(CommandLineManager):
                 data: List[str] = line.strip().split("\t")
                 if not data or not data[0]:
                     continue
-                reason: str = data[5].split(":")[0]
+                # print(f"{data[4]=}")
+                reason: str = data[4].split(":")[0]
                 reason_step: str = Constants.REJ2STEP[reason]
                 reason_step_priority: int = Constants.RESUME_ORDER[reason_step]
                 if reason_step_priority < step_priority:
