@@ -254,6 +254,7 @@ class Constants:
         "INSUFFICIENT_SEARCH_SPACE": "preprocessing",
         "INSUFFICIENT_SEARCH_SPACE+GAP": "alignment",
         "MULTIPLE_ORTHOLOGY": "preprocessing",
+        "NO_EXONS_ALIGNED": "preprocessing",
         "NO_CHAINS": "preprocessing",
         "SPANNING": "preprocessing",
         "ZERO_ORTHOLOGY": "preprocessing",
@@ -560,6 +561,9 @@ class RejectionReasons:
     )
     NO_CHAINS_REJ: str = "\t".join(
         ("TRANSCRIPT", "{}", "0", "No covering chains detected", "NO_CHAINS", "M")
+    )
+    NO_ALIGNED_EXON_REJ: str = "\t".join(
+        "PROJECTION", "{}", "0", "No aligned exons found", "NO_EXONS_ALIGNED", "{}"
     )
     PREPROCESSING_REJ: str = "\t".join(("PROJECTION", "{}", "{}", "{}", "{}", "{}"))
     SPANNING_CHAIN_REASON: str = "\t".join(

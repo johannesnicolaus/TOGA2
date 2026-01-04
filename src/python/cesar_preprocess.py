@@ -1502,11 +1502,14 @@ class CesarPreprocessor(CommandLineManager):
                             # )
                         else:
                             status: str = LOST
-                        rej_info: Tuple[str, int] = (
-                            tr,
-                            "0",
-                            status,
-                            "No aligned exons found",
+                        # rej_info: Tuple[str, int] = (
+                        #     tr,
+                        #     "0",
+                        #     status,
+                        #     "No aligned exons found",
+                        # )
+                        rej_info: str = RejectionReasons.NO_ALIGNED_EXON_REJ.format(
+                            tr, status
                         )
                         self.rejected_transcripts.append(rej_info)
                         # exons_harbored: List[int] = list(chain.e2c.keys())#all_projection_exons((chain, segment))
