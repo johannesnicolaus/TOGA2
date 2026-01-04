@@ -563,7 +563,7 @@ class RejectionReasons:
         ("TRANSCRIPT", "{}", "0", "No covering chains detected", "NO_CHAINS", "M")
     )
     NO_ALIGNED_EXON_REJ: str = "\t".join(
-        "PROJECTION", "{}", "0", "No aligned exons found", "NO_EXONS_ALIGNED", "{}"
+        ("PROJECTION", "{}", "0", "No aligned exons found", "NO_EXONS_ALIGNED", "{}")
     )
     PREPROCESSING_REJ: str = "\t".join(("PROJECTION", "{}", "{}", "{}", "{}", "{}"))
     SPANNING_CHAIN_REASON: str = "\t".join(
