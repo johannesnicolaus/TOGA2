@@ -18,7 +18,7 @@ class Constants:
         "fatotwobit_binary": "faToTwoBit",
         "twobittofa_binary": "twoBitToFa",
         "ixixx_binary": "ixIxx",
-        "prank_binary": "prank",
+        "prank_bin": "prank",
         "mailx_binary": "mailx",
     }
 
