@@ -2587,7 +2587,7 @@ class TogaMain(CommandLineManager):
             if self.use_raxml:
                 args.extend(("--use_raxml", "--tree_bootstrap", "100"))
             else:
-                args.extend(("--tree_bootstrap', '5000"))
+                args.extend(("--tree_bootstrap", "5000"))
         if self.container_image is not None:
             args.extend(
                 (
