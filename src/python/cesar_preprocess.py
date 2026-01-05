@@ -1509,7 +1509,7 @@ class CesarPreprocessor(CommandLineManager):
                         #     "No aligned exons found",
                         # )
                         rej_info: str = RejectionReasons.NO_ALIGNED_EXON_REJ.format(
-                            tr, status
+                            f"{tr}#{','.join(self.chains)}", status
                         )
                         self.rejected_transcripts.append(rej_info)
                         # exons_harbored: List[int] = list(chain.e2c.keys())#all_projection_exons((chain, segment))
