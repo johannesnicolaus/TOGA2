@@ -523,7 +523,7 @@ class FinalOrthologyResolver(CommandLineManager):
                     "Projection %s rendered orphan after the gene tree step" % query_tr,
                     "warning",
                 )
-                self.rejected_items.add(query_tr)
+                self.rejected_items.append(query_tr)
 
     def write_output(self) -> None:
         """
