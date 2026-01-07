@@ -2409,6 +2409,8 @@ class TogaMain(CommandLineManager):
         """
         Aggregates rejection reports from various stages into a final report
         """
+        if os.path.exists(self.final_rejection_log):
+            return
         self._create_output_stub("final_rejection_log")
         if len(os.listdir(self.rejection_dir)) == 0:
             self._to_log(
