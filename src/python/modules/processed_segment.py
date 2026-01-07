@@ -3835,31 +3835,73 @@ class ProcessedSegment:
         """
         cds: str = ""
         for exon in range(1, self.exon_num + 1):
+            if self.exon_presence[exon] != "I":
+                continue
             exon_seq: str = self._exon_seq(exon, ref=False)
             exon_seq = strip_noncoding(exon_seq, uppercase_only=True)
             cds += exon_seq
         return cds
 
     def _query_protein_seq(self) -> str:
-        """Returns the reference protein sequence corrected for all compensated frameshifts"""
-        frame_changed: bool = False
+        """Returns the query protein sequence corrected for all compensated frameshifts"""
+        # frame_changed: bool = False
         ## check whether there are any uncompensated frameshifts;
         ## if there are any, report the original protein sequence
-        for mut in self.mutation_list:
-            if mut.mutation_class not in FS_INDELS:
+        ## TODO: Remove missing and deleted exons from the protein sequence
+        ## TMP MASKING
+        # for mut in self.mutation_list:
+        #     if mut.mutation_class not in FS_INDELS:
+        #         continue
+        #     if mut.masking_reason != COMPENSATION_REASON:
+        #         frame_changed = False
+        #         break
+        #     frame_changed = True
+        # if frame_changed:
+        #     codon_seq: str = "".join(
+        #         self.query_codons_to_mask.get(x, self.all_query_codons[x]).upper()
+        #         for x in self.all_query_codons
+        #     ).replace("-", "")
+        #     if not (len(codon_seq) % 3):
+        #         return "".join(AA_CODE.get(x, "X") for x in parts(codon_seq, 3))
+        # return "".join(x for x in self.query_aa_seq.values() if x != "-")
+
+        ## call all the exons which are not missing/deleted
+        ## correct the compensated frames
+        ## translate the resulting sequence
+        final_frame: str = ""
+        for exon in range(1, self.exon_num + 1):
+            if self.exon_presence[exon] != "I":
                 continue
-            if mut.masking_reason != COMPENSATION_REASON:
-                frame_changed = False
-                break
-            frame_changed = True
-        if frame_changed:
-            codon_seq: str = "".join(
-                self.query_codons_to_mask.get(x, self.all_query_codons[x]).upper()
-                for x in self.all_query_codons
-            ).replace("-", "")
-            if not (len(codon_seq) % 3):
-                return "".join(AA_CODE.get(x, "X") for x in parts(codon_seq, 3))
-        return "".join(x for x in self.query_aa_seq.values() if x != "-")
+            exon_seq: str = ""
+            first_codon, last_codon = self.exon2ref_codons[exon]
+            first_triplets: List[int] = sorted(self.ref_codon2triplets[first_codon])
+            if first_triplets[0] in self.split_codon_struct:
+                first_offset: int = self.split_codon_struct[first_triplets[0]][exon]
+            else:
+                first_offset: int = 0
+            last_triplets: List[int] = sorted(self.ref_codon2triplets[last_codon])
+            if last_triplets[-1] in self.split_codon_struct:
+                last_offset: int = self.split_codon_struct[last_triplets[-1]][exon]
+            for codon in range(first_codon, last_codon + 1):
+                codon_seq: str = ""
+                compensated: bool = (x[0] <= codon <= x[1] for x in self.alternative_frames)
+                triplets: List[int] = self.ref_codon2triplets[codon]
+                for triplet in triplets:
+                    triplet_seq: str = self.query_codons_to_mask.get(
+                        triplet, self.all_query_codons[triplet]
+                    ).upper()
+                    codon_seq += triplet_seq
+                if compensated:
+                    codon_seq = strip_noncoding(codon_seq)
+                if first_offset:
+                    codon_seq = "-" * first_offset + codon_seq[first_offset:]
+                if last_offset:
+                    codon_seq = codon_seq[:-last_offset] + "-" * last_offset
+                exon_seq += codon_seq
+            final_frame += exon_seq
+        final_frame = final_frame.replace(GAP_CODON, "")
+        return "".join(AA_CODE.get(x, "X") for x in parts(final_frame, 3))
+
 
     def _intact_exon_portion(self) -> Tuple[int, float]:
         """
@@ -4357,6 +4399,12 @@ class ProcessedSegment:
         """Returns stripped query nucleotide sequence in FASTA format"""
         header: str = f">{self.name}"
         seq: str = self._cds_seq()
+        return f"{header}\n{seq}"
+
+    def cds_prot(self) -> str:
+        """Returns translated query coding sequence"""
+        header: str = f">{self.name}"
+        seq: str = self._query_protein_seq()
         return f"{header}\n{seq}"
 
     def splice_site_table(self) -> str:

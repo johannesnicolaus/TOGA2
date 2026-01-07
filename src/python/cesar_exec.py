@@ -517,6 +517,8 @@ class CesarExecutor(CommandLineManager):
         "splice_shift_lock",
         "cds_fasta",
         "cds_fasta_lock",
+        "orf_fasta",
+        "orf_fasta_lock",
         "selenocysteine_codons",
         "selenocysteine_lock",
         "max_mem",
@@ -676,7 +678,9 @@ class CesarExecutor(CommandLineManager):
         )
         self.splice_shift_lock: str = self.splice_site_shifts + ".lock"
         self.cds_fasta: str = os.path.join(self.output, "nucleotide.fa")
-        self.cds_fasta_lock: str = os.path.join(self.cds_fasta + ".lock")
+        self.cds_fasta_lock: str = self.cds_fasta + ".lock"
+        self.orf_fasta: str = os.path.join(self.output, "protein.fa")
+        self.orf_fasta: str = self.orf_fasta + ".lock"
         self.selenocysteine_codons: str = os.path.join(
             self.output, "selenocysteine_codons.tsv"
         )
@@ -1247,6 +1251,14 @@ class CesarExecutor(CommandLineManager):
                             h.write(processed_segment.cds_nuc() + "\n")
                             h.flush()
                             os.fsync(h.fileno())
+                    with FileLock(self.orf_fasta_fasta_lock, timeout=5):
+                        with open(self.orf_fasta, "a") as h:
+                            self._to_log(
+                                f"Writing protein sequence FASTA for {self.projection_name}"
+                            )
+                            h.write(processed_segment.cds_nuc() + "\n")
+                            h.flush()
+                            os.fsync(h.fileno())
                     # with FileLock(self.cesar_res_lock, timeout=5):
                     #     with open(self.cesar_res_stub, 'a', buffering=1) as h:
                     #         self._to_log(f'Writing CESOUT data for {self.transcript}#{self.chain}')
@@ -1362,6 +1374,11 @@ class CesarExecutor(CommandLineManager):
                     )
                     with open(self.cds_fasta, "a") as h:
                         h.write(processed_segment.cds_nuc() + "\n")
+                    self._to_log(
+                        f"Writing protein sequence FASTA for {self.projection_name}"
+                    )
+                    with open(self.orf_fasta, "a") as h:
+                        h.write(processed_segment.cds_prot() + "\n")
                     # with open(self.cesar_res_stub, 'a') as h:
                     #     h.write(processed_segment.bdb())
                     self._to_log(

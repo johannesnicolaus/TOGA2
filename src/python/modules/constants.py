@@ -61,6 +61,7 @@ class Constants:
         "codon_aln.fa",
         "protein_aln.fa",
         "nucleotide.fa",
+        "protein.fa",
         "splice_sites.tsv",
         "genes_rejection_reason.tsv",
         "gained_intron_summary.tsv",
