@@ -186,7 +186,7 @@ def rejection_file_to_report(
     file: Union[str, TextIO],
 ) -> Tuple[Dict[str, str], Dict[str, str]]:
     """
-    Parses the genes_rejection_reason.tsv file containing transcripts which were
+    Parses the rejection_reasons.tsv file containing transcripts which were
     rejected for one reason or another at the CESAR alignment step or upstream
     """
     proj2status: Dict[str, str] = {}
@@ -276,7 +276,14 @@ def add_rejection_data(
             orig_tr2status[tr] = max(
                 (orig_tr_status, rej_tr_status), key=lambda x: CLASS_TO_NUM[x]
             )
-
+    for rej_tr, rej_tr_status in reject_tr2status.items():
+        if rej_tr not in orig_tr2status:
+            orig_tr2status[rej_tr] = rej_tr_status
+        else:
+            orig_tr_status: str = orig_tr2status[tr]
+            orig_tr2status[tr] = max(
+                (orig_tr_status, rej_tr_status), key=lambda x: CLASS_TO_NUM[x]
+            )
     return (orig_proj2status, orig_tr2status)
 
 
