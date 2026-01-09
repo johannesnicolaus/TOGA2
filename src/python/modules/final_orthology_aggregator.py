@@ -58,16 +58,6 @@ def get_tr(proj: str) -> str:
 
 @click.command(context_settings=CONTEXT_SETTINGS, no_args_is_help=True)
 @click.argument("init_results", type=click.File("r"), metavar="INIT_ORTH_RESULTS")
-# @click.argument(
-#     'ref_genes',
-#     type=click.File('r'),
-#     metavar='REF_GENES'
-# )
-# @click.argument(
-#     'query_genes',
-#     type=click.File('r'),
-#     metavar='QUERY_GENES'
-# )
 @click.argument("resolved_leaves", type=click.File("r"), metavar="RESOLVED_LEAVES")
 @click.option(
     "--output",
@@ -272,6 +262,7 @@ class FinalOrthologyResolver(CommandLineManager):
             self.ref_tr2gene[ref_tr] = ref_gene
             self.query_gene2tr[query_gene].append(query_tr)
             self.query_tr2gene[query_tr] = query_gene
+            self.tr2proj[ref_tr].append(query_tr)
 
     def parse_loss_summary(self) -> None:
         """
@@ -396,6 +387,7 @@ class FinalOrthologyResolver(CommandLineManager):
                         % (query_tr, query_gene, ref_gene),
                         "warning",
                     )
+                    self.rejected_items.append(query_tr) ## try!
                     recorded_lines: bool = False
                 else:
                     # out_line: str = '\t'.join(
@@ -403,6 +395,8 @@ class FinalOrthologyResolver(CommandLineManager):
                     # )
                     # self.out_lines.append(out_line)
                     recorded_lines: bool = True
+                    deprecated_projections: List[str] = [x for x in self.tr2proj[ref_tr] if x != query_tr]
+                    self.rejected_items.extend(deprecated_projections)
                 for other_query_tr in self.query_gene2tr[query_gene]:
                     other_ref_tr: str = get_tr(other_query_tr)  #'#'.join(other_query_tr.split('#')[:-1])
                     if other_ref_tr not in self.ref_tr2gene:
