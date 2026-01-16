@@ -341,48 +341,50 @@ class ChainClassifier(CommandLineManager):
         ## those are multi-exon projections with orthology probability below
         ## the threshold, minimal syntenty, and high exonic fraction;
         ## those get a probability placeholder of -2
-        df_me.loc[
-            (df_me["synt"] == 1)
-            & (df_me["exon_qlen"] > 0.95)
-            & (df_me["pred"] < self.orthology_threshold)
-            & (df_me["exon_perc"] > 0.65),
-            "pred",
-        ] = -2
-        ## TOGA2 speciial: identify processed pseudogenes
-        ## by CDS-clipped alignment-to-query span
-        ## adn CDS-clipped intron coverage
-        all_orthologs: List[str] = df_me[df_me["pred"] > self.orthology_threshold][
-            "transcript"
-        ].to_list()
-        ortholog_counter: Dict[str, int] = Counter(all_orthologs)
-        # max_prob_per_multiorth: Dict[str, float] = {
-        #     x: max(df_me[df_me['gene'] == x]['pred'].to_list())
-        #     for x,y in ortholog_counter.items() if y > 1
-        # }
-        max_prob_per_multiorth: Dict[str, float] = (
-            df_me[df_me.apply(lambda x: ortholog_counter[x["transcript"]] > 1, axis=1)]
-            .groupby(["transcript"])["pred"]
-            .max()
-            .to_dict()
-        )
-        # print(max_prob_per_multiorth)
-        df_me.loc[
-            (
-                (
-                    df_me.apply(
-                        lambda x: x["transcript"] in max_prob_per_multiorth
-                        and x["pred"] < max_prob_per_multiorth[x["transcript"]],
-                        axis=1,
-                    )
-                )
-                & (df_me["pred"] >= self.orthology_threshold)
-                | (df_me["pred"] < self.orthology_threshold)
+        ## obviously applies only if there are any classified multi-exon projections
+        if df_me.shape[0]:
+            df_me.loc[
+                (df_me["synt"] == 1)
+                & (df_me["exon_qlen"] > 0.95)
+                & (df_me["pred"] < self.orthology_threshold)
+                & (df_me["exon_perc"] > 0.65),
+                "pred",
+            ] = -2
+            ## TOGA2 speciial: identify processed pseudogenes
+            ## by CDS-clipped alignment-to-query span
+            ## adn CDS-clipped intron coverage
+            all_orthologs: List[str] = df_me[df_me["pred"] > self.orthology_threshold][
+                "transcript"
+            ].to_list()
+            ortholog_counter: Dict[str, int] = Counter(all_orthologs)
+            # max_prob_per_multiorth: Dict[str, float] = {
+            #     x: max(df_me[df_me['gene'] == x]['pred'].to_list())
+            #     for x,y in ortholog_counter.items() if y > 1
+            # }
+            max_prob_per_multiorth: Dict[str, float] = (
+                df_me[df_me.apply(lambda x: ortholog_counter[x["transcript"]] > 1, axis=1)]
+                .groupby(["transcript"])["pred"]
+                .max()
+                .to_dict()
             )
-            & (df_me_pp["clipped_exon_qlen"] > Constants.PP_CLIPPED_EXON_QLEN)
-            & (df_me_pp["clipped_intr_cover"] < Constants.PP_CLIPPED_INTRON_QLEN)
-            & (df_me_pp["clipped_intr_cover"] >= 0),
-            "pred",
-        ] = -2
+            # print(max_prob_per_multiorth)
+            df_me.loc[
+                (
+                    (
+                        df_me.apply(
+                            lambda x: x["transcript"] in max_prob_per_multiorth
+                            and x["pred"] < max_prob_per_multiorth[x["transcript"]],
+                            axis=1,
+                        )
+                    )
+                    & (df_me["pred"] >= self.orthology_threshold)
+                    | (df_me["pred"] < self.orthology_threshold)
+                )
+                & (df_me_pp["clipped_exon_qlen"] > Constants.PP_CLIPPED_EXON_QLEN)
+                & (df_me_pp["clipped_intr_cover"] < Constants.PP_CLIPPED_INTRON_QLEN)
+                & (df_me_pp["clipped_intr_cover"] >= 0),
+                "pred",
+            ] = -2
 
         ## if minimal chain score was set,
         ## override predictions for chains with scores less than that
