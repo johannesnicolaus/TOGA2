@@ -511,7 +511,7 @@ class FinalOrthologyResolver(CommandLineManager):
                 "warning",
             )
             # self.rejected_items.add(orphan) ## TODO: Revise once loss statuses for query genes are settled
-            orphan_trs: List[str] = self.query_gene2tr[query_gene]
+            orphan_trs: List[str] = self.query_gene2tr[orphan]
             for orphan_tr in orphan_trs:
                 self._to_log(
                     "Projection %s rendered orphan after the gene tree step" % query_tr,
