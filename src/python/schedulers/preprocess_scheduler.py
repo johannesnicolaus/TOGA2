@@ -87,6 +87,7 @@ class PreprocessingScheduler(CommandLineManager):
         "max_chain_number",
         "orthologs_only",
         "one2one_only",
+        "paralogs_over_spanning",
         "parallel_execution",
         "twobit2fa_binary",
         "disable_spanning_chains",
@@ -150,6 +151,7 @@ class PreprocessingScheduler(CommandLineManager):
         max_chain_number: Optional[int] = 100,
         orthologs_only: Optional[bool] = False,
         one2one_only: Optional[bool] = False,
+        paralogs_over_spanning: Optional[bool] = False,
         parallel_execution: Optional[bool] = False,
         disable_spanning_chains: Optional[bool] = False,
         no_inference: Optional[bool] = False,
@@ -214,6 +216,7 @@ class PreprocessingScheduler(CommandLineManager):
         self.max_chain_number: int = max_chain_number
         self.orthologs_only: bool = orthologs_only
         self.one2one_only: bool = one2one_only
+        self.paralogs_over_spanning: bool = paralogs_over_spanning
         self.parallel_execution: bool = parallel_execution
         self.disable_spanning_chains: bool = disable_spanning_chains
         self.no_inference: bool = no_inference
@@ -403,18 +406,26 @@ class PreprocessingScheduler(CommandLineManager):
                 if orth:
                     self._add_chain2trs(tr, orth)
                     continue
-                if spanning:
-                    # self.tr2spanning[tr].extend(spanning)
-                    self._add_chain2trs(tr, spanning)
-                    continue
-                # else:
-                #     self._add_chain2trs(tr, par)
-                self._to_log(
-                    f"No orthologs or spanning chains found for transcript {tr}; "
-                    "processing paralogs instead",
-                    "warning",
-                )
-                self._add_chain2trs(tr, par, paralogs=True)
+                if self.paralogs_over_spanning:
+                    if par:
+                        self._to_log(
+                            f"No orthologs or spanning chains found for transcript {tr}; "
+                            "processing paralogs instead",
+                            "warning",
+                        )
+                        self._add_chain2trs(tr, par, paralogs=True)
+                    elif spanning:
+                        self._add_chain2trs(tr, spanning)
+                else:
+                    if spanning:
+                        self._add_chain2trs(tr, spanning)
+                    else:
+                        self._to_log(
+                            f"No orthologs or spanning chains found for transcript {tr}; "
+                            "processing paralogs instead",
+                            "warning",
+                        )
+                        self._add_chain2trs(tr, par, paralogs=True)
 
     def parse_fragment_file(self) -> None:
         """ """
@@ -745,6 +756,17 @@ class PreprocessingScheduler(CommandLineManager):
     show_default=True,
     help=(
         "If set, only transcript with a single orthologous projection are considered"
+    ),
+)
+@click.option(
+    "--paralogs_over_spanning",
+    type=bool,
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help=(
+        "If set, paralogous projections take priority over spanning-chain projections "
+        "when determining the chains to project the transcript through"
     ),
 )
 @click.option(
