@@ -44,6 +44,7 @@ DEFAULT_ARGS: Dict[str, Union[str, int, float, bool, None]] = {
     "disable_fragment_assembly": False,
     "orthologs_only": False,
     "one2ones_only": False,
+    "paralogs_over_spanning": False,
     "enable_spanning_chains": False,
     "annotate_processed_pseudogenes": False,
     "preprocessing_jobs": 300,
