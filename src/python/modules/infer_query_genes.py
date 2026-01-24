@@ -471,23 +471,27 @@ class QueryGeneCollapser(CommandLineManager):
             if status != "I":
                 continue
             start: int = 0 if data[4] == "NA" else int(data[4])
-            end: int = 0 if data[4] == "NA" else int(data[5])
+            end: int = 0 if data[5] == "NA" else int(data[5])
             strand: bool = data[6] == "+"
-            gap_supported: bool = data[-3] == "CHAIN_SUPPORTED"
-            if not gap_supported:
-                continue
-            self.tr2exons[proj][exon] = Coords(str(exon), chrom, start, end, strand)
+            ## update CDS coordinates for each chromosome the projection belongs to
             if proj in self.query_transcripts[chrom]:
                 # _start, _end = self.query_transcripts[chrom][proj][1:3]
                 prev_coords: Coords = self.query_transcripts[chrom][proj]
                 _start: int = prev_coords.start
                 _end: int = prev_coords.end
-                start = min(start, _start)
-                end = max(end, _end)
+                cds_start = min(start, _start)
+                cds_end = max(end, _end)
+            else:
+                cds_start, cds_end = (start, end)
             self.query_transcripts[chrom][proj] = Coords(
-                proj, chrom, start, end, strand
+                proj, chrom, cds_start, cds_end, strand
             )
             self.tr2chrom[proj] = (*self.tr2chrom.get(proj, ()), chrom)
+            ## do not save the exon coordinates for exons not supported by the chain
+            gap_supported: bool = data[-3] == "CHAIN_SUPPORTED"
+            if not gap_supported:
+                continue
+            self.tr2exons[proj][exon] = Coords(str(exon), chrom, start, end, strand)
         for proj in annotated_projections:
             if proj not in self.tr2chrom.keys():
                 self.discarded_overextensions.add(proj)
@@ -707,6 +711,7 @@ class QueryGeneCollapser(CommandLineManager):
                     continue
                 if basename_out in self.discarded_ppgenes:
                     continue
+
                 graph_name_out: str = segment_base(proj_out.name)
                 out_is_paralog: bool = (
                     proj_out.name in self.paralog_list
@@ -720,16 +725,16 @@ class QueryGeneCollapser(CommandLineManager):
                 out_is_intact: bool = (
                     self.proj2status[basename_out] in EXTENDED_HIGH_CONFIDENCE
                 )
-                out_non_orth: bool = out_is_paralog or out_is_pseudo
-                if "," in proj_out.name:
-                    sufficient_exon_cov_out: bool = True
-                else:
-                    sufficient_exon_cov_out: bool = not self._overextended_projection(
-                        proj_out.name
-                    )
+                # out_non_orth: bool = out_is_paralog or out_is_pseudo
+                # if "," in proj_out.name:
+                #     sufficient_exon_cov_out: bool = True
+                # else:
+                #     sufficient_exon_cov_out: bool = not self._overextended_projection(
+                #         proj_out.name
+                #     )
                 ## store the putative edges in a temporary collection
                 edges: Set[Tuple[str, str]] = set()
-                edges_added: bool = False
+                # edges_added: bool = False
                 ## under certain circumstances, this projection wil be deemed redundant
                 ## once this is established, proceed with the next projection
                 was_discarded: bool = False
@@ -746,7 +751,6 @@ class QueryGeneCollapser(CommandLineManager):
                         continue
                     # if proj_out.end < proj_in.start:
                     if proj_out.start > proj_in.end:
-                        # print('Not reached')
                         continue
                     graph_name_in: str = segment_base(proj_in.name)
                     ## if the `out` projection has not been discarded by that point,
@@ -759,7 +763,7 @@ class QueryGeneCollapser(CommandLineManager):
                                 graph.add_node(graph_name_out)
                             for _out, _in in edges:
                                 graph.add_edge(_out, _in)
-                        edges_added: bool = True
+                        # edges_added: bool = True
                         break
                     if proj_out.strand != proj_in.strand:
                         continue
@@ -771,18 +775,18 @@ class QueryGeneCollapser(CommandLineManager):
                         proj_in.name in self.proc_pseudogene_list
                         or basename_in in self.proc_pseudogene_list
                     )
-                    in_non_orth: bool = in_is_paralog or in_is_pseudo
+                    # in_non_orth: bool = in_is_paralog or in_is_pseudo
                     # if in_is_pseudo:
                     #     continue
                     # if out_non_orth != in_non_orth:
                     #     self.discarded_paralogs.add(proj_out.name if out_non_orth else proj_in.name)
                     #     continue
-                    if "," in proj_in.name:
-                        sufficient_exon_cov_in: bool = True
-                    else:
-                        sufficient_exon_cov_in: bool = (
-                            not self._overextended_projection(proj_in.name)
-                        )
+                    # if "," in proj_in.name:
+                    #     sufficient_exon_cov_in: bool = True
+                    # else:
+                    #     sufficient_exon_cov_in: bool = (
+                    #         not self._overextended_projection(proj_in.name)
+                    #     )
                     tr_in: str = get_orig_transcript(proj_in.name)
                     tr_out: str = get_orig_transcript(proj_out.name)
                     gene_in: str = self.ref_isoform2gene.get(tr_in, "")
@@ -797,19 +801,21 @@ class QueryGeneCollapser(CommandLineManager):
                                     "since genes %s and %s overlap in the reference"
                                 )
                                 % (proj_out.name, proj_in.name, gene_out, gene_in),
-                                "warning",
                             )
                             continue
                     ## do not overlap insufficiently covered second-best projections
                     # if sufficient_exon_cov_out != sufficient_exon_cov_in and gene_out != gene_in:
                     #     continue
-                    has_intersection: bool = False
+                    ## to ensure that projections from the same transcript/gene
+                    ## are grouped regardless of their overlap by coding bases 
+                    ## if they overlap by absolute CDS coordinates, 
+                    ## set has_intersection to equality of ref progenitor genes
+                    has_intersection: bool = gene_in == gene_out#False
                     # for exon1 in proj_out.exons.values():
                     #     e_start1, e_stop1 = exon1.start, exon1.stop
                     for exon1 in sorted(
                         self.tr2exons[proj_out.name].values(), key=lambda x: x.start
                     ):
-                        # print(f'{exon1=}')
                         e_start1, e_stop1 = exon1.start, exon1.end
                         # e1_50p: int = int((e_stop1 - e_start1) * 0.5)
                         # for exon2 in proj_in.exons.values():
@@ -817,7 +823,6 @@ class QueryGeneCollapser(CommandLineManager):
                         for exon2 in sorted(
                             self.tr2exons[proj_in.name].values(), key=lambda x: x.start
                         ):
-                            # print(f'{exon2=}')
                             if exon1.chrom != exon2.chrom:
                                 continue
                             e_start2, e_stop2 = exon2.start, exon2.end
@@ -837,7 +842,6 @@ class QueryGeneCollapser(CommandLineManager):
                                 break
                         if has_intersection:
                             break
-                    # print(f'{has_intersection=}')
                     if has_intersection:
                         ## discarded any of the two current projections if the following applies
                         ## processed pseudogenes cannot overlap orthologs/paralogs
@@ -885,7 +889,11 @@ class QueryGeneCollapser(CommandLineManager):
         self._to_log("Inferring query genes from transcript intersection graph")
         curr: int = 0
         for i, c in enumerate(raw_components, start=1):
-            c = [x for x in c if x not in self.discarded_paralogs]
+            # c = [x for x in c if x not in self.discarded_paralogs]
+            c = c.copy()
+            c.remove_nodes_from(
+                [x for x in c.nodes() if x in self.discarded_paralogs]
+            )
             if not c:
                 self._die(
                     "Projection clique %i consists entirely of redundant entities" % i
@@ -903,17 +911,89 @@ class QueryGeneCollapser(CommandLineManager):
                 #     x for x in c if x not in sufficiently_covered
                 # ]
                 insufficiently_covered: List[str] = [
-                    x for x in c if self._overextended_projection(x)
+                    x for x in c.nodes() if self._overextended_projection(x)
                 ]
                 sufficiently_covered: List[str] = [
-                    x for x in c if x not in insufficiently_covered
+                    x for x in c.nodes() if x not in insufficiently_covered
                 ]
+                ## do not remove alternative isoforms of the same transcript
                 if insufficiently_covered:
                     ## if the locus contains both regular and extended projections,
-                    ## leave only properly covered ones
+                    ## leave only properly covered ones unless there are 'alternative' isoforms involved
                     if sufficiently_covered:
-                        c = sufficiently_covered
+                        ## BEGIN novelty rescue for namesake second-bests
+                        tr2proj: Dict[str, List[str]] = defaultdict(list)
+                        for suff in sufficiently_covered:
+                            suff_tr: str = get_proj2trans(suff)[0]
+                            suff_gene: str = self.ref_isoform2gene[suff_tr]
+                            tr2proj[suff_gene].append(suff)
+                        second_best_alternative_isos: List[str] = []
+                        for insuff in insufficiently_covered:
+                            insuff_tr: str = get_proj2trans(insuff)[0]
+                            insuff_gene: str = self.ref_isoform2gene[insuff_tr]
+                            if insuff_gene not in tr2proj:
+                                continue
+                            insuff_exons: Set[Tuple[...]] = {
+                                (y.chrom, y.start, y.end) for y in self.tr2exons[insuff].values()
+                            }
+                            ## check if insufficiently covered isoforms introduce any novelty
+                            for suff_name in tr2proj[insuff_gene]:
+                                suff_exons: Set[Tuple[...]] = {
+                                    (y.chrom, y.start, y.end) for y in self.tr2exons[suff_name].values()
+                                }
+                                found_insuff: Set[str] = set()
+                                for exon in insuff_exons:
+                                    if exon in suff_exons:
+                                        found_insuff.add(exon)
+                                insuff_exons = insuff_exons.difference(found_insuff)
+                            if insuff_exons:
+                                second_best_alternative_isos.append(insuff)
+                        if second_best_alternative_isos:
+                            ## on rare occasions, those alternative isoforms might lead 
+                            ## to spurious many2one components
+                            original_gene_num: int = len(
+                                {self.ref_isoform2gene[get_proj2trans(x)[0]] for x in c.nodes}
+                            )
+                            if original_gene_num > 1:
+                                gene2alt_form: Dict[str, List[int]] = defaultdict(list)
+                                for alt_isoform in second_best_alternative_isos:
+                                    alt_tr: str = get_proj2trans(alt_isoform)[0]
+                                    alt_gene: str = self.ref_isoform2gene[alt_tr]
+                                    gene2alt_form[alt_gene].append(alt_isoform)
+                                for alt_gene in gene2alt_form:
+                                    alt_projs: List[str] = gene2alt_form[alt_gene]
+                                    disjointed: nx.Graph = c.copy()
+                                    disjointed.remove_nodes_from(alt_projs)
+                                    if NX_VERSION < 2.4:
+                                        disjointed_components = list(nx.connected_component_subgraphs(disjointed))
+                                    else:
+                                        disjointed_components = [
+                                            graph.subgraph(c) for c in nx.connected_components(disjointed)
+                                        ]
+                                    ## if the overall number of components did not change,
+                                    ## the alternative isoforms are let in
+                                    if len(disjointed_components) == 1:
+                                        sufficiently_covered.extend(alt_projs)
+                            else:
+                                ## already one2one+; the alternative isoforms are 
+                                sufficiently_covered.extend(second_best_alternative_isos)
+                        insufficiently_covered = [
+                            x for x in insufficiently_covered if x not in sufficiently_covered
+                        ]
                         self.discarded_overextensions.update(insufficiently_covered)
+                        # c = sufficiently_covered
+                        c.remove_nodes_from(insufficiently_covered)
+                        if NX_VERSION < 2.4:
+                            clean_components: List[nx.Graph] = list(
+                                nx.connected_component_subgraphs(c)
+                            )
+                        else:
+                            clean_components: List[nx.Graph] = [
+                                graph.subgraph(c) for c in nx.connected_components(c)
+                            ]
+                        c: List[List[str]] = []
+                        for clean_component in clean_components:
+                            c.append([x for x in clean_component.nodes if x in sufficiently_covered])
                     ## otherwise, check how many genes were projected to this locus
                     else:
                         reliable_projs: List[str] = [
@@ -934,51 +1014,56 @@ class QueryGeneCollapser(CommandLineManager):
                         if len(reliable_genes_in_locus) > 1:
                             self.discarded_overextensions.update(insufficiently_covered)
                             continue
-                        ## only one genes ends up with reliable projections -> all good,
+                        ## only one gene ends up with reliable projections -> all good,
                         ## but leave only those high quality projections
                         unreliable_projs: List[str] = [
                             x for x in c if x not in reliable_projs
                         ]
                         self.discarded_overextensions.update(unreliable_projs)
-                        c = reliable_projs
+                        c = [reliable_projs]
+                else:
+                    c = [list(c.nodes)]
+            else:
+                c = [list(c.nodes)]
             ## TODO:
             ## 1) think of how to store transcript-to-chromosome mapping
             ## 2) think of how to resolve multiple chromosomes in
-            for tr in c:
-                if tr in visited:
-                    continue
-                visited.append(tr)
-                self.component2trs[curr].append(tr)
-                chroms: Tuple[str] = self.tr2chrom[tr]
-                for chrom in chroms:
-                    tr_obj: AnnotationEntry = self.query_transcripts[chrom][tr]
-                    strand: bool = self.query_transcripts[chrom][tr].strand
-                    strands[chrom] = strand
-                    starts[chrom] = (
-                        tr_obj.start
-                        if chrom not in starts
-                        else min(starts[chrom], tr_obj.start)
+            for cc in c:
+                for tr in cc:
+                    if tr in visited:
+                        continue
+                    visited.append(tr)
+                    self.component2trs[curr].append(tr)
+                    chroms: Tuple[str] = self.tr2chrom[tr]
+                    for chrom in chroms:
+                        tr_obj: AnnotationEntry = self.query_transcripts[chrom][tr]
+                        strand: bool = self.query_transcripts[chrom][tr].strand
+                        strands[chrom] = strand
+                        starts[chrom] = (
+                            tr_obj.start
+                            if chrom not in starts
+                            else min(starts[chrom], tr_obj.start)
+                        )
+                        # stops[chrom] = (
+                        #     tr_obj.stop if chrom not in stops else
+                        #     max(stops[chrom], tr_obj.stop)
+                        # )
+                        stops[chrom] = (
+                            tr_obj.end
+                            if chrom not in stops
+                            else max(stops[chrom], tr_obj.end)
+                        )
+                min_chrom: int = min(starts.keys())
+                for chrom in starts:
+                    locus_start: int = starts[chrom]
+                    locus_stop: int = stops[chrom]
+                    locus_strand: bool = strands[chrom]
+                    self.component_coords[curr].append(
+                        (chrom, locus_start, locus_stop, locus_strand)
                     )
-                    # stops[chrom] = (
-                    #     tr_obj.stop if chrom not in stops else
-                    #     max(stops[chrom], tr_obj.stop)
-                    # )
-                    stops[chrom] = (
-                        tr_obj.end
-                        if chrom not in stops
-                        else max(stops[chrom], tr_obj.end)
-                    )
-            min_chrom: int = min(starts.keys())
-            for chrom in starts:
-                locus_start: int = starts[chrom]
-                locus_stop: int = stops[chrom]
-                locus_strand: bool = strands[chrom]
-                self.component_coords[curr].append(
-                    (chrom, locus_start, locus_stop, locus_strand)
-                )
-                if chrom == min_chrom:
-                    coords_for_sorting[curr] = (chrom, locus_start, locus_stop)
-            curr += 1
+                    if chrom == min_chrom:
+                        coords_for_sorting[curr] = (chrom, locus_start, locus_stop)
+                curr += 1
         ## sort components by their coordinates
         self.sorted_components = sorted(
             coords_for_sorting.keys(), key=lambda x: coords_for_sorting[x]
