@@ -14,10 +14,14 @@ HUMAN_PROFILES: str = os.path.join(PROFILES, "human")
 BIN: str = os.path.join(TOGA_DIR, "bin")
 
 DEFAULT_ARGS: Dict[str, Union[str, int, float, bool, None]] = {
-    "ref_2bit": os.path.join(TEST_INPUT, "hg38.2bit"),
-    "query_2bit": os.path.join(TEST_INPUT, "mm10.2bit"),
-    "chain_file": os.path.join(TEST_INPUT, "hg38.mm10.allfilled.chain"),
-    "ref_annotation": os.path.join(TEST_INPUT, "hg38.toga.transcripts.bed"),
+    "ref_2bit": os.path.join(TEST_INPUT, "hg38", "hg38.2bit"),
+    "query_2bit": os.path.join(TEST_INPUT, "mm10", "mm10.2bit"),
+    "chain_file": os.path.join(
+        TEST_INPUT, "hg38", "lastz", "vs_mm10", "axtChain", "hg38.mm10.allfilled.chain"
+    ),
+    "ref_annotation": os.path.join(
+        TEST_INPUT, "hg38", "TOGA2", "currentAnnotation", "hg38.toga.transcripts.bed"
+    ),
     "isoform_file": None,
     "no_isoform_file": False,
     "u12_file": None,
