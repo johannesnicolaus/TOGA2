@@ -27,13 +27,13 @@ def versioneer(version: str) -> None:
 
     ## fetch the recent update description from changelog.md
     changelog_lines: str = ""
-    with open(CHANGELOG, 'r') as h:
+    with open(CHANGELOG, "r") as h:
         for line in h:
             _line: str = line.strip()
             if line.startswith("#") and _line.endswith(version) or _line.endswith(version_main):
                 changelog_lines += line
                 continue
-            if line.startswith("#") and changelog_lines:
+            if line.startswith("#") and changelog_lines or line.startswith("* Minor changes"):
                 break
             if changelog_lines:
                 changelog_lines += line

@@ -16,9 +16,10 @@ Detailed explanations of all output files can be found in our
 * `run` mode:
     * Replacing positional arguments with keyword arguments
     * `--isoform_file`, `--u12_file`, and `--spliceai_dir` options are now "semi-mandatory"; the user is expected to provide the respective arguments unless the explicit deprecative flags are set
-    * Alternative input formatting with `--input_directory`, `--ref_name`, and `--query_name` shortcuts: Format your data storage tree and enjoy 
+    * Alternative input formatting with `--input_directory`, `--ref_name`, and `--query_name` shortcuts: Format your data storage tree once and enjoy simplified command line interface
     * Postoga summary table (`toga.table.gz`) added to the output for `run` mode
-* **NEW MODE**: `postoga` for Postoga integration
+    * Projections of the same reference gene/transcript overlapping by absolute coding sequence coordinates are now collapsed into a single query gene regardless of their overlap by coding exon coordinates
+* **NEW MODE**: `postoga` for [Postoga](https://github.com/alejandrogzi/postoga) integration
 * **NEW MODE**: `sequence-alignment` for orthologous sequence alignment across multiple same-referenced TOGA2 runs (alpha version)
 * Apptainer support (see `supply/containers`):
     * Stable local execution container image
@@ -29,13 +30,6 @@ Detailed explanations of all output files can be found in our
     * Postoga installation
     * Conda environment support
     * Updated `bigWigToWig` version (`-bed` and `-header` options) now distributed with TOGA2
-* Minor additions + bug fixes:
-    * `run`:
-        * Suppressed logging for XGBoost at `classification` step
-        * Setting default non-canonical U12 acceptor to `equiprobable_acceptor.tsv`
-        * Setting separate splice site treatment by default, replacing `--separate_splice_site_treatment` flag with `--joint_splice_site_treatment`
-        * Fixed memory bin mem-to-jobs mapping for `alignment` step
-
 
 ## Installation
 
@@ -105,13 +99,16 @@ Options:
   -help, -h, --help  Show this message and exit.
 
 Commands:
-  cookbook       List example commands for 'run' mode
-  from-config    Run TOGA2 pipeline with a configuration file
-  postoga        Run postprocessing analysis with Postoga
-  prepare-input  Prepare reference annotation files for TOGA2 input
-  run            Run TOGA2 pipeline with command line arguments
-  spliceai       Generate SpliceAI predictions for query assembly
-  test           Test TOGA2 with companion dataset
+  cookbook            List example commands for 'run' mode
+  from-config         Run TOGA2 pipeline with a configuration file
+  integrate           Prepare an integrated TOGA2 annotation  by combining annotation with different references
+  merge               Merge complementing TOGA2 results for the same reference and query
+  postoga             Run postprocessing analysis with Postoga
+  prepare-input       Prepare reference annotation files for TOGA2 input
+  run                 Run TOGA2 pipeline with command line arguments
+  sequence-alignment  Align orthologous sequences from multiple TOGA2 results
+  spliceai            Generate SpliceAI predictions for query assembly
+  test                Test TOGA2 with companion dataset
 ```
 Except for `toga2.py test`, invoking any of the listed commands without arguments also displays the help message. You can also invoke help message for TOGA2 or any of its commands with `--help/-h` option.
 
