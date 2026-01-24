@@ -90,6 +90,7 @@ class TogaMain(CommandLineManager):
         disable_fragment_assembly: Optional[bool],
         orthologs_only: Optional[bool],
         one2ones_only: Optional[bool],
+        paralogs_over_spanning: Optional[bool],
         enable_spanning_chains: Optional[bool],
         annotate_processed_pseudogenes: Optional[bool],
         preprocessing_jobs: Optional[int],
@@ -224,6 +225,7 @@ class TogaMain(CommandLineManager):
         self.annotate_ppgenes: bool = annotate_processed_pseudogenes
         self.orthologs_only: bool = orthologs_only
         self.one2ones_only: bool = one2ones_only
+        self.paralogs_over_spanning: bool = paralogs_over_spanning
         self.enable_spanning_chains: bool = enable_spanning_chains
 
         self.preprocessing_job_num: int = preprocessing_jobs
@@ -2170,6 +2172,8 @@ class TogaMain(CommandLineManager):
             kwargs.append["orthologs_only"] = True
         if self.one2ones_only:
             kwargs["one2one_only"] = True
+        if self.paralogs_over_spanning:
+            kwargs["paralogs_over_spanning"] = True
         if not self.enable_spanning_chains:
             kwargs["disable_spanning_chains"] = True
         if self.u12_file is not None:
@@ -2511,7 +2515,7 @@ class TogaMain(CommandLineManager):
             )
         if os.path.exists(self.paralog_report):
             args.extend(("-p", self.paralog_report))
-        if self.annotate_ppgenes:
+        if os.path.exists(self.processed_pseudogene_report):
             args.extend(("-pp", self.processed_pseudogene_report))
         ## TODO: Add rejection log support
         if os.path.exists(self.redundant_paralogs):
@@ -2789,7 +2793,7 @@ class TogaMain(CommandLineManager):
             args.extend(["-i", self.ref_link_file])
         if os.path.exists(self.all_deprecated_projs):
             args.extend(["-d", self.all_deprecated_projs])
-        if self.annotate_ppgenes:
+        if os.path.exists(self.processed_pseudogene_report):
             args.extend(["-pp", self.processed_pseudogene_report])
         if not self.skip_utr:
             args.extend(["-a", self.query_annotation_with_utrs])
@@ -2867,12 +2871,15 @@ class TogaMain(CommandLineManager):
         #     nuc_cmd += f' -d {self.all_discarded_projections}'
         _ = self._exec(nuc_cmd, "Final nucleotide sequence file preparation failed:")
         ## 3. Filter the protein sequence file
+        ## TESTING PROTEINS CREATED AT RUNTIME
+        huh = os.path.join(self.output, "_pre_filtered.protein.fa")
+        self._exec(f"mv {self.prot_fasta} {huh}", "Huhing failed")
         # prot_cmd: str = (
-        #     f'{self.FASTA_FILTER_SCRIPT} -i {self.aa_fasta} '
-        #     f'-o {self.prot_fasta}'
+        #     f"{self.FASTA_FILTER_SCRIPT} -i {self.aa_fasta} "
+        #     f"-b {bed_file} -o {self.prot_fasta}"
         # )
         prot_cmd: str = (
-            f"{self.FASTA_FILTER_SCRIPT} -i {self.aa_fasta} "
+            f"{self.FASTA_FILTER_SCRIPT} -i {huh} "
             f"-b {bed_file} -o {self.prot_fasta}"
         )
         # if discarded_files:

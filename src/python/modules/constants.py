@@ -45,6 +45,7 @@ class Constants:
     QUERY_BED_CLEAN: str = "query_annotation.bed"
     QUERY_BED_RAW: str = "query_annotation.with_discarded_exons.bed"
     PROT_ALN: str = "protein_aln.fa"
+    PROT_FASTA: str = "protein.fa"
     SELENO_CODONS: str = "selenocysteine_codons.tsv"
     SPLICE_SITES: str = "splice_sites.tsv"
     SPLICE_SITE_SHIFTS: str = "splice_site_shifts.tsv"
@@ -77,6 +78,7 @@ class Constants:
         GAINED_INTRONS: "gained_intron_summary",
         MUTATIONS: "mutation_report",
         PROT_ALN: "aa_fasta",
+        PROT_FASTA: "prot_fasta_tmp",
         QUERY_BED_CLEAN: "query_annotation_filt",
         QUERY_BED_RAW: "query_annotation_raw",
         SELENO_CODONS: "selenocysteine_codons",
@@ -1046,6 +1048,7 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "disable_fragment_assembly",
     "orthologs_only",
     "one2ones_only",
+    "paralogs_over_spanning",
     "enable_spanning_chains",
     "annotate_ppgenes",
     "preprocessing_job_num",
@@ -1311,6 +1314,7 @@ TOGA2_SLOT2ARG: Dict[str, str] = {
     "disable_fragment_assembly": "disable_fragment_assembly",
     "orthologs_only": "orthologs_only",
     "one2ones_only": "one2ones_only",
+    "paralogs_over_spanning": "paralogs_over_spanning",
     "enable_spanning_chains": "enable_spanning_chains",
     "annotate_ppgenes": "annotate_processed_pseudogenes",
     "preprocessing_job_num": "preprocessing_jobs",
