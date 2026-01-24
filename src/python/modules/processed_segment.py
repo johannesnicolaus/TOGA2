@@ -1680,6 +1680,8 @@ class ProcessedSegment:
                         "".join(affected_codons).replace("-", ""), 3
                     )
                     ## check the resulting frame for nonsense mutations
+                    ## WARNING: originally, the line below had "any" instead of "all"
+                    ## temporarily replaced for the sake of testing
                     spliceai_mitigated: bool = any(
                         self._in_modified_seq(
                             frameshifts[x][1].exon, frameshifts[x][1].codon
@@ -3869,39 +3871,69 @@ class ProcessedSegment:
         ## correct the compensated frames
         ## translate the resulting sequence
         final_frame: str = ""
+        visited_triplets: Set[int] = set()
+        prev_last_triplet: int = 0
         for exon in range(1, self.exon_num + 1):
             if self.exon_presence[exon] != "I":
                 continue
             exon_seq: str = ""
             first_codon, last_codon = self.exon2ref_codons[exon]
+            first_triplet, last_triplet = self.exon2codons[exon]
+            first_triplet = max(first_triplet, prev_last_triplet)
+            ## by default, last codon should not be included (semi-closed interval)
+            ## for last exon, subtract one on arrival; for other, check if the last codon is split first
+            if exon == self.exon_num:
+                last_codon = max(1, last_codon - 1)
+                last_triplet = max(1, last_triplet - 1)
+            # last_codon = max(1, last_codon - 1)
             first_triplets: List[int] = sorted(self.ref_codon2triplets[first_codon])
-            if first_triplets[0] in self.split_codon_struct:
-                first_offset: int = self.split_codon_struct[first_triplets[0]][exon]
+            # if first_triplets[0] in self.split_codon_struct and exon != 1:
+                # first_offset: int = 3 - self.split_codon_struct[first_triplets[0]][exon]
+            if first_triplet in self.split_codon_struct and exon != 1:
+                first_offset: int = 3 - self.split_codon_struct[first_triplet][exon]
             else:
                 first_offset: int = 0
             last_triplets: List[int] = sorted(self.ref_codon2triplets[last_codon])
-            if last_triplets[-1] in self.split_codon_struct:
-                last_offset: int = self.split_codon_struct[last_triplets[-1]][exon]
+            # if last_triplets[-1] in self.split_codon_struct and exon != self.exon_num:
+                # last_offset: int = 3 - self.split_codon_struct[last_triplets[-1]][exon]
+            if last_triplet in self.split_codon_struct and exon != self.exon_num:
+                last_offset: int = 3 - self.split_codon_struct[last_triplet][exon]
+            else:
+                last_offset: int = 0
+                if exon != self.exon_num:
+                    last_codon = max(1, last_codon - 1)
+                    last_triplets: List[int] = sorted(self.ref_codon2triplets[last_codon])
             for codon in range(first_codon, last_codon + 1):
                 codon_seq: str = ""
-                compensated: bool = (x[0] <= codon <= x[1] for x in self.alternative_frames)
-                triplets: List[int] = self.ref_codon2triplets[codon]
+                compensated: bool = any(x[0] <= codon <= x[1] for x in self.alternative_frames.values())
+                triplets: List[int] = sorted(set(self.ref_codon2triplets[codon]))
                 for triplet in triplets:
+                    if triplet < first_triplet:
+                        continue
+                    if triplet > last_triplet:
+                        break
+                    if triplet in visited_triplets and triplet not in self.split_codon_struct:
+                        continue
                     triplet_seq: str = self.query_codons_to_mask.get(
                         triplet, self.all_query_codons[triplet]
                     ).upper()
+                    triplet_seq += "-" * (3 - len(triplet_seq))
+                    visited_triplets.add(triplet)
                     codon_seq += triplet_seq
-                if compensated:
-                    codon_seq = strip_noncoding(codon_seq)
-                if first_offset:
+                offseted: bool = False
+                if first_offset and codon == first_codon:
                     codon_seq = "-" * first_offset + codon_seq[first_offset:]
-                if last_offset:
+                    offseted = True
+                if last_offset and codon == last_codon:
                     codon_seq = codon_seq[:-last_offset] + "-" * last_offset
+                    offseted = True
+                if compensated:# and not offseted:
+                    codon_seq = strip_noncoding(codon_seq)
                 exon_seq += codon_seq
             final_frame += exon_seq
+            prev_last_triplet = last_triplet
         final_frame = final_frame.replace(GAP_CODON, "")
         return "".join(AA_CODE.get(x, "X") for x in parts(final_frame, 3))
-
 
     def _intact_exon_portion(self) -> Tuple[int, float]:
         """
