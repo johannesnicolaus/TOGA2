@@ -124,8 +124,8 @@ def parse_isoforms(
         data: List[str] = line.rstrip().split("\t")
         gene: str = f"{prefix}{data[0]}"
         tr: str = segment_base(data[1])
-        if allowed_names and tr not in allowed_names:
-            continue
+        # if allowed_names and tr not in allowed_names:
+        #     continue
         gene2tr[gene].append(tr)
         tr2gene[tr] = gene
     return gene2tr, tr2gene
@@ -328,6 +328,14 @@ def is_homopolymer(record: str) -> bool:
     """
     seq: str = record.split("\n")
     return len(set(seq)) < 2
+
+
+def fasta_sort_key(fasta_seq: str) -> Tuple[int, str]:
+    header, seq = fasta_seq.strip().split("\n")
+    source: str = header[:4].replace(">", "").replace("#", "")
+    num: int = int(header.split("$")[0].split("#")[-1].split(",")[0])
+    seq_len: str = len(seq)
+    return (seq_len, num, source)
 
 
 @click.command(context_settings=CONTEXT_SETTINGS, no_args_is_help=True)
@@ -960,7 +968,6 @@ class InitialOrthologyResolver(CommandLineManager):
                     for x in self.tr2proj.get(ref_tr, [])
                     if self.loss_status.get(x, N) in self.accepted_losses
                 ]
-                # print(f'{ref_tr=}, {projs=}')
                 if not projs:
                     continue
                 exceed_min_cov: List[str] = [
@@ -1064,7 +1071,6 @@ class InitialOrthologyResolver(CommandLineManager):
     def create_gene_graph(self) -> None:
         """ """
         ## initialize all reference genes as graph nodes
-        # print(f'{self.gene2tr_ref.keys()=}')
         self.graph.add_nodes_from(self.gene2tr_ref.keys())
         ## here come the loops!
         ## first, iterate over all reference genes
@@ -1076,29 +1082,19 @@ class InitialOrthologyResolver(CommandLineManager):
                 # trusted_projections: List[str] = []
                 for proj in self.tr2proj.get(ref_tr, []):
                     basename: str = base_proj_name(proj)
-                    # v = proj == 'ENST00000322861.12#MYL11#325045'
                     if self.loss_status.get(basename, N) not in self.accepted_losses:
-                        # if v:
-                        #     print('ENST00000322861.12#MYL11#325045 is lost')
                         continue
                     if proj in self.paralogs or basename in self.paralogs:
-                        # if v:
-                        #     print('ENST00000322861.12#MYL11#325045 is a paralog')
                         continue
                     if (
                         proj in self.processed_pseudogenes
                         or basename in self.processed_pseudogenes
                     ):
-                        # if v:
-                        #     print('ENST00000322861.12#MYL11#325045 is a ppgene')
                         continue
-                    # trusted_projections.append(proj)
-                    # if v:
-                    #     print('ENST00000322861.12#MYL11#325045 is in the graph')
-                    query_g: str = self.tr2gene_que[basename]  # self.tr2gene_que[proj]
+                    query_g: str = self.tr2gene_que[basename]
                     prob: float = self.proj2prob.get(
                         basename, 0.0
-                    )  # self.proj2prob.get(proj, 0.0)
+                    )
                     query_g_scores[query_g] = max(query_g_scores[query_g], prob)
             ## once all possible query genes have been captured,
             ## add the respective edges to the graph
@@ -1118,8 +1114,6 @@ class InitialOrthologyResolver(CommandLineManager):
             query_nodes: List[str] = [x for x in nodes if x in self.gene2tr_que]
             ## get the orthology class
             orthology_class: str = get_orth_class(ref_nodes, query_nodes)
-            # if '#R#ENSG00000180209' in ref_nodes:
-            #     print(f'Clique with ENSG00000180209: {ref_nodes=}, {query_nodes=}, {orthology_class=}')
             if orthology_class == MANY2MANY:
                 resolved_components, removed_edges = resolve_many2many(component)
                 # for resolved_component, removed_edges in resolve_many2many(component):
@@ -1153,17 +1147,10 @@ class InitialOrthologyResolver(CommandLineManager):
                         else:
                             projections: List[str] = self.tr2proj[tr]
                             for proj in projections:
-                                # v = proj == 'ENST00000322861.12#MYL11#325045'
                                 if proj not in self.tr2gene_que:
-                                    # if v:
-                                    #     print('ENST00000322861.12#MYL11#325045 not in tr2gene_que')
                                     continue
                                 q_gene: str = self.tr2gene_que[proj]
                                 if q_gene not in query_genes:
-                                    # if v:
-                                    #     print(f'Gene {q_gene} for ENST00000322861.12#MYL11#325045 is not in query_genes ({query_genes})')
-                                    # if (r_gene, q_gene) in self.removed_edges:
-                                    #     print('Yep, the edge was removed')
                                     continue
                                 projected_transcripts.add(tr)
                                 _q_gene: str = q_gene[3:]
@@ -1224,7 +1211,6 @@ class InitialOrthologyResolver(CommandLineManager):
         Extracts entries from the TOGA output FASTA file for the provided sequences
         """
         ## TODO: Add longest isoform selection!!!
-        # names = [x[3:] if x[:3] in (R_PREFIX, Q_PREFIX) else x for x in names]
         output_dict: Dict[str, str] = {}
         gene2longest_isoform: Dict[str, Tuple[str, int]] = {}
         gene2status: Dict[str, str] = {}
@@ -1405,7 +1391,6 @@ class InitialOrthologyResolver(CommandLineManager):
                         fasta_seqs: Dict[str, str] = self.extract_from_hdf(clique)
                     else:
                         fasta_seqs: Dict[str, str] = self.extract_from_fasta(clique)
-                    # print(f'{fasta_seqs=}')
                     fasta_path: str = os.path.join(
                         self.fasta_dir, f"batch{j}_clique{c}.fa"
                     )
@@ -1457,7 +1442,8 @@ class InitialOrthologyResolver(CommandLineManager):
         output_list: List[str] = []
         query_genes: List[str] = [x for x in clique if x in self.gene2tr_que]
         gene2longest: Dict[str, Tuple[str, int]] = {}
-        gene2best_status: Dict[str, Tuple[str, str]] = {}
+        gene2best_status: Dict[str, str] = {}
+        gene2smallest_id: Dict[str, int] = {}
         all_projections: List[str] = []
         for query_gene in query_genes:
             projections: List[str] = self.gene2tr_que[query_gene]
@@ -1468,9 +1454,11 @@ class InitialOrthologyResolver(CommandLineManager):
                     continue
                 if proj in self.removed_projections:
                     continue
-                tr: str = "#".join(proj.split("#")[:-1])
+                # tr: str = "#".join(proj.split("#")[:-1])
+                tr, chain_id = get_proj2trans(proj)
                 if proj not in self.tr2proj[tr]:
                     continue
+                chain_id: int = int(chain_id.split(",")[0])
                 all_projections.append(proj)
                 loss_status: str = self.loss_status.get(proj, N)
                 seq_id: str = f"{proj}_query"
@@ -1479,6 +1467,7 @@ class InitialOrthologyResolver(CommandLineManager):
                 )
                 prev_header, prev_seq = gene2longest.get(query_gene, ("", ""))
                 new_is_longer: bool = len(seq) > len(prev_seq)
+                same_length: bool = len(seq) == len(prev_seq)
                 prev_status: str = gene2best_status.get(query_gene, N)
                 better_conservation: bool = (
                     CLASS_TO_NUM[loss_status] > CLASS_TO_NUM[prev_status]
@@ -1486,22 +1475,33 @@ class InitialOrthologyResolver(CommandLineManager):
                 same_conservation: bool = (
                     CLASS_TO_NUM[loss_status] == CLASS_TO_NUM[prev_status]
                 )
-                if better_conservation or same_conservation and new_is_longer:
+                chain_is_smaller: bool = (
+                    query_gene not in gene2smallest_id or chain_id < gene2smallest_id[query_gene]
+                )
+                if (
+                    better_conservation or 
+                    same_conservation and new_is_longer or 
+                    same_conservation and same_length and chain_is_smaller
+                ):
                     gene2longest[query_gene] = (proj, seq)
                     gene2best_status[query_gene] = loss_status
+                    gene2smallest_id[query_gene] = chain_id
         # selected_isoforms: List[str] = [
         #     v[0] for v in gene2longest.values()
         # ]
         ref_genes: List[str] = [x for x in clique if x not in query_genes]
         ref_gene2longest: Dict[str, Tuple[str, str]] = {}
         ref_gene2best_status: Dict[str, str] = {}
+        ref_gene2smallest_id: Dict[str, int] = {}
         for ref_gene in ref_genes:
             # ref_tr: List[str] = next(x for x in self.gene2tr_ref[ref_gene] if x in
             ref_trs: List[str] = self.gene2tr_ref[ref_gene]
             for proj in all_projections:
-                progenitor: str = "#".join(proj.split("#")[:-1])
+                # progenitor: str = "#".join(proj.split("#")[:-1])
+                progenitor, chain_id = get_proj2trans(proj)
                 if progenitor not in ref_trs:
                     continue
+                chain_id: int = int(chain_id.split(",")[0])
                 loss_status: str = self.loss_status.get(proj, N)
                 seq_id: str = f"{proj}_ref"
                 seq: str = (
@@ -1509,6 +1509,7 @@ class InitialOrthologyResolver(CommandLineManager):
                 )
                 prev_header, prev_seq = ref_gene2longest.get(ref_gene, ("", ""))
                 new_is_longer: bool = len(seq) > len(prev_seq)
+                same_length: bool = len(seq) == len(prev_seq)
                 prev_status: str = ref_gene2best_status.get(ref_gene, N)
                 better_conservation: bool = (
                     CLASS_TO_NUM[loss_status] > CLASS_TO_NUM[prev_status]
@@ -1516,9 +1517,17 @@ class InitialOrthologyResolver(CommandLineManager):
                 same_conservation: bool = (
                     CLASS_TO_NUM[loss_status] == CLASS_TO_NUM[prev_status]
                 )
-                if better_conservation or same_conservation and new_is_longer:
+                chain_is_smaller: bool = (
+                    ref_gene not in ref_gene2smallest_id or chain_id < ref_gene2smallest_id[ref_gene]
+                )
+                if (
+                    better_conservation or 
+                    same_conservation and new_is_longer or
+                    same_conservation and same_length and chain_is_smaller
+                ):
                     ref_gene2longest[ref_gene] = (proj, seq)
                     ref_gene2best_status[ref_gene] = loss_status
+                    ref_gene2smallest_id[ref_gene] = chain_id
         for name, seq in gene2longest.values():
             fasta_record: str = f">{Q_PREFIX}{name}\n{seq}"
             output_list.append(fasta_record)
@@ -1545,11 +1554,6 @@ class InitialOrthologyResolver(CommandLineManager):
                     self._to_log(
                         f"Writing FASTA input for clique {c} ({len(clique)} sequences)"
                     )
-                    # if self.hdf5_fasta:
-                    #     fasta_seqs: Dict[str, str] = self.extract_from_hdf(clique)
-                    # else:
-                    #     fasta_seqs: Dict[str, str] = self.extract_from_fasta(clique)
-                    # print(f'{fasta_seqs=}')
                     fasta_seqs: List[str] = self.pick_representatives(clique, f)
                     if all(len(x.split("\n")[1]) < 50 for x in fasta_seqs):
                         self._to_log(
@@ -1585,6 +1589,7 @@ class InitialOrthologyResolver(CommandLineManager):
                     fasta_path: str = os.path.join(
                         self.fasta_dir, f"batch{j}_clique{c}.fa"
                     )
+                    fasta_seqs.sort(key=lambda x: fasta_sort_key(x))
                     with open(fasta_path, "w") as fp:
                         for entry in fasta_seqs:
                             fp.write(entry + "\n")
