@@ -496,7 +496,7 @@ from individual chains""",
     show_default=True,
     help="If set, only transcript with a single orthologous projection are considered",
 )
-@gene_select_options(
+@gene_select_options.option(
     "--paralogs_over_spanning",
     "-p_first",
     is_flag=True,
