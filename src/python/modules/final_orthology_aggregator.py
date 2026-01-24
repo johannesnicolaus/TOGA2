@@ -514,10 +514,10 @@ class FinalOrthologyResolver(CommandLineManager):
             orphan_trs: List[str] = self.query_gene2tr[orphan]
             for orphan_tr in orphan_trs:
                 self._to_log(
-                    "Projection %s rendered orphan after the gene tree step" % query_tr,
+                    "Projection %s rendered orphan after the gene tree step" % orphan_tr,
                     "warning",
                 )
-                self.rejected_items.append(query_tr)
+                self.rejected_items.append(orphan_tr)
 
     def write_output(self) -> None:
         """
