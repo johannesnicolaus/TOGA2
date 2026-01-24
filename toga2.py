@@ -496,6 +496,17 @@ from individual chains""",
     show_default=True,
     help="If set, only transcript with a single orthologous projection are considered",
 )
+@gene_select_options(
+    "--paralogs_over_spanning",
+    "-p_first",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help=(
+        "If set, paralogous projections take priority over spanning-chain projections "
+        "when determining the chains to project the transcript through"
+    ),
+)
 @gene_select_options.option(
     "--enable_spanning_chains",
     "-nospan",
