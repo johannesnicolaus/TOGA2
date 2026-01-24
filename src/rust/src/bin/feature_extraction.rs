@@ -389,7 +389,6 @@ fn main() {
             ) {
                 // has_partially_uncovered = true;
                 clipped_transcripts.insert(tr_name.clone());
-                // println!("chain={}, chain start={}, chain end={}", chain_id, chain.refs.start, chain.refs.end);
                 let chainclipped_entry = transcript
                     .to_cds(false)
                     .unwrap()
@@ -460,6 +459,9 @@ fn main() {
         let (mut discrete_intervals, unit2interval) = discrete_interval_map(&mut all_intervals); 
         if *chain_id <= 10 {
             println!("Chain {} will be intersected to {} discrete intervals  ({} intervals before discretion)", chain_id, discrete_intervals.len(), all_interval_num)
+        }
+        if *chain_id == 875 {
+            println!("unit2interval(chain 875)={:#?}", unit2interval);
         }
         let (mut discrete_cds_intervals, _) = discrete_interval_map(&mut cds_intervals);
         
@@ -684,9 +686,6 @@ fn main() {
                             ref_clipped_end, 
                             false
                         ).unwrap();
-                    if *chain_id == 359705 {
-                        println!("ref_clipped_start={}, ref_clipped_end={}, orig_tr={:#?}", ref_clipped_start.unwrap(), ref_clipped_end.unwrap(), orig_tr);
-                    }
                     // let clipped_exon_span: f64;
                     let clipped_intron_span: f64;
                     if orig_tr.exon_num().unwrap() == 0 {

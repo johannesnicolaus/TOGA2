@@ -496,9 +496,9 @@ checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
 
 [[package]]
 name = "cubiculum"
-version = "0.1.51"
+version = "0.1.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7127f375e8c5e5ab9a3d59a9315e4e00d30348f2471d83d876043577f2979c94"
+checksum = "8ece19b0958003d5af574fa76b81fd373a69412857af6beb9e80ae1e874cc322"
 dependencies = [
  "anyhow",
  "clap",
