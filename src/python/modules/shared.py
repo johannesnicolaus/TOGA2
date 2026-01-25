@@ -752,7 +752,7 @@ class CommandLineManager:
             if os.path.isfile(f):
                 os.remove(f)
             elif os.path.isdir(f):
-                rmtree(f)
+                rmtree(f, ignore_errors=True)
         except FileNotFoundError:
             pass
         except Exception:
@@ -761,7 +761,7 @@ class CommandLineManager:
     def _rmdir(self, d: str) -> None:
         """Recursive directory deletion method"""
         try:
-            rmtree(d)
+            rmtree(d, ignore_errors=True)
         except FileNotFoundError:
             pass
 
