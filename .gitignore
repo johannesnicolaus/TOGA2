@@ -14,6 +14,7 @@ _README.md
 _Makefile
 src/python/modules/final_orthology_aggregator_old.py
 src/python/modules/_run_postoga.py
+src/python/modules/_v207_patch_module.py
 call_toga2.py
 _call_toga2_v207_patcher.py
 
