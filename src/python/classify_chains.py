@@ -8,19 +8,23 @@ Given a projection feature table, classifies projections in terms of their ortho
 
 import os
 from collections import Counter, defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, TextIO, Union
 
 import click
 import joblib
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+from modules.constants import RejectionReasons
 from modules.shared import CONTEXT_SETTINGS, CommandLineManager
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"
 __credits__ = ["Bogdan M. Kirilenko"]
 __all__ = [None]
+
+pd.options.mode.copy_on_write = True
+xgb.set_config(verbosity=0)
 
 
 class Constants:
@@ -56,10 +60,6 @@ class Constants:
     P_PGENE: str = "P_PGENE"
     TR2CHAIN_HEADER: str = "TRANSCRIPT\tORTH\tPARA\tSPAN\tP_PGENE"
     FINAL_COLUMNS: List[str] = ["transcript", "chain", "pred"]
-    UNCLASS_TEMPLATE: str = (
-        "TRANSCRIPT\t{}\t0\tNo classifiable projections found\tNO_PROJ\tM"
-    )
-    UNDERSCORED_TEMPLATE: str = "PROJECTION\t{}\t0\tChain score below set threshold ({})\tINSUFFICIENT_CHAIN_SCORE\tL"
 
 
 @click.command(context_settings=CONTEXT_SETTINGS, no_args_is_help=True)
@@ -79,6 +79,18 @@ class Constants:
     default=0.5,
     show_default=True,
     help="Probability threshold for classifying projections as orthologous",
+)
+@click.option(
+    "--initial_transcript_bed",
+    type=click.File("r", lazy=True),
+    metavar="INPUT_BED_FILE",
+    default=None,
+    show_default=True,
+    help=(
+        "BED file with transcript for which the features were extracted. "
+        "Transcripts which do not have any valid/chains projections in the "
+        "results of the rejection step"
+    ),
 )
 @click.option(
     "--long_distance_model",
@@ -149,6 +161,7 @@ class ChainClassifier(CommandLineManager):
         "rejection_log",
         "df",
         "underscored_chain_projections",
+        "initial_transcript_bed",
     ]
 
     def __init__(
@@ -157,7 +170,8 @@ class ChainClassifier(CommandLineManager):
         output_dir: click.Path,
         single_exon_model: click.Path,
         multi_exon_model: click.Path,
-        orthology_threshold: float,
+        orthology_threshold: Optional[float],
+        initial_transcript_bed: Optional[click.File],
         long_distance_model: Optional[click.Path],
         min_orthologous_chain_score: Optional[int],
         legacy: Optional[bool],
@@ -196,6 +210,8 @@ class ChainClassifier(CommandLineManager):
             else None
         )
 
+        self.initial_transcript_bed: Union[TextIO, None] = initial_transcript_bed
+
         self.orthology_threshold: float = orthology_threshold
         self.min_orth_chain_score: int = min_orthologous_chain_score
 
@@ -226,6 +242,19 @@ class ChainClassifier(CommandLineManager):
             )
             self._die(err_msg)
 
+    def _extract_transcript_names(self) -> Set[str]:
+        """Extracts transcript names from a BED file"""
+        if self.initial_transcript_bed is None:
+            return
+        names: Set[str] = set()
+        for line in self.initial_transcript_bed:
+            data: List[str] = line.strip().split("\t")
+            if not data or not data[0]:
+                continue
+            name: str = data[3]
+            names.add(name)
+        return names
+
     def run(self) -> None:
         """
         Main executing method
@@ -234,11 +263,10 @@ class ChainClassifier(CommandLineManager):
         self._mkdir(self.output)
 
         ## extract unique names
-        init_tr_set: Set[str] = set(self.df["transcript"])
-
-        ## get indices of processed pseudogene projections
-        ## if a projection has synteny = 1, introns are deleted, and exon number > 1,
-        ## this is likely a processed pseudogene
+        if self.initial_transcript_bed is not None:
+            init_tr_set: Set[str] = self._extract_transcript_names()
+        else:
+            init_tr_set: Set[str] = set(self.df["transcript"])
 
         ## extract spanning projections: chains do not cover any coding exons
         ## but have high synteny due to flanking sequence alignment
@@ -313,54 +341,55 @@ class ChainClassifier(CommandLineManager):
         ## those are multi-exon projections with orthology probability below
         ## the threshold, minimal syntenty, and high exonic fraction;
         ## those get a probability placeholder of -2
-        df_me.loc[
-            (df_me["synt"] == 1)
-            & (df_me["exon_qlen"] > 0.95)
-            & (df_me["pred"] < self.orthology_threshold)
-            & (df_me["exon_perc"] > 0.65),
-            "pred",
-        ] = -2
-        ## TOGA2 speciial: identify processed pseudogenes
-        ## by CDS-clipped alignment-to-query span
-        ## adn CDS-clipped intron coverage
-        all_orthologs: List[str] = df_me[df_me["pred"] > self.orthology_threshold][
-            "transcript"
-        ].to_list()
-        ortholog_counter: Dict[str, int] = Counter(all_orthologs)
-        # max_prob_per_multiorth: Dict[str, float] = {
-        #     x: max(df_me[df_me['gene'] == x]['pred'].to_list())
-        #     for x,y in ortholog_counter.items() if y > 1
-        # }
-        max_prob_per_multiorth: Dict[str, float] = (
-            df_me[df_me.apply(lambda x: ortholog_counter[x["transcript"]] > 1, axis=1)]
-            .groupby(["transcript"])["pred"]
-            .max()
-            .to_dict()
-        )
-        # print(max_prob_per_multiorth)
-        df_me.loc[
-            (
-                (
-                    df_me.apply(
-                        lambda x: x["transcript"] in max_prob_per_multiorth
-                        and x["pred"] < max_prob_per_multiorth[x["transcript"]],
-                        axis=1,
-                    )
-                )
-                & (df_me["pred"] >= self.orthology_threshold)
-                | (df_me["pred"] < self.orthology_threshold)
+        ## obviously applies only if there are any classified multi-exon projections
+        if df_me.shape[0]:
+            df_me.loc[
+                (df_me["synt"] == 1)
+                & (df_me["exon_qlen"] > 0.95)
+                & (df_me["pred"] < self.orthology_threshold)
+                & (df_me["exon_perc"] > 0.65),
+                "pred",
+            ] = -2
+            ## TOGA2 speciial: identify processed pseudogenes
+            ## by CDS-clipped alignment-to-query span
+            ## adn CDS-clipped intron coverage
+            all_orthologs: List[str] = df_me[df_me["pred"] > self.orthology_threshold][
+                "transcript"
+            ].to_list()
+            ortholog_counter: Dict[str, int] = Counter(all_orthologs)
+            # max_prob_per_multiorth: Dict[str, float] = {
+            #     x: max(df_me[df_me['gene'] == x]['pred'].to_list())
+            #     for x,y in ortholog_counter.items() if y > 1
+            # }
+            max_prob_per_multiorth: Dict[str, float] = (
+                df_me[df_me.apply(lambda x: ortholog_counter[x["transcript"]] > 1, axis=1)]
+                .groupby(["transcript"])["pred"]
+                .max()
+                .to_dict()
             )
-            & (df_me_pp["clipped_exon_qlen"] > Constants.PP_CLIPPED_EXON_QLEN)
-            & (df_me_pp["clipped_intr_cover"] < Constants.PP_CLIPPED_INTRON_QLEN)
-            & (df_me_pp["clipped_intr_cover"] >= 0),
-            "pred",
-        ] = -2
+            # print(max_prob_per_multiorth)
+            df_me.loc[
+                (
+                    (
+                        df_me.apply(
+                            lambda x: x["transcript"] in max_prob_per_multiorth
+                            and x["pred"] < max_prob_per_multiorth[x["transcript"]],
+                            axis=1,
+                        )
+                    )
+                    & (df_me["pred"] >= self.orthology_threshold)
+                    | (df_me["pred"] < self.orthology_threshold)
+                )
+                & (df_me_pp["clipped_exon_qlen"] > Constants.PP_CLIPPED_EXON_QLEN)
+                & (df_me_pp["clipped_intr_cover"] < Constants.PP_CLIPPED_INTRON_QLEN)
+                & (df_me_pp["clipped_intr_cover"] >= 0),
+                "pred",
+            ] = -2
 
         ## if minimal chain score was set,
         ## override predictions for chains with scores less than that
         ## unless they correspond to retrogenes/processed pseudogenes
         if self.min_orth_chain_score > 0:
-            # underscored_chain_projections: List[str] = []
             if df_se.shape[0]:
                 deprecated_se_names: pd.core.frame.DataFrame = df_se.loc[
                     df_se["gl_score"] < self.min_orth_chain_score
@@ -438,10 +467,10 @@ class ChainClassifier(CommandLineManager):
             return
         with open(self.rejection_log, "w") as h:
             for tr in rejected_transcripts:
-                rej_line: str = Constants.UNCLASS_TEMPLATE.format(tr)
+                rej_line: str = RejectionReasons.UNCLASS_REJ_REASON.format(tr)
                 h.write(rej_line + "\n")
             for proj in self.underscored_chain_projections:
-                rej_line: str = Constants.UNDERSCORED_TEMPLATE.format(
+                rej_line: str = RejectionReasons.UNDERSCORED_REJ_REASON.format(
                     proj, self.min_orth_chain_score
                 )
                 h.write(rej_line + "\n")

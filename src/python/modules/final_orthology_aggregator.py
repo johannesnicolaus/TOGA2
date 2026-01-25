@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 
 import click
 
-from .constants import Headers
+from .constants import Headers, RejectionReasons
 from .shared import CONTEXT_SETTINGS, CommandLineManager, base_proj_name
 
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
@@ -33,7 +33,6 @@ ONE2ONE: str = "one2one"
 ONE2MANY: str = "one2many"
 MANY2ONE: str = "many2one"
 MANY2MANY: str = "many2many"
-ORTH_REJ_TEMPLATE: str = "TRANSCRIPT\t{}\t0\tRejected after the gene resolution step\tGENE_TREE_REJECTION\t{}"
 
 
 def restore_fragmented_proj_id(proj: str) -> str:
@@ -59,16 +58,6 @@ def get_tr(proj: str) -> str:
 
 @click.command(context_settings=CONTEXT_SETTINGS, no_args_is_help=True)
 @click.argument("init_results", type=click.File("r"), metavar="INIT_ORTH_RESULTS")
-# @click.argument(
-#     'ref_genes',
-#     type=click.File('r'),
-#     metavar='REF_GENES'
-# )
-# @click.argument(
-#     'query_genes',
-#     type=click.File('r'),
-#     metavar='QUERY_GENES'
-# )
 @click.argument("resolved_leaves", type=click.File("r"), metavar="RESOLVED_LEAVES")
 @click.option(
     "--output",
@@ -250,11 +239,17 @@ class FinalOrthologyResolver(CommandLineManager):
             if line == Headers.ORTHOLOGY_TABLE_HEADER:
                 continue
             line = line.rstrip()
-            if not line:
-                continue
             data: List[str] = line.split("\t")
-            ## TODO: Sanity check for column number
-            if data[-1] != MANY2MANY:
+            if not data or not data[0]:
+                continue
+            if data[0] == "t_gene":
+                continue
+            ## The commented section has never been a problem in production runs
+            ## but might incur some problems upon patching
+            # if data[-1] != MANY2MANY:
+            #     self.out_lines.append(line)
+            #     continue
+            if data[-1] == ONE2ZERO:
                 self.out_lines.append(line)
                 continue
             ref_gene: str = data[0]
@@ -267,6 +262,7 @@ class FinalOrthologyResolver(CommandLineManager):
             self.ref_tr2gene[ref_tr] = ref_gene
             self.query_gene2tr[query_gene].append(query_tr)
             self.query_tr2gene[query_tr] = query_gene
+            self.tr2proj[ref_tr].append(query_tr)
 
     def parse_loss_summary(self) -> None:
         """
@@ -321,8 +317,18 @@ class FinalOrthologyResolver(CommandLineManager):
                 query_tr: str = data[1]
             query_tr = restore_fragmented_proj_id(query_tr)
             ref_tr = "#".join(ref_tr.split("#")[:-1])
-            ref_gene: str = self.ref_tr2gene[ref_tr]
-            query_gene: str = self.query_tr2gene[query_tr]
+            ref_gene: str = self.ref_tr2gene.get(ref_tr, None)
+            if ref_gene is None:
+                self._to_log(
+                    "Missing gene for reference transcipt %s" % ref_tr, "warning"
+                )
+                continue
+            query_gene: str = self.query_tr2gene.get(query_tr, None)
+            if query_gene is None:
+                self._to_log(
+                    "Missing gene for query transcipt %s" % query_tr, "warning"
+                )
+                continue
             ### CURRENT IDEA: First, check whether all the query genes
             ### actually have projections from the reference orthologs
             ### does not seem trivial since the input does not contain any indications of the original clique
@@ -331,7 +337,10 @@ class FinalOrthologyResolver(CommandLineManager):
                 and ref_gene not in self.q2r[query_gene]
             ):
                 self._to_log(
-                    "Ortholog pair resolved in the gene tree has no connection in the original graph: %s and %s"
+                    (
+                        "Ortholog pair resolved in the gene tree has no connection in "
+                        "the original graph: %s and %s"
+                    )
                     % (ref_tr, query_tr),
                     "warning",
                 )
@@ -362,9 +371,6 @@ class FinalOrthologyResolver(CommandLineManager):
                 ## might have come from a gene other than the newly established ortholog;
                 ## pick the one used for the tree reconstruction only if the established
                 ## ortholog has no projection in the query gene
-                v = ref_tr == "XM_047425712.1#OTUD7B"
-                if v:
-                    print(f"{ref_tr=}, {query_tr=}")
                 progenitor_tr: str = get_tr(query_tr)
                 if progenitor_tr not in self.ref_tr2gene:
                     self._die(
@@ -381,6 +387,7 @@ class FinalOrthologyResolver(CommandLineManager):
                         % (query_tr, query_gene, ref_gene),
                         "warning",
                     )
+                    self.rejected_items.append(query_tr) ## try!
                     recorded_lines: bool = False
                 else:
                     # out_line: str = '\t'.join(
@@ -388,18 +395,17 @@ class FinalOrthologyResolver(CommandLineManager):
                     # )
                     # self.out_lines.append(out_line)
                     recorded_lines: bool = True
+                    deprecated_projections: List[str] = [x for x in self.tr2proj[ref_tr] if x != query_tr]
+                    self.rejected_items.extend(deprecated_projections)
                 for other_query_tr in self.query_gene2tr[query_gene]:
-                    other_ref_tr: str = get_tr(
-                        other_query_tr
-                    )  #'#'.join(other_query_tr.split('#')[:-1])
-                    if v:
-                        print(
-                            f"{other_ref_tr=}, {other_query_tr=}, {ref_gene=}, {self.ref_tr2gene[other_ref_tr]=}"
-                        )
+                    other_ref_tr: str = get_tr(other_query_tr)  #'#'.join(other_query_tr.split('#')[:-1])
+                    if other_ref_tr not in self.ref_tr2gene:
+                        continue
                     ## projections from other genes are counted as rejected
                     if self.ref_tr2gene[other_ref_tr] != ref_gene:
                         self._to_log(
-                            f"Skipping {other_query_tr} since it does not belong to the original reference gene"
+                            f"Skipping {other_query_tr} since it does not "
+                            "belong to the original reference gene"
                         )
                         self.rejected_items.append(other_query_tr)
                         continue
@@ -436,10 +442,10 @@ class FinalOrthologyResolver(CommandLineManager):
         to the output
         """
         for ref_gene, query_genes in self.r2q.items():
-            ## sanity check
-            if ref_gene in self.removed_genes:
-                continue
             query_genes = {x for x in query_genes if x not in self.removed_genes}
+            ## sanity check
+            if ref_gene in self.removed_genes and not query_genes:
+                    continue
             ref_genes: Set[str] = {
                 x
                 for q in query_genes
@@ -473,7 +479,9 @@ class FinalOrthologyResolver(CommandLineManager):
             #         'from the resolved pairs file: %s|%s' % (ref_gene, ','.join(query_genes))
             #     )
             status: str = (
-                ONE2MANY
+                ONE2ONE
+                if ref_gene_num == query_gene_num == 1
+                else ONE2MANY
                 if ref_gene_num == 1
                 else MANY2ONE
                 if query_gene_num == 1
@@ -494,6 +502,22 @@ class FinalOrthologyResolver(CommandLineManager):
                         (ref_gene, ref_tr, query_gene, query_tr, status)
                     )
                     self.out_lines.append(out_line)
+        orphans: Set[str] = {
+            x for x,y in self.q2r.items() if all(z not in self.r2q for z in y)
+        }
+        for orphan in orphans:
+            self._to_log(
+                "Query gene %s rendered orphan after the gene tree step" % orphan,
+                "warning",
+            )
+            # self.rejected_items.add(orphan) ## TODO: Revise once loss statuses for query genes are settled
+            orphan_trs: List[str] = self.query_gene2tr[orphan]
+            for orphan_tr in orphan_trs:
+                self._to_log(
+                    "Projection %s rendered orphan after the gene tree step" % orphan_tr,
+                    "warning",
+                )
+                self.rejected_items.append(orphan_tr)
 
     def write_output(self) -> None:
         """
@@ -511,7 +535,9 @@ class FinalOrthologyResolver(CommandLineManager):
                     self.rejected_list.write(item + "\n")
                 if self.rejection_log is not None:
                     loss_status: str = self.proj2loss.get(item, "N")
-                    rej_line: str = ORTH_REJ_TEMPLATE.format(item, loss_status)
+                    rej_line: str = RejectionReasons.ORTH_REJ_TEMPLATE.format(
+                        item, loss_status
+                    )
                     self.rejection_log.write(rej_line + "\n")
 
     def _restore_original_clique(self, start: str) -> List[str]:

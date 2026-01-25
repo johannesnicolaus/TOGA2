@@ -8,61 +8,47 @@ import os
 from collections import defaultdict, namedtuple
 from heapq import heappop, heappush
 from math import ceil
+
 from pathlib import Path
 from shutil import which
 from typing import Dict, List, Optional, Tuple, Type, Union
 
 import click
 import networkx as nx
-from modules.cesar_wrapper_constants import (
-    DEF_BLOSUM_FILE,
-    FIRST_ACCEPTOR,
-    HG38_CANON_U2_ACCEPTOR,
-    HG38_CANON_U2_DONOR,
-    LAST_DONOR,
-    MIN_PROJ_OVERLAP_THRESHOLD,
+from modules.constants import (
+    CONTAINER_ENGINE2BIND_KEY, PRE_CLEANUP_LINE, RejectionReasons
 )
-from modules.constants import PRE_CLEANUP_LINE
+from modules.cesar_wrapper_constants import (
+    DEF_BLOSUM_FILE, 
+    MIN_PROJ_OVERLAP_THRESHOLD,
+    HG38_CANON_U2_ACCEPTOR, 
+    HG38_CANON_U2_DONOR,
+    FIRST_ACCEPTOR, 
+    LAST_DONOR
+)
 from modules.shared import (
-    CONTEXT_SETTINGS,
+    CONTEXT_SETTINGS, 
     SPLIT_JOB_HEADER,
-    CommandLineManager,
-    get_upper_dir,
-    intersection,
+    CommandLineManager, 
+    get_upper_dir, 
+    intersection, 
 )
 from shared import get_connected_components
-
-# import sys
-
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-# sys.path.extend([LOCATION, PARENT])
 
 __author__ = "Yury V. Malovichko"
 __credits__ = ["Bogdan Kirilenko", "Michael Hiller"]
 __year__ = "2024"
 
-TOGA2_ROOT: str = get_upper_dir(__file__, 4)
-
 ## define constants
-# LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+TOGA2_ROOT: str = get_upper_dir(__file__, 4)
+LOCATION: str = os.path.dirname(os.path.abspath(__file__))
+PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
+CESAR_WRAPPER_SCRIPT: str = os.path.join(PARENT, 'cesar_exec.py')
+CESAR_WRAPPER_SCRIPT_REL: str = os.path.join(
+    *PARENT.split(os.sep)[-2:], 'cesar_exec.py'
+)
+
 BLOSUM_FILE: str = os.path.join(TOGA2_ROOT, *DEF_BLOSUM_FILE)
-HL_CESAR_PATH: str = os.path.join(
-    os.path.sep,
-    "projects",
-    "hillerlab",
-    "genome",
-    "src",
-    "TOGA_pub",
-    "CESAR2.0",
-    "cesar",
-)
-CESAR_WRAPPER_SCRIPT: str = os.path.join(PARENT, "cesar_exec.py")
-REDUNDANT_ENTRY: str = (
-    "PROJECTION\t{}\t0\tRedundant projection to the given locus\tREDUNDANT\tN"
-)
-HEAVY_ENTRY: str = "PROJECTION\t{}\t0\tMaximum memory limit exceeded\tHEAVY\tN"
-CHIMERIC_ENTRY: str = "PROJECTION\t{}\t0\tPotential chimeric projection\tCHIMERIC\tN"
 
 HG38_CANON_U2_ACCEPTOR: str = os.path.join(TOGA2_ROOT, *HG38_CANON_U2_ACCEPTOR)
 HG38_CANON_U2_DONOR: str = os.path.join(TOGA2_ROOT, *HG38_CANON_U2_DONOR)
@@ -71,16 +57,6 @@ LAST_DONOR: str = os.path.join(TOGA2_ROOT, *LAST_DONOR)
 
 OK: str = ".ok"
 TOUCH: str = "touch {}"
-
-# @dataclass
-# class ProjectionMeta:
-#     __slots__ = ('chrom', 'start', 'stop', 'max_mem', 'sum_mem', 'path')
-#     chrom: str
-#     start: int
-#     end: int
-#     max_mem: float
-#     sum_mem: float
-#     path: str
 
 ProjectionMeta: Type = namedtuple(
     "ProjectionMeta",
@@ -436,6 +412,35 @@ def fragmented_projection(chain_id: str) -> bool:
         "[default:PREPROCESS_JOB_DIRECTORY/genes_rejection_reason.tsv]"
     ),
 )
+@click.option(
+    '--container_image',
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    help=(
+        'A path to the executable TOGA2 container image. '
+        'All the parallel step scripts will be executed by invoking this container. '
+    )
+)
+@click.option(
+    '--container_executor',
+    type=str,
+    default='apptainer',
+    show_default=True,
+    help='A name for container executor engine'
+)
+@click.option(
+    '--bindings',
+    type=str,
+    metavar="STRING",
+    default=None,
+    show_default=True,
+    help=(
+        'A list of directory mounts to provide to the container instances at parallel steps. '
+        'Binginds should be provided as expected by the container executor engine and wrapped in '
+        'quotes, e.g. "/tmp,/src/,~/:/home"'
+    )
+)
 ## benchmarking-related - REMOVE IN THE FINAL VERSION
 @click.option(
     "--toga1_compatible",
@@ -457,8 +462,10 @@ def fragmented_projection(chain_id: str) -> bool:
     show_default=True,
     help="Controls the execution verbosity",
 )
+
 class CesarScheduler(CommandLineManager):
-    """ """
+
+    """Schedules CESAR alignment module jobs"""
 
     __slots__ = [
         "memory_report",
@@ -496,6 +503,10 @@ class CesarScheduler(CommandLineManager):
         "correct_short_introns",
         "ignore_alternative_frame",
         "save_cesar_input",
+        "container_image", 
+        "container_executor", 
+        "bindings", 
+        "binding_map",
         "v",
         "proj2max_mem",
         "proj2sum_mem",
@@ -548,6 +559,9 @@ class CesarScheduler(CommandLineManager):
         ignore_alternative_frame: Optional[bool],
         save_cesar_input: Optional[bool],
         rejection_report: Optional[click.Path],
+        container_image: Optional[Union[click.Path, None]],
+        container_executor: str,
+        bindings: Optional[Union[str, None]],
         toga1_compatible: Optional[bool],
         verbose: bool,
     ) -> None:
@@ -587,9 +601,7 @@ class CesarScheduler(CommandLineManager):
         )
         if cesar_binary is None:
             cesar_in_path: str = which("cesar")
-            if os.path.exists(HL_CESAR_PATH):
-                self.cesar_binary: str = HL_CESAR_PATH
-            elif cesar_in_path is not None:
+            if cesar_in_path is not None:
                 self.cesar_binary: str = cesar_in_path
             else:
                 raise FileNotFoundError(
@@ -638,6 +650,11 @@ class CesarScheduler(CommandLineManager):
             if rejection_report is not None
             else os.path.join(job_directory, "genes_rejection_reason.tsv")
         )
+
+        self.container_image: Union[str, None] = container_image
+        self.container_executor: str = container_executor
+        self.bindings: Union[str, None] = bindings
+        self.binding_map: Union[Dict[str, str], None] = self._process_bindings(bindings)
 
         self.run()
 
@@ -690,83 +707,12 @@ class CesarScheduler(CommandLineManager):
             raise AttributeError("Invalid value provided in the comma-separated list")
         return out_list
 
-    # def parse_memory_report(self) -> None: ## DONE
-    #     """
-    #     Given the path to a CESAR preprocessing report,
-    #     parses the results producing a storage class instances
-    #     """
-    #     ## TODO:
-    #     ## 1) Save the cumulative RAM requirements
-    #     ## 2) Add the same-locus filter by maximal RAM requirements
-    #     tr2proj2coords: Dict[str, Dict[str, Tuple[str, int]]] = defaultdict(dict)
-    #     for line in self.memory_report.readlines():
-    #         data: List[str] = line.rstrip().split('\t')
-    #         tr: str = data[0]
-    #         chain: str = data[1]
-    #         proj: str = f'{tr}.{chain}' ## TODO: For some reasons, I'm still using legacy format in the memory file; switch to storing projection name in a single column and update the code accordingly
-    #         max_mem: float = float(data[2].split()[0])
-    #         sum_mem: int = ceil(float(data[3].split()[0]) + 0.1)
-    #         chrom: str = data[6]
-    #         start: int = int(data[7])
-    #         stop: int = int(data[8])
-    #         max_inter: int = int((stop - start) * 0.3)
-    #         path: str = data[-1]
-    #         ## check if there are other projections of the same transcripts
-    #         ## corresponding to the same locus; if so, check the one with the least
-    #         ## memory requirements
-    #         if tr not in tr2proj2coords:
-    #             self.proj2max_mem[proj] = max_mem
-    #             self.proj2sum_mem[proj] = sum_mem
-    #             self.proj2storage[proj] = path
-    #             tr2proj2coords[tr][chain] = (chrom, start, stop)
-    #             print(f'First occurrence; adding {proj}')
-    #         else:
-    #             to_del: List[str] = []
-    #             for _chain in tr2proj2coords[tr]:
-    #                 _chrom, _start, _stop = tr2proj2coords[tr][_chain]
-    #                 if chrom != _chrom:
-    #                     continue
-    #                 _max_inter: int = int((_stop - _start) * 0.3)
-    #                 inter: int = intersection(start, stop, _start, _stop)
-    #                 if inter >= max_inter or inter >= _max_inter:
-    #                     _proj: str = f'{tr}.{_chain}'
-    #                     _max_mem: float = self.proj2max_mem[_proj]
-    #                     if max_mem > _max_mem:
-    #                         print(f'{proj} intersects {_proj} but consumes more memory; breaking')
-    #                         rej_reason: Tuple[str] = REDUNDANT_ENTRY.format(proj)
-    #                         self.rejected_transcripts.append(rej_reason)
-    #                         break
-    #                     elif max_mem == _max_mem and int(_chain) > (chain):
-    #                         rej_reason: Tuple[str] = REDUNDANT_ENTRY.format(proj)
-    #                         self.rejected_transcripts.append(rej_reason)
-    #                         break
-    #                     else:
-    #                         print(f'{proj} intersects {_proj} and consumes less memory; removing {_proj}')
-    #                         del self.proj2max_mem[_proj]
-    #                         del self.proj2sum_mem[_proj]
-    #                         del self.proj2storage[_proj]
-    #                         to_del.append(_chain)
-    #                         rej_reason: str = REDUNDANT_ENTRY.format(_proj)
-    #                         self.rejected_transcripts.append(rej_reason)
-    #             else:
-    #                 self.proj2max_mem[proj] = max_mem
-    #                 self.proj2sum_mem[proj] = sum_mem
-    #                 self.proj2storage[proj] = path
-    #                 tr2proj2coords[tr][chain] = (chrom, start, stop)
-    #                 print(f'No intersections among the previous records; adding {proj}')
-    #             for chain_to_del in to_del:
-    #                 del tr2proj2coords[tr][chain_to_del]
-    #         print('*'*30)
-
     def parse_memory_report(self) -> None:
         """
         Given the path to a CESAR preprocessing report,
         parses the results producing a storage class instances
         """
-        ## TODO:
-        # tr2proj2coords: Dict[str, Dict[str, Tuple[str, int]]] = defaultdict(dict)
         tr2chrom2graph: Dict[str, Dict[str, nx.Graph]] = defaultdict(dict)
-        # print('UAAAAA')
         for line in self.memory_report.readlines():
             data: List[str] = line.rstrip().split("\t")
             if not data or not data[0]:
@@ -790,18 +736,14 @@ class CesarScheduler(CommandLineManager):
                 self.processed_pseudogene_list is not None
                 and proj in self.processed_pseudogene_list
             )
-            # print(f'{entry=}')
-            # print(f'{tr2chrom2graph=}, {tr=}, {chrom=}')
             if (
                 tr not in tr2chrom2graph.keys()
                 or chrom not in tr2chrom2graph[tr].keys()
             ):
-                # print(f'Creating a new graph for {proj}')
                 new_graph: nx.Graph = nx.Graph()
                 new_graph.add_node(entry)
                 tr2chrom2graph[tr][chrom] = new_graph
             else:
-                # print(f'Adding {proj} to an existing graph')
                 tr2chrom2graph[tr][chrom].add_node(entry)
                 ## do not intersect fragmented and whole projections
                 if fragmented_projection(chain):
@@ -827,19 +769,7 @@ class CesarScheduler(CommandLineManager):
         for tr, chroms in tr2chrom2graph.items():
             for chrom in chroms:
                 proj_graph: nx.Graph = tr2chrom2graph[tr][chrom]
-                # debug = any(x.name == 'ENST00000006724.CEACAM7.201279' for x in proj_graph.nodes())
-                # if debug:
-                #     for ooo in proj_graph.nodes():
-                #         print(ooo)
-                #     print('-'*30)
-                #     for aaa in proj_graph.edges():
-                #         print(aaa)
-                #     print('-'*30 + '\n')
-                # print(proj_graph)
-                # print(f'{proj_graph.nodes()=}')
-                # print(f'{proj_graph.edges()=}')
                 if len(proj_graph.nodes()) == 1:
-                    # print('Solitary node:')
                     sole_node: ProjectionMeta = next(iter(proj_graph.nodes()))
                     proj_: str = sole_node.name
                     self.proj2max_mem[proj_] = sole_node.max_mem
@@ -854,7 +784,7 @@ class CesarScheduler(CommandLineManager):
                     # if debug and art_nodes:
                     #     print(f'The following nodes are likely chimeric: {[x.name for x in art_nodes]}')
                     for art_node in art_nodes:
-                        rej_reason: Tuple[str] = CHIMERIC_ENTRY.format(art_node.name)
+                        rej_reason: Tuple[str] = RejectionReasons.CHIMERIC_ENTRY.format(art_node.name)
                         self.rejected_transcripts.append(rej_reason)
                     comp.remove_nodes_from(art_nodes)
                     subcliques: List[nx.Graph] = get_connected_components(comp)
@@ -895,11 +825,8 @@ class CesarScheduler(CommandLineManager):
                                 self.proj2sum_mem[proj_] = node.sum_mem
                                 self.proj2storage[proj_] = node.path
                             else:
-                                rej_reason: Tuple[str] = REDUNDANT_ENTRY.format(proj_)
+                                rej_reason: Tuple[str] = RejectionReasons.REDUNDANT_ENTRY.format(proj_)
                                 self.rejected_transcripts.append(rej_reason)
-                        # print('-'*30)
-                    # print('*'*30)
-        # print(f'{self.proj2storage=}')
 
     def allocate_job_numbers(self) -> None:
         """
@@ -953,7 +880,7 @@ class CesarScheduler(CommandLineManager):
                         memory_buckets["big"].append((proj, max_mem))
                         self.heavy_job_max_mem = max(self.heavy_job_max_mem, max_mem)
                     else:
-                        rej_reason: Tuple[str] = HEAVY_ENTRY.format(proj)
+                        rej_reason: Tuple[str] = RejectionReasons.HEAVY_ENTRY.format(proj)
                         self.rejected_transcripts.append(
                             rej_reason
                         )  ## In need of Michael's advice here
@@ -1058,10 +985,20 @@ class CesarScheduler(CommandLineManager):
                     proj_name_split: List[str] = proj.split("#")
                     tr: str = "#".join(proj_name_split[:-1])
                     chain: str = proj_name_split[-1]
-                    input_dir: str = Path(self.proj2storage[proj]).absolute()
+                    input_dir: str = Path(
+                        self.proj2storage[proj]
+                    ).absolute()
                     input_file: str = os.path.join(input_dir, "exon_storage.hdf5")
+                    if self.container_image is not None:
+                        bindings: str = self.bindings if self.bindings is not None else ""
+                        executor: str = (
+                        f"{self.container_executor} run {{}} {{}} {{}} "
+                        f"{CESAR_WRAPPER_SCRIPT}"
+                    )
+                    else:
+                        executor: str = CESAR_WRAPPER_SCRIPT
                     cmd: str = (
-                        f'{CESAR_WRAPPER_SCRIPT} "{tr}" '
+                        f"{executor} \"{tr}\" "
                         f"{chain} {input_file} -cs {self.cesar_binary} "
                         f"-scm {self.correction_mode} "
                         f"-msp {self.min_splice_prob} "
@@ -1110,6 +1047,17 @@ class CesarScheduler(CommandLineManager):
                         cmd += " --parallel_job"
                     # cmd += ' -v'
                     cmd += f" -o {cesar_output}"
+                    if self.container_image is not None:
+                        if self.binding_map is not None:
+                            bind_key: str = CONTAINER_ENGINE2BIND_KEY[self.container_executor]
+                            bindings: str = self.bindings if self.bindings is not None else ""
+                            for key, value in self.binding_map.items():
+                                if not value:
+                                    continue
+                                cmd = cmd.replace(key, value)
+                            cmd = cmd.format(bind_key, bindings, self.container_image)
+                        else:
+                            cmd = cmd.format("", "", self.container_image)
                     cmds.append(cmd)
                 jobfile_dest: str = os.path.join(self.job_directory, f"batch{jobid}.ex")
                 with open(jobfile_dest, "w") as h2:
@@ -1164,6 +1112,25 @@ class CesarScheduler(CommandLineManager):
         with open(self.rejection_file, "w") as h:
             for line in self.rejected_transcripts:
                 h.write(line + "\n")
+
+    def _process_bindings(self, bindings: Union[str, None]) -> Union[Dict[str, str], None]:
+        """Processes the directory bindings for the containter engine"""
+        if bindings is None:
+            return None
+        binding_dict: Dict[str, str] = {}
+        for mount in bindings.strip().split(','):
+            if ':' not in mount:
+                if mount[-1] != os.sep:
+                    mount += os.sep
+                binding_dict[mount] = ''
+                continue
+            key, value = mount.split(':')
+            if key[-1] != os.sep:
+                key += os.sep
+            if value[-1] != os.sep:
+                value += os.sep
+            binding_dict[key] = value
+        return binding_dict
 
 
 if __name__ == "__main__":

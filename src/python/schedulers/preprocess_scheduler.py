@@ -27,7 +27,9 @@ from modules.cesar_wrapper_constants import (
     LAST_DONOR,
     MIN_ASMBL_GAP_SIZE,
 )
-from modules.constants import PRE_CLEANUP_LINE
+from modules.constants import (
+    CONTAINER_ENGINE2BIND_KEY, PRE_CLEANUP_LINE, RejectionReasons
+)
 from modules.shared import (
     CONTEXT_SETTINGS,
     SPLIT_JOB_HEADER,
@@ -41,6 +43,9 @@ PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 # sys.path.append(PARENT)
 
 CESAR_PREPROCESS_SCRIPT: str = os.path.join(PARENT, "cesar_preprocess.py")
+CESAR_PREPROCESS_SCRIPT_REL: str = os.path.join(
+    *PARENT.split(os.sep)[-2:], "cesar_preprocess.py" 
+)
 HG38_CANON_U2_ACCEPTOR: str = os.path.join(TOGA2_ROOT, *HG38_CANON_U2_ACCEPTOR)
 HG38_CANON_U2_DONOR: str = os.path.join(TOGA2_ROOT, *HG38_CANON_U2_DONOR)
 HG38_NON_CANON_U2_ACCEPTOR: str = os.path.join(TOGA2_ROOT, *HG38_NON_CANON_U2_ACCEPTOR)
@@ -59,17 +64,6 @@ LAST_DONOR: str = os.path.join(TOGA2_ROOT, *LAST_DONOR)
 # HL_LAST_DONOR: str = os.path.join(*HL_LAST_DONOR)
 # HL_EQ_ACCEPTOR: str = os.path.join(TOGA2_ROOT, *HL_EQ_ACCEPTOR)
 # HL_EQ_DONOR: str = os.path.join(TOGA2_ROOT, *HL_EQ_DONOR)
-LIMIT_EXCEED_REJ: str = (
-    "PROJECTION\t{}\t0\tNumber of homologous chains exceeds the set limit ({})\t"
-    "CHAIN_LIMIT_EXCEEDED\tN"
-)
-MULTIPLE_ORTHOLOG_REJ: str = (
-    "TRANSCRIPT\t{}\t0\tMultiple orthologs detected\tMULTIPLE_ORTHOLOGY\tN"
-)
-NO_CHAINS_REJ: str = "TRANSCRIPT\t{}\t0\tNo covering chains detected\tNO_CHAINS\tN"
-ZERO_ORTHOLOGY_REJ: str = (
-    "TRANSCRIPT\t{}\t0\tNo orthologous chains detected\tZERO_ORTHOLOGY\tN"
-)
 OK: str = ".ok"
 TOUCH: str = "touch {}"
 
@@ -93,6 +87,7 @@ class PreprocessingScheduler(CommandLineManager):
         "max_chain_number",
         "orthologs_only",
         "one2one_only",
+        "paralogs_over_spanning",
         "parallel_execution",
         "twobit2fa_binary",
         "disable_spanning_chains",
@@ -128,6 +123,10 @@ class PreprocessingScheduler(CommandLineManager):
         "ppgene_report",
         "rejected_transcripts",
         "rejection_report",
+        "container_image", 
+        "container_executor", 
+        "bindings", 
+        "binding_map",
         "toga1",
         "toga1_plus_cesar",
         "v",
@@ -152,6 +151,7 @@ class PreprocessingScheduler(CommandLineManager):
         max_chain_number: Optional[int] = 100,
         orthologs_only: Optional[bool] = False,
         one2one_only: Optional[bool] = False,
+        paralogs_over_spanning: Optional[bool] = False,
         parallel_execution: Optional[bool] = False,
         disable_spanning_chains: Optional[bool] = False,
         no_inference: Optional[bool] = False,
@@ -183,6 +183,9 @@ class PreprocessingScheduler(CommandLineManager):
         annotate_processed_pseudogenes: Optional[bool] = False,
         processed_pseudogene_report: Optional[Union[click.File, None]] = None,
         rejection_report: Optional[Union[click.File, None]] = None,
+        container_image: Optional[Union[click.Path, None]] = None,
+        container_executor: Optional[str] = 'apptainer',
+        bindings: Optional[Union[str, None]] = None,
         toga1_compatible: Optional[bool] = False,
         toga1_plus_corrected_cesar: Optional[bool] = False,
         log_name: Optional[Union[str, None]] = None,
@@ -213,6 +216,7 @@ class PreprocessingScheduler(CommandLineManager):
         self.max_chain_number: int = max_chain_number
         self.orthologs_only: bool = orthologs_only
         self.one2one_only: bool = one2one_only
+        self.paralogs_over_spanning: bool = paralogs_over_spanning
         self.parallel_execution: bool = parallel_execution
         self.disable_spanning_chains: bool = disable_spanning_chains
         self.no_inference: bool = no_inference
@@ -268,6 +272,12 @@ class PreprocessingScheduler(CommandLineManager):
             self.bigwig2wig_binary: click.Path = bigwig2wig_binary
         self.min_splice_prob: float = max(0.0, min(min_splice_prob, 1.0))
         self.annotate_ppgenes: bool = annotate_processed_pseudogenes
+
+        self.container_image: Union[str, None] = container_image
+        self.container_executor: str = container_executor
+        self.bindings: Union[str, None] = bindings
+        self.binding_map: Union[Dict[str, str], None] = self._process_bindings(bindings)
+
         self.toga1: bool = toga1_compatible
         self.toga1_plus_cesar: bool = toga1_plus_corrected_cesar
 
@@ -345,7 +355,7 @@ class PreprocessingScheduler(CommandLineManager):
                 self.ppgene_list.append(f"{tr}#{chain}")
         for chain in dropped:
             self.rejected_transcripts.append(
-                LIMIT_EXCEED_REJ.format(f"{tr}#{chain}", self.max_chain_number)
+                RejectionReasons.LIMIT_EXCEED_REJ.format(f"{tr}#{chain}", self.max_chain_number)
             )
 
     def parse_mapper_file(self) -> None:
@@ -361,7 +371,7 @@ class PreprocessingScheduler(CommandLineManager):
                 orth: List[str] = sorted(data[1].split(",")) if data[1] != "0" else []
                 if self.one2one_only and (len(orth) > 1 or tr in self.tr2orth):
                     self.rejected_transcripts.append(
-                        MULTIPLE_ORTHOLOG_REJ.format(
+                        RejectionReasons.MULTIPLE_ORTHOLOG_REJ.format(
                             tr
                         )  ## TODO: Clarify loss status with Michael
                     )
@@ -370,9 +380,7 @@ class PreprocessingScheduler(CommandLineManager):
                 if self.orthologs_only:
                     if not orth:
                         self.rejected_transcripts.append(
-                            ZERO_ORTHOLOGY_REJ.format(
-                                tr
-                            )  ## Clarify loss status with Michael
+                            RejectionReasons.ZERO_ORTHOLOGY_REJ.format(tr)
                         )
                     continue
                 par: List[str] = sorted(data[2].split(",")) if data[2] != "0" else []
@@ -389,7 +397,7 @@ class PreprocessingScheduler(CommandLineManager):
                 )
                 if not orth and not par and not spanning and not ppgenes:
                     self.rejected_transcripts.append(
-                        NO_CHAINS_REJ.format(tr)  ## Clarify loss status with Michael
+                        RejectionReasons.NO_CHAINS_REJ.format(tr)
                     )
                 ## processed pseudogenes, if they are considered,
                 ## are added regardless of what other projections are present
@@ -398,18 +406,26 @@ class PreprocessingScheduler(CommandLineManager):
                 if orth:
                     self._add_chain2trs(tr, orth)
                     continue
-                if spanning:
-                    # self.tr2spanning[tr].extend(spanning)
-                    self._add_chain2trs(tr, spanning)
-                    continue
-                # else:
-                #     self._add_chain2trs(tr, par)
-                self._to_log(
-                    f"No orthologs or spanning chains found for transcript {tr}; "
-                    "processing paralogs instead",
-                    "warning",
-                )
-                self._add_chain2trs(tr, par, paralogs=True)
+                if self.paralogs_over_spanning:
+                    if par:
+                        self._to_log(
+                            f"No orthologs or spanning chains found for transcript {tr}; "
+                            "processing paralogs instead",
+                            "warning",
+                        )
+                        self._add_chain2trs(tr, par, paralogs=True)
+                    elif spanning:
+                        self._add_chain2trs(tr, spanning)
+                else:
+                    if spanning:
+                        self._add_chain2trs(tr, spanning)
+                    else:
+                        self._to_log(
+                            f"No orthologs or spanning chains found for transcript {tr}; "
+                            "processing paralogs instead",
+                            "warning",
+                        )
+                        self._add_chain2trs(tr, par, paralogs=True)
 
     def parse_fragment_file(self) -> None:
         """ """
@@ -505,12 +521,19 @@ class PreprocessingScheduler(CommandLineManager):
                 prepr_output: str = Path(
                     os.path.join(self.preprocessing_directory, f"batch{jobid}")
                 ).absolute()
-                with open(job_file, "w") as h2:
-                    h2.write("\n".join(SPLIT_JOB_HEADER) + "\n")
-                    h2.write(PRE_CLEANUP_LINE.format(prepr_output) + "\n")
+                if self.container_image is not None:
+                    executor: str = (
+                        f'{self.container_executor} run {{}} {{}} {{}} '
+                        f'{CESAR_PREPROCESS_SCRIPT_REL}'
+                    )
+                else:
+                    executor: str = CESAR_PREPROCESS_SCRIPT
+                with open(job_file, 'w') as h2:
+                    h2.write('\n'.join(SPLIT_JOB_HEADER) + '\n')
+                    h2.write(PRE_CLEANUP_LINE.format(prepr_output) + '\n')
                     for chain, trs in inputs:
                         cmd: str = (
-                            f'{CESAR_PREPROCESS_SCRIPT} "{trs}" {chain} {self.ref_annotation} '
+                            f"{executor} \"{trs}\" {chain} {self.ref_annotation} "
                             f"{self.ref} {self.query} {self.chain_file} "
                             f"{self.ref_chrom_sizes} {self.query_chrom_sizes} "
                             f" --cesar_canon_u2_acceptor {self.cesar_canon_u2_acceptor}"
@@ -561,8 +584,19 @@ class PreprocessingScheduler(CommandLineManager):
                         if self.spliceai_dir is not None:
                             cmd += f" --spliceai_dir {self.spliceai_dir}"
                             cmd += f" --min_splice_prob {self.min_splice_prob}"
-                        cmd += f" --output {prepr_output}"  # -v'
-                        h2.write(cmd + "\n")
+                        cmd += f" --output {prepr_output}" # -v"
+                        if self.container_image is not None:
+                            if self.binding_map is not None:
+                                bind_key: str = CONTAINER_ENGINE2BIND_KEY[self.container_executor]
+                                bindings: str = self.bindings if self.bindings is not None else ''
+                                for key, value in self.binding_map.items():
+                                    if not value:
+                                        continue
+                                    cmd = cmd.replace(key, value)
+                                cmd = cmd.format(bind_key, bindings, self.container_image)
+                            else:
+                                cmd = cmd.format("", "", self.container_image)
+                        h2.write(cmd + '\n')
                         ok_file: str = os.path.join(prepr_output, OK)
                     h2.write(TOUCH.format(ok_file) + "\n")
                 file_mode: bytes = os.stat(job_file).st_mode
@@ -593,6 +627,26 @@ class PreprocessingScheduler(CommandLineManager):
         with open(self.rejection_report, "w") as h:
             for line in self.rejected_transcripts:
                 h.write(line + "\n")
+
+
+    def _process_bindings(self, bindings: Union[str, None]) -> Union[Dict[str, str], None]:
+        """Processes the directory bindings for the containter engine"""
+        if bindings is None:
+            return None
+        binding_dict: Dict[str, str] = {}
+        for mount in bindings.strip().split(','):
+            if ':' not in mount:
+                if mount[-1] != os.sep:
+                    mount += os.sep
+                binding_dict[mount] = ''
+                continue
+            key, value = mount.split(':')
+            if key[-1] != os.sep:
+                key += os.sep
+            if value[-1] != os.sep:
+                value += os.sep
+            binding_dict[key] = value
+        return binding_dict
 
 
 @click.command(context_settings=CONTEXT_SETTINGS, no_args_is_help=True)
@@ -702,6 +756,17 @@ class PreprocessingScheduler(CommandLineManager):
     show_default=True,
     help=(
         "If set, only transcript with a single orthologous projection are considered"
+    ),
+)
+@click.option(
+    "--paralogs_over_spanning",
+    type=bool,
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help=(
+        "If set, paralogous projections take priority over spanning-chain projections "
+        "when determining the chains to project the transcript through"
     ),
 )
 @click.option(
@@ -989,6 +1054,35 @@ class PreprocessingScheduler(CommandLineManager):
         "A path to save rejected projections to "
         "[default:PREPROCESS_JOB_DIRECTORY/genes_rejection_reason.tsv]"
     ),
+)
+@click.option(
+    '--container_image',
+    type=click.Path(exists=True),
+    default=None,
+    show_default=True,
+    help=(
+        'A path to the executable TOGA2 container image. '
+        'All the parallel step scripts will be executed by invoking this container. '
+    )
+)
+@click.option(
+    '--container_executor',
+    type=str,
+    default='apptainer',
+    show_default=True,
+    help='A name for container executor engine'
+)
+@click.option(
+    '--bindings',
+    type=str,
+    metavar="STRING",
+    default=None,
+    show_default=True,
+    help=(
+        'A list of directory mounts to provide to the container instances at parallel steps. '
+        'Binginds should be provided as expected by the container executor engine and wrapped in '
+        'quotes, e.g. "/tmp,/src/,~/:/home"'
+    )
 )
 ## benchmarking-related - REMOVE IN THE FINAL VERSION
 @click.option(

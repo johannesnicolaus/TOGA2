@@ -58,8 +58,8 @@ class ReferenceBundle:  ## initialized from a JSON object
         "query_bed",
         "exon_meta",
         "ref_isoforms",
-        "paralogs",
-        "ppgenes",
+        # "paralogs",
+        # "ppgenes",
         "ucsc_bigbed",
         "protein_file",
         "nucleotide_file",
@@ -74,8 +74,8 @@ class ReferenceBundle:  ## initialized from a JSON object
         self.query_bed: str = kwargs["query_bed"]
         self.exon_meta: str = kwargs["exon_meta"]
         self.ref_isoforms: Union[str, None] = kwargs.get("reference_isoforms", None)
-        self.paralogs: Union[str, None] = kwargs.get("paralog_list", None)
-        self.ppgenes: Union[str, None] = kwargs.get("processed_pseudogene_list", None)
+        # self.paralogs: Union[str, None] = kwargs.get("paralog_list", None)
+        # self.ppgenes: Union[str, None] = kwargs.get("processed_pseudogene_list", None)
         self.ucsc_bigbed: Union[str, None] = kwargs.get("ucsc_bigbed", None)
         self.protein_file: Union[str, None] = kwargs.get("protein_file", None)
         self.nucleotide_file: Union[str, None] = kwargs.get("nucleotide_file", None)
@@ -261,8 +261,9 @@ class AnnotationIntegrator(CommandLineManager):
             self.read_annotation(species)
             self.read_exon_meta(species)
             self.read_ref_isoforms(species)
-            self.read_paralogs(species)
-            self.read_ppgenes(species)
+            ## the fol
+            # self.read_paralogs(species)
+            # self.read_ppgenes(species)
 
     def _check_binaries(self) -> None:
         """
@@ -384,6 +385,8 @@ class AnnotationIntegrator(CommandLineManager):
                 # if status not in self.accepted_statuses:
                 #     continue
                 name: str = data[3]
+                if "," in name:
+                    name = name.split("$")[0]
                 chrom: str = data[0]
                 start: int = int(data[6])
                 end: int = int(data[7])
@@ -412,6 +415,12 @@ class AnnotationIntegrator(CommandLineManager):
                     self.query_projections[name] = record
                 self.query_proj2ref[name] = species
                 self.query_annotation[chrom].append(name)
+                if "#paralog" in name:
+                    self.paralog_pool.add(base_proj_name(name))
+                    # self.paralog_pool.add(name)
+                if "#retro" in name:
+                    self.ppgene_pool.add(base_proj_name(name))
+                    # self.ppgene_pool.add(name)
 
     def read_exon_meta(self, species) -> None:
         """
@@ -434,6 +443,10 @@ class AnnotationIntegrator(CommandLineManager):
                 if data[0] == EXON_HEADER:
                     continue
                 proj: str = data[0]
+                if proj in self.paralog_pool:
+                    proj += "#paralog"
+                elif proj in self.ppgene_pool:
+                    proj += "#retro"
                 ## do not include projections from transcripts outside of the final annotation files
                 if proj not in self.query_projections:
                     continue
@@ -472,8 +485,8 @@ class AnnotationIntegrator(CommandLineManager):
                 gene, tr = data
                 self.ref_proj2gene[tr] = gene
 
-    def read_paralogs(self, species: str) -> None:
-        """Extracts paralogous projections' names"""
+    def read_paralogs(self, species: str) -> None: ## TODO: Can be replaced with postfixes
+        """DEPRECATED: Extracts paralogous projections' names"""
         file: Union[str, None] = self.ref_data[species].paralogs
         if file is None:
             self._to_log(
@@ -489,8 +502,8 @@ class AnnotationIntegrator(CommandLineManager):
                 line = line.strip()
                 self.paralog_pool.add(line)
 
-    def read_ppgenes(self, species: str) -> None:
-        """Extracts processed pseudogene/retrogene projections' names"""
+    def read_ppgenes(self, species: str) -> None: ## TODO: Can be replaced with postfixes
+        """DEPRECATED: Extracts processed pseudogene/retrogene projections' names"""
         file: Union[str, None] = self.ref_data[species].ppgenes
         if file is None:
             self._to_log(
@@ -510,7 +523,13 @@ class AnnotationIntegrator(CommandLineManager):
         """
         Infers query genes from combined reference annotations.
         The logic is effectively borrowed from infer_query_genes.py :
-        any two projections overlapping by at least one coding base
+        any two projections overlapping by at least one coding base 
+        on the same strand are collapsed into a single gene, 
+        with the following exceptions:
+        1) paralogs overlapping orthologs are not included 
+        in the gene composition and are further discarded;
+        2) retrogenes overlapping either orthologs or paralogs 
+        are not included in the gene composition and are further discarded
         """
         self._to_log(
             "Inferring query genes from the combined annotation; might take a while"
@@ -530,8 +549,10 @@ class AnnotationIntegrator(CommandLineManager):
                 proj_out: BedRecord = self.query_projections[name_out]
                 out_start: int = proj_out.start
                 out_end: int = proj_out.end
-                out_paralog: bool = name_out in self.paralog_pool
-                out_ppgene: bool = name_out in self.ppgene_pool
+                # out_paralog: bool = name_out in self.paralog_pool
+                # out_ppgene: bool = name_out in self.ppgene_pool
+                out_paralog: bool = base_proj_name(name_out) in self.paralog_pool
+                out_ppgene: bool = base_proj_name(name_out) in self.ppgene_pool
                 out_ortholog: bool = not (out_paralog or out_ppgene)
                 discarded: bool = False
                 edges: List[str] = []
@@ -553,8 +574,10 @@ class AnnotationIntegrator(CommandLineManager):
                     if proj_in.strand != proj_out.strand:
                         continue
                     ## ignore projections encoded by different strands
-                    in_paralog: bool = name_in in self.paralog_pool
-                    in_ppgene: bool = name_in in self.ppgene_pool
+                    # in_paralog: bool = name_in in self.paralog_pool
+                    # in_ppgene: bool = name_in in self.ppgene_pool
+                    in_paralog: bool = base_proj_name(name_in) in self.paralog_pool
+                    in_ppgene: bool = base_proj_name(name_in) in self.ppgene_pool
                     in_ortholog: bool = not (in_paralog or in_ppgene)
                     has_intersection: bool = False
                     for ex_out in proj_out.exons:
@@ -568,6 +591,7 @@ class AnnotationIntegrator(CommandLineManager):
                                 has_intersection = True
                                 break
                         if has_intersection:
+                            # if out_paralog or in_paralog:
                             break
                     if has_intersection:
                         ## ortholog + paralog/pp: discard the non-orthologous prediction
@@ -578,15 +602,15 @@ class AnnotationIntegrator(CommandLineManager):
                             self.discarded_items.add(name_out)
                             discarded = True
                             break
-                        ## ppgene + paralog: discard the paralog - TODO: Discuss
-                        if out_ppgene and in_paralog:
+                        ## ppgene + paralog: discard the ppgene
+                        if out_paralog and in_ppgene:
                             self.discarded_items.add(name_in)
                             continue
-                        if out_paralog and in_ppgene:
+                        if out_ppgene and in_paralog:
                             self.discarded_items.add(name_out)
                             discarded = True
                             break
-                        ## namesakes: add the edge
+                        ## same orthology class: add the edge
                         edges.append(name_in)
                 if discarded:
                     continue
@@ -622,6 +646,7 @@ class AnnotationIntegrator(CommandLineManager):
             for component in components:
                 ## initialize a temporary storage for initial candidates
                 selected: Dict[str, str] = {}
+                name2lines_selected: Dict[str, List[str]] = defaultdict(list)
                 ## define the best class
                 best_status: int = 0
                 ## set a semaphore for whether the user-defined loss classes
@@ -636,33 +661,46 @@ class AnnotationIntegrator(CommandLineManager):
                             ## this is the first representative of the allowed loss classes;
                             ## wipe out the previous instances
                             selected.clear()
+                            name2lines_selected.clear()
                         allowed_class_found = True
                     else:
-                        ## do not let the items worse than the best currentl
+                        ## do not let the items worse than the current best
                         if status < best_status:
                             continue
                     ## at this point, this is a likely candidate
                     ## however, chances are an item in exactly the same coordinates
                     ## has been already found
-                    if proj.lines[0] in selected:
-                        prev_name: str = selected[proj.lines[0]]
-                        prev_proj: BedRecord = self.query_projections[prev_name]
-                        prev_status: int = CLASS_TO_NUM[prev_proj.loss_status]
-                        ## pick the one with the best loss status
-                        if prev_status > status:
-                            continue
-                        ## if it is a tie, go for the more preferred reference
-                        elif prev_status == status:
-                            species: str = self.query_proj2ref[name]
-                            priority: int = self.ref_data[species].priority
-                            prev_species: str = self.query_proj2ref[prev_name]
-                            prev_priority: int = self.ref_data[prev_species].priority
-                            ## if the previous prediction's priority is higher (lower) or equal, keep it
-                            if prev_priority <= priority:
+                    if any(x in selected for x in proj.lines):
+                        prev_is_better: bool = False
+                        for line in proj.lines:
+                            if line not in selected:
                                 continue
+                            prev_name: str = selected[line]
+                            prev_proj: BedRecord = self.query_projections[prev_name]
+                            prev_status: int = CLASS_TO_NUM[prev_proj.loss_status]
+                            ## pick the one with the best loss status
+                            if prev_status > status:
+                                continue
+                            ## if it is a tie, go for the more preferred reference
+                            elif prev_status == status:
+                                species: str = self.query_proj2ref[name]
+                                priority: int = self.ref_data[species].priority
+                                prev_species: str = self.query_proj2ref[prev_name]
+                                prev_priority: int = self.ref_data[prev_species].priority
+                                ## if the previous prediction's priority is higher (lower) or equal, keep it
+                                if prev_priority <= priority:
+                                    prev_is_better = True
+                                    break
+                                else:
+                                    for prev_line in name2lines_selected[prev_name]:
+                                        del selected[prev_line]
+                        if prev_is_better:
+                            continue
                         ## otherwise, the new prediction is the winner
                     best_status = max(best_status, status)
-                    selected[proj.lines[0]] = name
+                    for line in proj.lines:
+                        selected[line] = name
+                    name2lines_selected[name] = proj.lines
                 ## all the projections have been processed; name the gene and define its coordinates
                 all_projs: List[BedRecord] = [
                     self.query_projections[x] for x in selected.values()
@@ -680,8 +718,10 @@ class AnnotationIntegrator(CommandLineManager):
                 }
                 ## second, define prefix
                 if any(base_proj_name(x.name) in self.paralog_pool for x in all_projs):
+                # if any(x.name in self.paralog_pool for x in all_projs):
                     prefix: str = "paralog_"
                 elif any(base_proj_name(x.name) in self.ppgene_pool for x in all_projs):
+                # elif any(x.name in self.ppgene_pool for x in all_projs):
                     prefix: str = "retro_"
                 elif not allowed_class_found:
                     if best_status > CLASS_TO_NUM["M"]:

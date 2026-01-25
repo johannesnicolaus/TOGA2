@@ -47,8 +47,8 @@ from modules.shared import (
 LOCATION: str = os.path.dirname(os.path.abspath(__file__))
 PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
 sys.path.extend([LOCATION, PARENT])
+
 __author__ = "Yury V. Malovichko"
-__version__ = "0.5"
 __year__ = "2023"
 
 

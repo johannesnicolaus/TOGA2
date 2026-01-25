@@ -1,0 +1,152 @@
+name: TOGA2 CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          gcc \
+          g++ \
+          make \
+          wget \
+          curl \
+          git \
+          bash \
+          cargo \
+          rustc \
+          pkg-config \
+          libhdf5-dev \
+          python3-dev \
+          python3-pip \
+          python3-venv
+    
+    - name: Cache Rust dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          src/rust/target
+          bed2gtf/target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+    
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/pip
+          toga2/
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Set executable permissions
+      run: |
+        chmod +x check_dependencies.py
+        chmod +x toga2.py
+        chmod +x src/python/*.py
+        chmod +x src/python/modules/*.py
+    
+    - name: Install Python packages in toga2 venv and postoga installation
+      run: |
+        if [ ! -d "toga2" ]; then
+          python3 -m venv toga2
+        fi
+        
+        source toga2/bin/activate
+        
+        pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+        
+        python check_dependencies.py install_third_party
+        
+        cd postoga/rustools
+        maturin develop --release
+        cd ../..
+        
+        ./postoga/postoga.py -h
+    
+    - name: Install UCSC binaries
+      run: |
+        make install_binaries
+    
+    - name: Build C components
+      run: |
+        make build_c
+    
+    - name: Build Cython components
+      run: |
+        if [ ! -d "toga2" ]; then
+          python3 -m venv toga2
+        fi
+        
+        source toga2/bin/activate
+        
+        pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+        make build_cython
+    
+    - name: Build Rust components
+      run: |
+        # install rust
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        source $HOME/.cargo/env
+
+        make build_rust
+    
+    - name: Build CESAR2.0
+      run: |
+        make build_cesar
+    
+    - name: Train models in toga2 venv
+      run: |
+        source toga2/bin/activate
+        make train_models
+    
+    - name: Final integration test
+      run: |
+        if [ ! -d "toga2" ]; then
+          python3 -m venv toga2
+        fi
+
+        source toga2/bin/activate
+        # rm -rf bin/
+        # make
+
+        ./toga2.py -h
+    
+    - name: Verify build artifacts
+      run: |
+        echo "Checking if binaries exist:"
+        ls -la bin/
+        echo "Checking if shared libraries exist:"
+        ls -la src/python/modules/*.so
+        echo "Checking if Rust binaries exist:"
+        ls -la src/rust/target/release/
+        ls -la bed2gtf/target/release/

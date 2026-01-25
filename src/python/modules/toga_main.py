@@ -2,6 +2,7 @@
 TOGA2 main class
 """
 
+import in_place
 import logging
 import os
 import subprocess
@@ -9,13 +10,12 @@ import sys
 import time
 from collections import defaultdict
 from contextlib import nullcontext
-from pathlib import Path
 from shutil import copy, which
 from typing import Any, Dict, List, Optional, Union
 
-import click
+from click.utils import LazyFile
 
-from .constants import TOGA2_SLOT2ARG, TOGA2_SLOTS, Constants
+from .constants import TOGA2_SLOT2ARG, TOGA2_SLOTS, Constants, NameTemplates
 from .parallel_jobs_manager import (
     CustomStrategy,
     NextflowStrategy,
@@ -26,7 +26,6 @@ from .results_checks import ResultChecker, SanityCheckResult
 from .shared import CommandLineManager, dir_name_by_date, get_upper_dir, hex_dir_name
 
 __author__ = "Yury V. Malovichko"
-__version__ = "2.0.6"
 __year__ = "2024"
 __credits__ = ("Bogdan M. Kirilenko", "Michael Hiller")
 
@@ -61,30 +60,37 @@ class TogaMain(CommandLineManager):
 
     def __init__(
         self,
-        ref_2bit: click.Path,
-        query_2bit: click.Path,
-        chain_file: click.Path,
-        ref_annotation: click.Path,
+        ref_2bit: os.PathLike,
+        query_2bit: os.PathLike,
+        chain_file: os.PathLike,
+        ref_annotation: os.PathLike,
+        isoform_file: Optional[os.PathLike],
+        no_isoform_file: Optional[bool],
+        u12_file: Optional[os.PathLike],
+        no_u12_file: Optional[bool],
+        spliceai_dir: Optional[os.PathLike],
+        no_spliceai: Optional[bool],
+        input_directory: Optional[os.PathLike],
+        ref_name: Optional[str],
+        query_name: Optional[str],
         resume_from: Optional[str],
         halt_at: Optional[str],
         selected_feature_batches: Optional[Union[str, None]],
         selected_preprocessing_batches: Optional[Union[str, None]],
         selected_alignment_batches: Optional[Union[str, None]],
         no_utr_annotation: Optional[bool],
-        isoform_file: Optional[click.Path],
-        u12_file: Optional[click.Path],
-        spliceai_dir: Optional[click.Path],
         min_chain_score: Optional[int],
         min_orthologous_chain_score: Optional[int],
         feature_jobs: Optional[int],
         orthology_threshold: Optional[float],
-        single_exon_model: Optional[click.Path],
-        multi_exon_model: Optional[click.Path],
+        single_exon_model: Optional[os.PathLike],
+        multi_exon_model: Optional[os.PathLike],
         use_long_distance_model: Optional[bool],
-        long_distance_model: Optional[click.Path],
+        long_distance_model: Optional[os.PathLike],
         disable_fragment_assembly: Optional[bool],
         orthologs_only: Optional[bool],
         one2ones_only: Optional[bool],
+        paralogs_over_spanning: Optional[bool],
         enable_spanning_chains: Optional[bool],
         annotate_processed_pseudogenes: Optional[bool],
         preprocessing_jobs: Optional[int],
@@ -99,17 +105,17 @@ class TogaMain(CommandLineManager):
         job_nums_per_bin: Optional[str],
         allow_heavy_jobs: Optional[bool],
         cesar_memory_limit: Optional[int],
-        cesar_canon_u2_acceptor: Optional[click.Path],
-        cesar_canon_u2_donor: Optional[click.Path],
-        cesar_non_canon_u2_acceptor: Optional[click.Path],
-        cesar_non_canon_u2_donor: Optional[click.Path],
-        cesar_canon_u12_acceptor: Optional[click.Path],
-        cesar_canon_u12_donor: Optional[click.Path],
-        cesar_non_canon_u12_acceptor: Optional[click.Path],
-        cesar_non_canon_u12_donor: Optional[click.Path],
-        cesar_first_acceptor: Optional[click.Path],
-        cesar_last_donor: Optional[click.Path],
-        separate_splice_site_treatment: Optional[bool],
+        cesar_canon_u2_acceptor: Optional[os.PathLike],
+        cesar_canon_u2_donor: Optional[os.PathLike],
+        cesar_non_canon_u2_acceptor: Optional[os.PathLike],
+        cesar_non_canon_u2_donor: Optional[os.PathLike],
+        cesar_canon_u12_acceptor: Optional[os.PathLike],
+        cesar_canon_u12_donor: Optional[os.PathLike],
+        cesar_non_canon_u12_acceptor: Optional[os.PathLike],
+        cesar_non_canon_u12_donor: Optional[os.PathLike],
+        cesar_first_acceptor: Optional[os.PathLike],
+        cesar_last_donor: Optional[os.PathLike],
+        joint_splice_site_treatment: Optional[bool],
         spliceai_correction_mode: Optional[int],
         min_splice_prob: Optional[float],
         splice_prob_margin: Optional[float],
@@ -119,7 +125,7 @@ class TogaMain(CommandLineManager):
         min_intron_prob_supported: Optional[bool],
         min_intron_prob_unsupported: Optional[bool],
         max_intron_number: Optional[int],
-        matrix: Optional[click.Path],
+        matrix: Optional[os.PathLike],
         mask_n_terminal_mutations: Optional[bool],
         disable_missing_stop_search: Optional[bool],
         accepted_loss_symbols: Optional[str],
@@ -127,50 +133,64 @@ class TogaMain(CommandLineManager):
         max_clique_size: Optional[int],
         use_raxml: Optional[bool],
         orthology_jobs: Optional[int],
-        prank_binary: Optional[Union[click.Path, None]],
-        tree_binary: Optional[Union[click.Path, None]],
+        prank_binary: Optional[Union[os.PathLike, None]],
+        tree_binary: Optional[Union[os.PathLike, None]],
         tree_cpus: Optional[int],
         utr_abs_threshold: Optional[int],
         utr_rel_threshold: Optional[float],
         no_utr_boundary_extrapolation: Optional[bool],
         no_adjacent_utr_extra: Optional[bool],
         fixed_adjacent_utr_extra: Optional[bool],
-        link_file: Optional[Union[click.Path, None]],
+        link_file: Optional[Union[os.PathLike, None]],
         ucsc_prefix: Optional[str],
         parallel_strategy: Optional[str],
-        nextflow_exec_script: Optional[Union[click.Path, None]],
+        nextflow_exec_script: Optional[Union[os.PathLike, None]],
         max_number_of_retries: Optional[int],
-        nextflow_config_dir: Optional[Union[click.Path, None]],
+        nextflow_config_dir: Optional[Union[os.PathLike, None]],
         max_parallel_time: Optional[int],
         cluster_queue_name: Optional[str],
         keep_nextflow_log: Optional[bool],
         ignore_crashed_parallel_batches: Optional[bool],
+        container_image: Optional[os.PathLike],
+        container_executor: Optional[str],
+        bindings: Optional[str],
         legacy_chain_feature_extraction: Optional[bool],
         toga1_compatible: Optional[bool],
         toga1_plus_corrected_cesar: Optional[bool],
         account_for_alternative_frame: Optional[bool],
-        output: Optional[click.Path],
+        output: Optional[os.PathLike],
         project_name: Optional[str],
         keep_temporary_files: Optional[bool],
         verbose: Optional[bool],
         email: Optional[Union[str, None]],
         mailx_binary: Optional[Union[str, None]],
-        fatotwobit_binary: Optional[Union[click.Path, None]],
-        twobittofa_binary: Optional[Union[click.Path, None]],
-        bigwig2wig_binary: Optional[click.Path],
-        bedtobigbed_binary: Optional[Union[click.Path, None]],
-        ixixx_binary: Optional[Union[click.Path, None]],
+        fatotwobit_binary: Optional[Union[os.PathLike, None]],
+        twobittofa_binary: Optional[Union[os.PathLike, None]],
+        bigwig2wig_binary: Optional[os.PathLike],
+        bedtobigbed_binary: Optional[Union[os.PathLike, None]],
+        ixixx_binary: Optional[Union[os.PathLike, None]],
         # version: Optional[bool],
     ) -> None:
         self.v: bool = verbose
         self.project_name: str = project_name
         self.project_id: str = hex_dir_name(self.project_name)
 
-        ## internalized attributes
-        self.ref_2bit: click.Path = self._abspath(ref_2bit)
-        self.query_2bit: click.Path = self._abspath(query_2bit)
-        self.chain_file: click.Path = self._abspath(chain_file)
-        self.ref_annotation: click.Path = self._abspath(ref_annotation)
+        ## command line-configured attributes
+        self.ref_2bit: os.PathLike = self._abspath(ref_2bit)
+        self.query_2bit: os.PathLike = self._abspath(query_2bit)
+        self.chain_file: os.PathLike = self._abspath(chain_file)
+        self.ref_annotation: os.PathLike = self._abspath(ref_annotation)
+
+        self.isoform_file: Union[os.PathLike, None] = self._abspath(isoform_file)
+        self.no_isoform_file: bool = no_isoform_file
+        self.u12_file: Union[os.PathLike, None] = self._abspath(u12_file)
+        self.no_u12_file: bool = no_u12_file
+        self.spliceai_dir: Union[os.PathLike, None] = self._abspath(spliceai_dir)
+        self.no_spliceai: bool = no_spliceai
+
+        self.input_dir: Union[os.PathLike, None] = input_directory
+        self.ref_name: Union[str, None] = ref_name
+        self.query_name: Union[str, None] = query_name
 
         self.resume_from: str = resume_from
         self.halt_at: str = halt_at
@@ -191,24 +211,21 @@ class TogaMain(CommandLineManager):
         )
         self.skip_utr: bool = no_utr_annotation
 
-        self.isoform_file: Union[click.Path, None] = self._abspath(isoform_file)
-        self.u12_file: Union[click.Path, None] = self._abspath(u12_file)
-        self.spliceai_dir: Union[click.Path, None] = self._abspath(spliceai_dir)
-
         self.min_chain_score: int = min_chain_score
         self.min_orth_chain_score: int = min_orthologous_chain_score
 
         self.feature_job_num: int = feature_jobs
         self.orthology_threshold: float = orthology_threshold
-        self.se_model: click.Path = single_exon_model
-        self.me_model: click.Path = multi_exon_model
+        self.se_model: os.PathLike = single_exon_model
+        self.me_model: os.PathLike = multi_exon_model
         self.use_ld_model: bool = long_distance_model
-        self.ld_model: click.Path = long_distance_model
+        self.ld_model: os.PathLike = long_distance_model
 
         self.disable_fragment_assembly: bool = disable_fragment_assembly
         self.annotate_ppgenes: bool = annotate_processed_pseudogenes
         self.orthologs_only: bool = orthologs_only
         self.one2ones_only: bool = one2ones_only
+        self.paralogs_over_spanning: bool = paralogs_over_spanning
         self.enable_spanning_chains: bool = enable_spanning_chains
 
         self.preprocessing_job_num: int = preprocessing_jobs
@@ -221,29 +238,29 @@ class TogaMain(CommandLineManager):
         )
         self.exon_locus_flank: int = exon_locus_flank
         self.assembly_gap_size: int = assembly_gap_size
-        self.cesar_canon_u2_acceptor: click.Path = self._abspath(
+        self.cesar_canon_u2_acceptor: os.PathLike = self._abspath(
             cesar_canon_u2_acceptor
         )
-        self.cesar_canon_u2_donor: click.Path = self._abspath(cesar_canon_u2_donor)
-        self.cesar_non_canon_u2_acceptor: click.Path = self._abspath(
+        self.cesar_canon_u2_donor: os.PathLike = self._abspath(cesar_canon_u2_donor)
+        self.cesar_non_canon_u2_acceptor: os.PathLike = self._abspath(
             cesar_non_canon_u2_acceptor
         )
-        self.cesar_non_canon_u2_donor: click.Path = self._abspath(
+        self.cesar_non_canon_u2_donor: os.PathLike = self._abspath(
             cesar_non_canon_u2_donor
         )
-        self.cesar_canon_u12_acceptor: click.Path = self._abspath(
+        self.cesar_canon_u12_acceptor: os.PathLike = self._abspath(
             cesar_canon_u12_acceptor
         )
-        self.cesar_canon_u12_donor: click.Path = self._abspath(cesar_canon_u12_donor)
-        self.cesar_non_canon_u12_acceptor: click.Path = self._abspath(
+        self.cesar_canon_u12_donor: os.PathLike = self._abspath(cesar_canon_u12_donor)
+        self.cesar_non_canon_u12_acceptor: os.PathLike = self._abspath(
             cesar_non_canon_u12_acceptor
         )
-        self.cesar_non_canon_u12_donor: click.Path = self._abspath(
+        self.cesar_non_canon_u12_donor: os.PathLike = self._abspath(
             cesar_non_canon_u12_donor
         )
-        self.cesar_first_acceptor: click.Path = self._abspath(cesar_first_acceptor)
-        self.cesar_last_donor: click.Path = self._abspath(cesar_last_donor)
-        self.separate_site_treat: bool = separate_splice_site_treatment
+        self.cesar_first_acceptor: os.PathLike = self._abspath(cesar_first_acceptor)
+        self.cesar_last_donor: os.PathLike = self._abspath(cesar_last_donor)
+        self.joint_site_treat: bool = joint_splice_site_treatment
 
         self.min_splice_prob: float = min_splice_prob
         self.splice_prob_margin: float = splice_prob_margin
@@ -284,13 +301,13 @@ class TogaMain(CommandLineManager):
         self.ucsc_prefix: str = ucsc_prefix
 
         self.email: Union[str, None] = email
-        self.mailx_binary: Union[click.Path, None] = mailx_binary
+        self.mailx_binary: Union[os.PathLike, None] = mailx_binary
 
-        self.fatotwobit_binary: Union[click.Path, None] = fatotwobit_binary
-        self.twobittofa_binary: Union[click.Path, None] = twobittofa_binary
-        self.bigwig2wig_binary: click.Path = bigwig2wig_binary
-        self.bedtobigbed_binary: Union[click.Path, None] = bedtobigbed_binary
-        self.ixixx_binary: Union[click.Path, None] = ixixx_binary
+        self.fatotwobit_binary: Union[os.PathLike, None] = fatotwobit_binary
+        self.twobittofa_binary: Union[os.PathLike, None] = twobittofa_binary
+        self.bigwig2wig_binary: os.PathLike = bigwig2wig_binary
+        self.bedtobigbed_binary: Union[os.PathLike, None] = bedtobigbed_binary
+        self.ixixx_binary: Union[os.PathLike, None] = ixixx_binary
 
         self.parallel_strategy: str = parallel_strategy
         self.max_number_of_retries: int = max_number_of_retries
@@ -301,18 +318,24 @@ class TogaMain(CommandLineManager):
         self.max_parallel_time: int = max_parallel_time
         self.keep_nextflow_log: bool = keep_nextflow_log
         self.cluster_queue_name: str = cluster_queue_name
+        self.container_image: Union[os.PathLike, None] = self._abspath(container_image)
+        self.container_executor: str = container_executor
+        self.bindings: Union[str, None] = bindings
         self.ignore_crashed_parallel_batches: bool = ignore_crashed_parallel_batches
         self.legacy_chain_feature_extraction: bool = legacy_chain_feature_extraction
         self.parallel_process_names: List[str] = []
 
-        self.output: str = Path(
+        self.output: str = self._abspath(
             output if output else dir_name_by_date("toga2_run")
-        ).absolute()
+        )
         self.keep_tmp: bool = keep_temporary_files
 
         ## benchmarking flags
         self.toga1: bool = toga1_compatible
         self.toga1_plus_cesar: bool = toga1_plus_corrected_cesar
+
+        ## runtime semaphores
+        self.rejection_log_cleaned: bool = False
 
         ## input genome file status flags; OBSOLETE??
         # self.ref_is_2bit: bool = False
@@ -436,6 +459,8 @@ class TogaMain(CommandLineManager):
         self.query_genes_for_gtf: str = os.path.join(
             self.annot_dir, "query_genes.for_gtf.tsv"
         )
+        self.postoga_tmp: str = os.path.join(self.tmp, "postoga")
+        self.postoga_table_tmp: str = os.path.join(self.postoga_tmp, "toga.table.gz")
 
         ## joblists
         self.feature_extraction_joblist: str = os.path.join(
@@ -565,6 +590,7 @@ class TogaMain(CommandLineManager):
             self.output, "query_annotation.with_utrs.bed"
         )
         self.query_gtf: str = os.path.join(self.output, "query_annotation.gtf")
+        self.postoga_table: str = os.path.join(self.output, "toga.table.gz")
         self.aa_fasta: str = os.path.join(self.output, "protein_aln.fa")
         self.cds_fasta: str = os.path.join(self.output, "nucleotide.fa")
         self.codon_fasta: str = os.path.join(self.output, "codon_aln.fa")
@@ -663,18 +689,19 @@ class TogaMain(CommandLineManager):
         self.write_project_meta()
         self._to_log(f"Project metadata dumped at {self.arg_file}")
 
+        ## check the input directory if one was provided
+        if self.input_dir is not None:
+            self._to_log("Checking input directory contents")
+            self.check_input_dir() 
+
         ## check the input arguments
-        # self._echo('Checking input arguments')
         self._to_log("Checking input arguments")
         self.check_arguments()
-        # self._echo('All settings are correct')
         self._to_log("All settings are correct")
 
         ## check the availability of all the necessary binaries
-        # self._echo('Checking third-part dependencies')
         self._to_log("Checking third-part dependencies")
         self.check_binaries()
-        # self._echo('All dependencies were found')
         self._to_log("All dependencies were found")
 
         ## if SpliceAI directory was provided, check its contents
@@ -767,7 +794,6 @@ class TogaMain(CommandLineManager):
             if not self.disable_fragment_assembly:
                 self._to_log("Recovering fragmented projections")
                 self.recover_fragmented_projections()
-                # self._echo('Fragmented projections successfully recovered')
                 self._to_log("Fragmented projections successfully recovered")
 
             ## Step 3: Prepare and run CESAR preprocessing jobs
@@ -848,8 +874,9 @@ class TogaMain(CommandLineManager):
         ## Step 6: Infer query gene structure
         if self._execute_step("gene_inference"):
             ## 6a: Aggregate rejection reports from all the previous steps
-            self._to_log("Aggregating rejection reports")
-            self.aggregate_rejection_reports()
+            if not self.rejection_log_cleaned:
+                self._to_log("Aggregating rejection reports")
+                self.aggregate_rejection_reports()
             self._to_log(
                 "Rejected items from all the finished steps are aggregated at %s"
                 % (self.final_rejection_log),
@@ -879,7 +906,6 @@ class TogaMain(CommandLineManager):
             ## 6b: Summarise loss data
             self._to_log("Summarizing transcript/gene conservation data")
             self.loss_status_summary()
-            # self._echo('Conservation data successfully summarized')
             self._to_log("Conservation data successfully summarized")
         else:
             if self.halt_at == "loss_summary":
@@ -972,6 +998,8 @@ class TogaMain(CommandLineManager):
             self.rename_query_genes()
             self._to_log("Creating GTF version of the final annotation")
             self.create_gtf()
+            self._to_log("Creating Postoga summary table")
+            self.create_postoga_table()
             ## before moving to the final steps, record the failed batches
             self._to_log("Recording failed batches if any found")
             self.write_failed_batches()
@@ -1065,19 +1093,22 @@ class TogaMain(CommandLineManager):
         return exec_started and exec_not_finished
 
     def write_project_meta(self) -> None:
-        """ """
+        """Dumps run parameters to a text file"""
+        sys.path.append(LOCATION)
+        from __version__ import __version__
         with open(self.arg_file, "w") as h:
             h.write(f"version\t{__version__}\n")
             for arg, option in TOGA2_SLOT2ARG.items():  ## TODO: Double-check the number
                 arg_value: str = getattr(self, arg)
                 value: str = (
                     arg_value.name
-                    if type(arg_value) is click.utils.LazyFile
+                    if type(arg_value) is LazyFile
                     else None
                     if arg_value == ""
                     else arg_value
                 )
                 h.write("\t".join(map(str, (option, value))) + "\n")
+        sys.path.remove(LOCATION)
 
     def _rsync(self, from_: str, to_: str) -> None:
         """
@@ -1348,6 +1379,33 @@ class TogaMain(CommandLineManager):
                     continue
                 cmd: str = f"gunzip {filepath}"
                 _ = self._exec(cmd, "Decompression failed for file %s:" % filepath)
+        self._filter_rejection_log()
+
+    def _filter_rejection_log(self) -> None:
+        """
+        Filters the rejection log left from the previous run(s) 
+        by removing items discarded at steps subjected to rerunning
+        """
+        from .constants import Headers
+        if not os.path.exists(self.final_rejection_log):
+            return
+        self._to_log("Filtering the rejection log from the previous TOGA2 run")
+        step_priority: int = Constants.RESUME_ORDER[self.resume_from]
+        self.rejection_log_cleaned = True
+        with in_place.InPlace(self.final_rejection_log) as h:
+            for line in h:
+                if line == Headers.REJ_LOG_HEADER:
+                    h.write(line)
+                    continue
+                data: List[str] = line.strip().split("\t")
+                if not data or not data[0]:
+                    continue
+                # print(f"{data[4]=}")
+                reason: str = data[4].split(":")[0]
+                reason_step: str = Constants.REJ2STEP[reason]
+                reason_step_priority: int = Constants.RESUME_ORDER[reason_step]
+                if reason_step_priority < step_priority:
+                    h.write(line)
 
     def _email(self, subject: str, text: str) -> None:
         """Sends an e-mail notification to the provided mail box via mailx utilitiy"""
@@ -1501,6 +1559,11 @@ class TogaMain(CommandLineManager):
         ## check bigWigToWig binary
         for attr, default_name in Constants.BINARIES_TO_CHECK.items():
             if attr not in self.__slots__:
+                self._to_log(
+                    "Binary %s has no corresponding toga_main.py attribute; skipping"
+                    % default_name,
+                    'warning'
+                )
                 continue
             if self.__getattribute__(attr) is None:
                 if default_name == "prank":
@@ -1508,7 +1571,7 @@ class TogaMain(CommandLineManager):
                 else:
                     expected_path: str = os.path.join(BIN, default_name)
                 if os.path.exists(expected_path) and os.access(expected_path, os.X_OK):
-                    self._to_log("Found %s at bin/%s" % (default_name, default_name))
+                    self._to_log("Found %s at %s" % (default_name, expected_path))
                     self.__setattr__(attr, expected_path)
                     continue
                 self._to_log(
@@ -1536,6 +1599,124 @@ class TogaMain(CommandLineManager):
             self.cesar_binary = os.path.abspath(
                 os.path.join(LOCATION, "CESAR2.0", "cesar")
             )
+
+    def check_input_dir(self) -> None:
+        """
+        If formatted input directory was provided, checks its contents 
+        and assigns the missing input file values
+        """
+        if self.input_dir is None:
+            return
+        if self.ref_name is None or self.query_name is None:
+            self._die(
+                "Argument --input_dir is not valid if --ref_name "
+                "and --query_name are not provided"
+            )
+        if self.ref_2bit is None:
+            ref_genome_name: str = NameTemplates.TWOBIT.format(self.ref_name, self.ref_name)
+            ref_genome: str = os.path.join(self.input_dir, ref_genome_name)
+            if not os.path.exists(ref_genome):
+                self._die(
+                    "Reference genome file %s is missing from input "
+                    "directory %s, with no alternatives provided"
+                    % (ref_genome_name, self.input_dir)
+                )
+            self.ref_2bit = ref_genome
+        if self.query_2bit is None:
+            query_genome_name: str = NameTemplates.TWOBIT.format(self.query_name, self.query_name)
+            query_genome: str = os.path.join(self.input_dir, query_genome_name)
+            if not os.path.exists(query_genome):
+                self._die(
+                    "Query genome file %s is missing from input "
+                    "directory %s, with no alternatives provided"
+                    % (query_genome_name, self.input_dir)
+                )
+            self.query_2bit = query_genome
+        if not self.chain_file:
+            chains_name: str = NameTemplates.CHAINS.format(
+                self.ref_name,
+                self.query_name,
+                self.ref_name, 
+                self.query_name
+            )
+            chains: str = os.path.join(self.input_dir, chains_name)
+            gz_chains_name: str = NameTemplates.CHAINS_GZ.format(
+                self.ref_name,
+                self.query_name,
+                self.ref_name, 
+                self.query_name
+            )
+            gz_chains: str = os.path.join(self.input_dir, gz_chains_name)
+            if not os.path.exists(chains):
+                if not os.path.exists(gz_chains):
+                    self._die(
+                    "Alignment chain file %s is missing from input "
+                    "directory %s, with no alternatives provided"
+                    % (chains_name, self.input_dir)
+                )
+                self.chain_file = gz_chains
+            else:
+                self.chain_file = chains
+        if self.ref_annotation is None:
+            ref_annotation_name: str = NameTemplates.REF_ANNOT.format(self.ref_name, self.ref_name)
+            ref_annotation: str = os.path.join(self.input_dir, ref_annotation_name)
+            if not os.path.exists(ref_annotation):
+                self._die(
+                    "Reference annotation file %s is missing from input "
+                    "directory %s, with no alternatives provided"
+                    % (ref_annotation_name, self.input_dir)
+                )
+            self.ref_annotation = ref_annotation
+        if self.isoform_file is None and not self.no_isoform_file:
+            ref_isoforms_name: str = NameTemplates.REF_ISOFORMS.format(self.ref_name, self.ref_name)
+            ref_isoforms: str = os.path.join(
+                self.input_dir, ref_isoforms_name
+            )
+            if not os.path.exists(ref_isoforms):
+                self._die(
+                    "Reference isoform file %s is missing from input "
+                    "directory %s, with no alternatives provided and "
+                    "no explicit deprecation"
+                    % (ref_isoforms_name, self.input_dir)
+                )
+            self.isoform_file = ref_isoforms
+        if self.u12_file is None and not self.no_u12_file:
+            u12_file_name: str = NameTemplates.REF_U12.format(self.ref_name, self.ref_name)
+            u12_file: str = os.path.join(
+                self.input_dir, u12_file_name
+            )
+            if not os.path.exists(u12_file):
+                self._die(
+                    "Reference U12 intron file %s is missing from input "
+                    "directory %s, with no alternatives provided and "
+                    "no explicit deprecation"
+                    % (u12_file_name, self.input_dir)
+                )
+            self.u12_file = u12_file
+        if self.spliceai_dir is None and not self.no_spliceai:
+            spliceai_dir_name: str = NameTemplates.SPLICEAI.format(self.query_name)
+            spliceai_dir: str = os.path.join(self.input_dir, spliceai_dir_name)
+            if not os.path.exists(spliceai_dir):
+                self._die(
+                    "SpliceAI output directory %s is missing from input "
+                    "directory %s, with no alternatives provided and "
+                    "no explicit deprecation"
+                    % (spliceai_dir_name, self.input_dir)
+                )
+            self.spliceai_dir = spliceai_dir
+        if self.ref_link_file is None:
+            links_name: str = NameTemplates.REF_LINKS.format(self.ref_name, self.ref_name)
+            links: str = os.path.join(self.input_dir, links_name)
+            if not os.path.exists(links):
+                self._to_log(
+                    "Reference annotation file %s is missing from input "
+                    "directory %s, with no alternatives provided"
+                    % (links_name, self.input_dir),
+                    "warning",
+                )
+            else:
+                self.ref_link_file = links
+
 
     def check_spliceai_files(self) -> None:
         """
@@ -1791,6 +1972,17 @@ class TogaMain(CommandLineManager):
             "-ln",
             self.project_id,
         ]
+        if self.container_image is not None:
+            args.extend(
+                (
+                    "--container_image",
+                    self.container_image,
+                    "--container_executor",
+                    self.container_executor,
+                    "--bindings",
+                    self.bindings,
+                )
+            )
         ChainFeatureScheduler(args, standalone_mode=False)
 
     def run_feature_extraction_jobs(self) -> None:
@@ -1866,6 +2058,8 @@ class TogaMain(CommandLineManager):
             self.me_model,
             "-t",
             f"{self.orthology_threshold}",
+            "--initial_transcript_bed",
+            self.bed_file_copy,
             "-ln",
             self.project_id,
             "-minscore",
@@ -1978,17 +2172,23 @@ class TogaMain(CommandLineManager):
             kwargs.append["orthologs_only"] = True
         if self.one2ones_only:
             kwargs["one2one_only"] = True
+        if self.paralogs_over_spanning:
+            kwargs["paralogs_over_spanning"] = True
         if not self.enable_spanning_chains:
             kwargs["disable_spanning_chains"] = True
         if self.u12_file is not None:
             kwargs["u12"] = self.u12_hdf5
-        if self.separate_site_treat:
+        if not self.joint_site_treat:
             kwargs["separate_splice_site_treatment"] = True
         if self.spliceai_dir is not None:
             kwargs["spliceai_dir"] = self.spliceai_dir
             kwargs["min_splice_prob"] = self.min_splice_prob
         if self.annotate_ppgenes:
             kwargs["annotate_processed_pseudogenes"] = True
+        if self.container_image is not None:
+            kwargs["container_image"] = self.container_image
+            kwargs["container_executor"] = self.container_executor
+            kwargs["bindings"] = self.bindings
         PreprocessingScheduler(**kwargs)
 
     def run_preprocessing_jobs(self) -> None:
@@ -2075,7 +2275,7 @@ class TogaMain(CommandLineManager):
             "-b",
             ",".join(map(str, self.cesar_memory_bins)),#self.cesar_memory_bins,
             "-jb",
-            ",".join(map(str, self.job_nums_per_bin)),#self.job_nums_per_bin,
+            ",".join(map(str, self.job_nums_per_bin)),#self.job_nums_per_bin
             "-cs",
             self.cesar_binary,
             "-m",
@@ -2125,6 +2325,17 @@ class TogaMain(CommandLineManager):
                     self.cesar_last_donor,
                 )
             )
+        if self.container_image is not None:
+            args.extend(
+                (
+                    "--container_image",
+                    self.container_image,
+                    "--container_executor",
+                    self.container_executor,
+                    "--bindings",
+                    self.bindings,
+                )
+            )
         CesarScheduler(args, standalone_mode=False)
 
     def run_alignment_jobs(self) -> None:
@@ -2141,8 +2352,7 @@ class TogaMain(CommandLineManager):
                             "Alignment joblist %s does not exist" % joblist, "warning"
                         )
                         continue
-                    if mem.isdigit():
-                        mem = int(mem)
+                    mem = int(mem) if mem.isdigit() else mem
                     job_num: int = int(
                         self.job_nums_per_bin[self.cesar_memory_bins.index(mem)]
                     )
@@ -2203,6 +2413,8 @@ class TogaMain(CommandLineManager):
         """
         Aggregates rejection reports from various stages into a final report
         """
+        if os.path.exists(self.final_rejection_log):
+            return
         self._create_output_stub("final_rejection_log")
         if len(os.listdir(self.rejection_dir)) == 0:
             self._to_log(
@@ -2303,7 +2515,7 @@ class TogaMain(CommandLineManager):
             )
         if os.path.exists(self.paralog_report):
             args.extend(("-p", self.paralog_report))
-        if self.annotate_ppgenes:
+        if os.path.exists(self.processed_pseudogene_report):
             args.extend(("-pp", self.processed_pseudogene_report))
         ## TODO: Add rejection log support
         if os.path.exists(self.redundant_paralogs):
@@ -2315,10 +2527,10 @@ class TogaMain(CommandLineManager):
 
     def convert_fasta_to_hdf5(self) -> None:
         """Converts TOGA2 output FASTA file into an HDF5 storage"""
+        from .pairwise_fasta_to_hdf5 import FastaToHdf5Converter
+        
         in_file: str = self.aa_fasta
         out_file: str = self.aa_hdf5
-        from pairwise_fasta_to_hdf5 import FastaToHdf5Converter
-
         args: List[str] = [in_file, out_file, "-ln", self.project_id, "-v"]
         FastaToHdf5Converter(args, standalone_mode=False)
 
@@ -2346,7 +2558,6 @@ class TogaMain(CommandLineManager):
             self.preprocessing_report,
             "-ln",
             self.project_id,
-            # '-pf', self.feature_table
         ]
         if self.isoform_file is not None:
             args.extend(("-ri", self.isoform_file))
@@ -2383,6 +2594,17 @@ class TogaMain(CommandLineManager):
                 args.extend(("--use_raxml", "--tree_bootstrap", "100"))
             else:
                 args.extend(("--tree_bootstrap", "5000"))
+        if self.container_image is not None:
+            args.extend(
+                (
+                    "--container_image",
+                    self.container_image,
+                    "--container_executor",
+                    self.container_executor,
+                    "--bindings",
+                    self.bindings,
+                )
+            )
         InitialOrthologyResolver(args, standalone_mode=False)
         add_graph_rej_cmd: str = (
             f"cat {self.rejected_by_graph} >> {self.final_rejection_log}"
@@ -2571,7 +2793,7 @@ class TogaMain(CommandLineManager):
             args.extend(["-i", self.ref_link_file])
         if os.path.exists(self.all_deprecated_projs):
             args.extend(["-d", self.all_deprecated_projs])
-        if self.annotate_ppgenes:
+        if os.path.exists(self.processed_pseudogene_report):
             args.extend(["-pp", self.processed_pseudogene_report])
         if not self.skip_utr:
             args.extend(["-a", self.query_annotation_with_utrs])
@@ -2649,12 +2871,13 @@ class TogaMain(CommandLineManager):
         #     nuc_cmd += f' -d {self.all_discarded_projections}'
         _ = self._exec(nuc_cmd, "Final nucleotide sequence file preparation failed:")
         ## 3. Filter the protein sequence file
+        ## TESTING PROTEINS CREATED AT RUNTIME
         # prot_cmd: str = (
-        #     f'{self.FASTA_FILTER_SCRIPT} -i {self.aa_fasta} '
-        #     f'-o {self.prot_fasta}'
+        #     f"{self.FASTA_FILTER_SCRIPT} -i {self.aa_fasta} "
+        #     f"-b {bed_file} -o {self.prot_fasta}"
         # )
         prot_cmd: str = (
-            f"{self.FASTA_FILTER_SCRIPT} -i {self.aa_fasta} "
+            f"{self.FASTA_FILTER_SCRIPT} -i {self.prot_fasta_tmp} "
             f"-b {bed_file} -o {self.prot_fasta}"
         )
         # if discarded_files:
@@ -2822,6 +3045,36 @@ class TogaMain(CommandLineManager):
             f"gzip -5 {self.query_gtf}"
         )
         _ = self._exec(gtf_cmd, "GTF file preparation failed")
+
+    def create_postoga_table(self) -> None:
+        """Creates Postoga summary table"""
+        ## TODO: This is a workaround to beat the current path structure
+        ## likely will be obsolete once a proper pyproject.toml arrives
+        sys.path.append(LOCATION)
+        from postoga.run import TogaDir
+
+        from .shared import TogaDirConfig  ## TODO: Create
+        ## TogaDir accepts Argparse parser as a sole argument by default,
+        ## which can be emulated with TogaDirConfig
+        config: TogaDirConfig = TogaDirConfig(
+            self.output,
+            with_isoforms=self.query_genes_for_gtf,
+            target=("utr" if not self.skip_utr else "bed"),
+            outdir=self.postoga_tmp
+        )
+        TogaDir(config).run()
+        sys.path.remove(LOCATION)
+        ## TODO: Enforce Postoga to write output directly to outdir
+        # self._mv(self.postoga_table_tmp, self.postoga_table)
+        postoga_contents: List[str] = os.listdir(self.postoga_tmp)
+        if not postoga_contents:
+            self._die("No Postoga output found in the output directory")
+        if len(postoga_contents) > 1:
+            self._die("Multiple alternative Postoga output directories found")
+        postoga_table_tmp: str = os.path.join(self.postoga_tmp, postoga_contents[0],"toga.table.gz")
+        if not os.path.exists(postoga_table_tmp):
+            self._die("Postoga output table is missing from the expected location %s" % postoga_table_tmp)
+        self._mv(postoga_table_tmp, self.postoga_table)
 
     def write_failed_batches(self) -> None:
         """

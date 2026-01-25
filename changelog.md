@@ -1,3 +1,42 @@
+## v2.0.7
+* `run` mode:
+    * Replacing positional arguments with keyword arguments
+    * `--isoform_file`, `--u12_file`, and `--spliceai_dir` options are now "semi-mandatory"; the user is expected to provide the respective arguments unless the explicit deprecative flags are set
+    * Alternative input formatting with `--input_directory`, `--ref_name`, and `--query_name` shortcuts: Format your data storage tree once and enjoy simplified command line interface
+    * Postoga summary table (`toga.table.gz`) added to the output for `run` mode
+    * Projections of the same reference gene/transcript overlapping by absolute coding sequence coordinates are now collapsed into a single query gene regardless of their overlap by coding exon coordinates
+* **NEW MODE**: `postoga` for [Postoga](https://github.com/alejandrogzi/postoga) integration
+* **NEW MODE**: `sequence-alignment` for orthologous sequence alignment across multiple same-referenced TOGA2 runs (alpha version)
+* Apptainer support (see `supply/containers`):
+    * Stable local execution container image
+    * Batch manager-compatible image template
+    * Removing `toga2.py` as a container entry point
+    * Adding container support for parallel step scripts (see `supply/containers/README.md`)
+* Updated local installation
+    * Postoga installation
+    * Conda environment support
+    * Updated `bigWigToWig` version (`-bed` and `-header` options) now distributed with TOGA2
+* Minor changes:
+    * `run`:
+        * Suppressed logging for XGBoost at `classification` step
+        * Suppressed Pandas warnings at `classification` step 
+        * Transcripts which do not have a single overlapping chain are now reported at `classification` step unless legacy feature extraction procedure is enabled
+        * Setting default non-canonical U12 acceptor to `equiprobable_acceptor.tsv`
+        * Setting separate splice site treatment by default, replacing `--separate_splice_site_treatment` flag with `--joint_splice_site_treatment`
+        * Fixed memory bin mem-to-jobs mapping for `alignment` step
+        * Sequences in `nucleotide.fa` and `protein.fa` now contain only sequences from present (non-missing and non-deleted) exons
+        * Minor gene inference speedup;
+        * Overlapping projections of the same reference gene are now collapsed regardless of their overlap by chain-supported coding sequence -> reduced number of false one2many genes;
+        * Replacing *N* loss status with *M* for certain rejected item categories
+        * Removing the remaining 'orphan' projections after the gene tree step from the final annotation;
+        * Consistent sequence selection and sorting for gene tree step input;
+        * `rejected_items.tsv` is now filtered at rerunning to ensure that previous runs' results do not affect the resumed runs;
+        * Proper handling for query gene rendered orphan after the gene tree step
+        * Fixed random seed for PRANK
+    * All modes:
+        * Mandatory options introduced instead of positional arguments;
+        * Grouped options for better readability
+
 ## v2.0.6
 * New TOGA2 mode added: `integrate` (early access functionality)
 * Query gene inference improved:
@@ -23,4 +62,4 @@
     * Projections discarded at gene tree filtering step now removed from the final output files
     * Added post-gene-tree orthology resolution step to the main logging channel
     * 'missing_' query gene inference;
-    * Parially Intact consistently removed from accepted retrogene/trusted second-level ortholog statuses
+    * Partially Intact consistently removed from accepted retrogene/trusted second-level ortholog statuses

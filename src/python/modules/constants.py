@@ -18,7 +18,7 @@ class Constants:
         "fatotwobit_binary": "faToTwoBit",
         "twobittofa_binary": "twoBitToFa",
         "ixixx_binary": "ixIxx",
-        "prank_binary": "prank",
+        "prank_bin": "prank",
         "mailx_binary": "mailx",
     }
 
@@ -45,6 +45,7 @@ class Constants:
     QUERY_BED_CLEAN: str = "query_annotation.bed"
     QUERY_BED_RAW: str = "query_annotation.with_discarded_exons.bed"
     PROT_ALN: str = "protein_aln.fa"
+    PROT_FASTA: str = "protein.fa"
     SELENO_CODONS: str = "selenocysteine_codons.tsv"
     SPLICE_SITES: str = "splice_sites.tsv"
     SPLICE_SITE_SHIFTS: str = "splice_site_shifts.tsv"
@@ -61,6 +62,7 @@ class Constants:
         "codon_aln.fa",
         "protein_aln.fa",
         "nucleotide.fa",
+        "protein.fa",
         "splice_sites.tsv",
         "genes_rejection_reason.tsv",
         "gained_intron_summary.tsv",
@@ -76,6 +78,7 @@ class Constants:
         GAINED_INTRONS: "gained_intron_summary",
         MUTATIONS: "mutation_report",
         PROT_ALN: "aa_fasta",
+        PROT_FASTA: "prot_fasta_tmp",
         QUERY_BED_CLEAN: "query_annotation_filt",
         QUERY_BED_RAW: "query_annotation_raw",
         SELENO_CODONS: "selenocysteine_codons",
@@ -236,6 +239,41 @@ class Constants:
         "ucsc_report": ("ucsc_dir",),
     }
 
+    ## Rejection-reason-pipeline-step mapping
+    REJ2STEP: Dict[str, str] = {
+        "ILLEGAL_NAME": "setup",
+        "REJECTED_CONTIG": "setup",
+        "NON_CODING": "setup",
+        "OUT_OF_FRAME": "setup",
+        "CHROM_UNALIGNED": "feature_extraction",
+        "TRANSCRIPT_UNALIGNED": "feature_extraction",
+        "NO_PROJ": "classification",
+        "INSUFFICIENT_CHAIN_SCORE": "classification",
+        "CHAIN_LIMIT_EXCEEDED": "preprocessing",
+        "EXCEEDS_MEMORY": "preprocessing",
+        "EXCEEDS_MEMORY+GAP": "preprocessing",
+        "EXCEEDS_SPACE": "preprocessing",
+        "EXCEEDS_SPACE+GAP": "preprocessing",
+        "INSUFFICIENT_SEARCH_SPACE": "preprocessing",
+        "INSUFFICIENT_SEARCH_SPACE+GAP": "alignment",
+        "MULTIPLE_ORTHOLOGY": "preprocessing",
+        "NO_EXONS_ALIGNED": "preprocessing",
+        "NO_CHAINS": "preprocessing",
+        "SPANNING": "preprocessing",
+        "ZERO_ORTHOLOGY": "preprocessing",
+        "CHIMERIC": "alignment",
+        "HEAVY": "alignment",
+        "REDUNDANT": "alignment",
+        "SECOND_BEST": "gene_inference",
+        "REDUNDANT_PARALOG": "gene_inference",
+        "REDUNDANT_PPGENE": "gene_inference",
+        "ALL_PARALOGS_REDUNDANT": "loss_summary",
+        "ALL_ORTHS_DISCARDED": "orthology",
+        "WEAK_EDGE": "orthology",
+        "GENE_TREE_REJECTION": "summarize_trees",
+    }
+
+    ## Table file headers
     FILE2HEADER: Dict[str, str] = {
         "selenocysteine_codons": "SELENO_HEADER",
         "gained_intron_summary": "GAINED_INTRON_HEADER",
@@ -424,6 +462,207 @@ reporting the following warning at the {} step:\n{}
     DEFAULT_OUTPUT_DIR: str = "sample_output"
 
 
+## rejection reason templates
+class RejectionReasons:
+    REJ_GENE: str = "\t".join(
+        (
+            "GENE",
+            "{}",
+            "0",
+            "No (valid) transcripts found in the reference annotation",
+            "ZERO_TRANSCRIPT_INPUT",
+            "N",
+        )
+    )
+    ORPHAN_TR: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "No corresponding gene found in the isoform file",
+            "ZERO_GENE_INPUT",
+            "N",
+        )
+    )
+    NAME_REJ_REASON: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "Illegal character used in transcript name",
+            "ILLEGAL_NAME",
+            "N",
+        )
+    )
+    CONTIG_REJ_REASON: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0Located outside of user-preferred contigs",
+            "REJECTED_CONTIG",
+            "N",
+        )
+    )
+    NON_CODING_REJ_REASON: str = "\t".join(
+        ("TRANSCRIPT", "{}", "0", "Does not have a coding sequence", "NON_CODING", "N")
+    )
+    FRAME_REJ_REASON: str = "\t".join(
+        ("TRANSCRIPT", "{}", "0", "Transcript is out of frame", "OUT_OF_FRAME", "N")
+    )
+    UNCOV_CHROM: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "No chain corresponds to reference chromosome",
+            "CHROM_UNALIGNED",
+            "M",
+        )
+    )
+    UNALIGNED_TR: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "No chain corresponds to the transcript",
+            "TRANSCRIPT_UNALIGNED",
+            "M",
+        )
+    )
+    UNCLASS_REJ_REASON: str = "\t".join(
+        ("TRANSCRIPT", "{}", "0", "No classifiable projections found", "NO_PROJ", "M")
+    )
+    UNDERSCORED_REJ_REASON: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Chain score below set threshold ({})",
+            "INSUFFICIENT_CHAIN_SCORE",
+            "L",
+        )
+    )
+    LIMIT_EXCEED_REJ: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Number of homologous chains exceeds the set limit ({})",
+            "CHAIN_LIMIT_EXCEEDED",
+            "N",
+        )
+    )
+    MULTIPLE_ORTHOLOG_REJ: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "Multiple orthologs detected",
+            "MULTIPLE_ORTHOLOGY",
+            "M",
+        )
+    )
+    NO_CHAINS_REJ: str = "\t".join(
+        ("TRANSCRIPT", "{}", "0", "No covering chains detected", "NO_CHAINS", "M")
+    )
+    NO_ALIGNED_EXON_REJ: str = "\t".join(
+        ("PROJECTION", "{}", "0", "No aligned exons found", "NO_EXONS_ALIGNED", "{}")
+    )
+    PREPROCESSING_REJ: str = "\t".join(("PROJECTION", "{}", "{}", "{}", "{}", "{}"))
+    SPANNING_CHAIN_REASON: str = "\t".join(
+        ("PROJECTION", "{}", "0", "Spanning chain", "SPANNING", "{}")
+    )
+    ZERO_ORTHOLOGY_REJ: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "No orthologous chains detected",
+            "ZERO_ORTHOLOGY",
+            "M",
+        )
+    )
+    CHIMERIC_ENTRY: str = "\t".join(
+        ("PROJECTION", "{}", "0", "Potential chimeric projection", "CHIMERIC", "N")
+    )
+    HEAVY_ENTRY: str = "\t".join(
+        ("PROJECTION", "{}", "0", "Maximum memory limit exceeded", "HEAVY", "N")
+    )
+    REDUNDANT_ENTRY: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Redundant projection to the given locus",
+            "REDUNDANT",
+            "N",
+        )
+    )
+    REJ_ORTH_REASON: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Insufficiently covered exons in second-best projection",
+            "SECOND_BEST",
+            "{}",
+        )
+    )
+    REJ_PARA_REASON: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Redundant paralog overlapping orthologous projections",
+            "REDUNDANT_PARALOG",
+            "{}",
+        )
+    )
+    REJ_PPGENE_REASON: str = "\t".join(
+        (
+            "PROJECTION",
+            "{}",
+            "0",
+            "Processed pseudogene overlapping ortholog or paralog",
+            "REDUNDANT_PPGENE",
+            "{}",
+        )
+    )
+    OUTCOMPETED_PARALOG_REASON: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "All paralogous projections outcompeted by orthologous predictions of other items",
+            "ALL_PARALOGS_REDUNDANT",
+            "M",
+        )
+    )
+    REMOVED_ORTH_REASON: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "No projections reached the orthology step",
+            "ALL_ORTHS_DISCARDED",
+            "{}",
+        )
+    )
+    WEAK_EDGE_REASON: str = "\t".join(
+        ("PROJECTION", "{}", "0", "Weak orthology graph edge", "WEAK_EDGE", "{}")
+    )
+    ORTH_REJ_TEMPLATE: str = "\t".join(
+        (
+            "TRANSCRIPT",
+            "{}",
+            "0",
+            "Rejected after the gene resolution step",
+            "GENE_TREE_REJECTION",
+            "{}",
+        )
+    )
+
+
 class ConstColors:
     BLUE = "0,0,200"
     LIGHT_BLUE = "0,200,255"
@@ -524,8 +763,8 @@ class Headers:
                 "sum_mem",
                 "largest_target",
                 "largest_query",
-                "chrom",
                 "%covered_exons",
+                "chrom",
                 "locus_start",
                 "locus_end",
                 "init_start",
@@ -616,6 +855,29 @@ class Headers:
     )
 
 
+class NameTemplates:
+    TWOBIT: str = os.path.join("{}", "{}.2bit")
+    CHAINS: str = os.path.join(
+        "{}", "lastz", "vs_{}", "axtChain", "{}.{}.allfilled.chain"
+    )
+    CHAINS_GZ: str = os.path.join(
+        "{}", "lastz", "vs_{}", "axtChain", "{}.{}.allfilled.chain.gz"
+    )
+    REF_ANNOT: str = os.path.join(
+        "{}", "TOGA2", "currentAnnotation", "{}.toga.transcripts.bed"
+    )
+    REF_ISOFORMS: str = os.path.join(
+        "{}", "TOGA2", "currentAnnotation", "{}.toga.isoforms.tsv"
+    )
+    REF_U12: str = os.path.join(
+        "{}", "TOGA2", "currentAnnotation", "{}.toga.U12introns.bed"
+    )
+    SPLICEAI: str = os.path.join("{}", "spliceAi")
+    REF_LINKS: str = os.path.join(
+        "{}", "TOGA2", "currentAnnotation", "{}.toga.links.tsv"
+    )
+
+
 # Standalone constants #
 
 TOGA2_EPILOG: str = """\b
@@ -656,6 +918,7 @@ BEST_PRACTICES: str = """\bExamples:
 
     """
 
+CONTAINER_ENGINE2BIND_KEY: Dict[str, str] = {"apptainer": "--bind", "docker": "--mount"}
 PRE_CLEANUP_LINE: str = "rm -rf {}/*"
 IQTREE_ACCEPTED_MODELS: str = ",".join(
     (
@@ -668,8 +931,8 @@ IQTREE_ACCEPTED_MODELS: str = ",".join(
         "Q.mammal",  # , 'Q.bird', 'Q.insect', 'Q.plant', 'Q.yeast'
     )
 )
-PHYLO_NOT_FOUND: str = "{} was not found in PATH, with no defaults"
 
+PHYLO_NOT_FOUND: str = "{} was not found in PATH, with no defaults"
 
 COMPLEMENT_BASE: Dict[str, str] = {
     "A": "T",
@@ -683,7 +946,6 @@ COMPLEMENT_BASE: Dict[str, str] = {
     "c": "G",
     "n": "n",
 }
-
 
 GENETIC_CODE: Dict[str, str] = {
     "TTT": "F",
@@ -760,15 +1022,21 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "query_2bit",
     "chain_file",
     "ref_annotation",
+    "isoform_file",
+    "no_isoform_file",
+    "u12_file",
+    "no_u12_file",
+    "spliceai_dir",
+    "no_spliceai",
+    "input_dir",
+    "ref_name",
+    "query_name",
     "resume_from",
     "halt_at",
     "selected_feature_batches",
     "selected_preprocessing_batches",
     "selected_alignment_batches",
     "skip_utr",
-    "isoform_file",
-    "u12_file",
-    "spliceai_dir",
     "min_chain_score",
     "min_orth_chain_score",
     "feature_job_num",
@@ -780,6 +1048,7 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "disable_fragment_assembly",
     "orthologs_only",
     "one2ones_only",
+    "paralogs_over_spanning",
     "enable_spanning_chains",
     "annotate_ppgenes",
     "preprocessing_job_num",
@@ -824,7 +1093,7 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "cesar_non_canon_u12_donor",
     "cesar_first_acceptor",
     "cesar_last_donor",
-    "separate_site_treat",
+    "joint_site_treat",
     "accepted_loss_symbols",
     "skip_tree_resolver",
     "max_clique_size",
@@ -871,6 +1140,9 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "parallel_process_names",
     "ignore_crashed_parallel_batches",
     "legacy_chain_feature_extraction",
+    "container_image",
+    "container_executor",
+    "bindings",
     "input_data",
     "bed_file_copy",
     "ref_cds_unfilt",
@@ -917,6 +1189,7 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "query_annotation_raw",
     "query_annotation_filt",
     "query_gtf",
+    "postoga_table",
     "final_rejection_log",
     "gene_loss_summary",
     "loss_summary_extended",
@@ -979,6 +1252,8 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "annot_dir",
     "cds_fasta_tmp",
     "prot_fasta_tmp",
+    "postoga_tmp",
+    "postoga_table_tmp",
     "all_discarded_projections",
     "feature_extraction_joblist",
     "cesar_preprocess_joblist",
@@ -989,6 +1264,7 @@ TOGA2_SLOTS: Tuple[str, ...] = (
     "failed_preprocessing_batches",
     "failed_alignment_batches",
     "failed_orthology_batches",
+    "rejection_log_cleaned",
     "CHAIN_FILTER_SCRIPT",
     "INDEX_CHAIN_SCRIPT",
     "REF_BED_FILTER",
@@ -1012,15 +1288,21 @@ TOGA2_SLOT2ARG: Dict[str, str] = {
     "query_2bit": "query_2bit",
     "chain_file": "chain_file",
     "ref_annotation": "ref_annotation",
+    "isoform_file": "isoform_file",
+    "no_isoform_file": "no_isoform_file",
+    "u12_file": "u12_file",
+    "no_u12_file": "no_u12_file",
+    "spliceai_dir": "spliceai_dir",
+    "no_spliceai": "no_spliceai",
+    "input_dir": "input_directory",
+    "ref_name": "ref_name",
+    "query_name": "query_name",
     "resume_from": "resume_from",
     "halt_at": "halt_at",
     "selected_feature_batches": "selected_feature_batches",
     "selected_preprocessing_batches": "selected_preprocessing_batches",
     "selected_alignment_batches": "selected_alignment_batches",
     "skip_utr": "no_utr_annotation",
-    "isoform_file": "isoform_file",
-    "u12_file": "u12_file",
-    "spliceai_dir": "spliceai_dir",
     "min_chain_score": "min_chain_score",
     "min_orth_chain_score": "min_orthologous_chain_score",
     "feature_job_num": "feature_jobs",
@@ -1032,6 +1314,7 @@ TOGA2_SLOT2ARG: Dict[str, str] = {
     "disable_fragment_assembly": "disable_fragment_assembly",
     "orthologs_only": "orthologs_only",
     "one2ones_only": "one2ones_only",
+    "paralogs_over_spanning": "paralogs_over_spanning",
     "enable_spanning_chains": "enable_spanning_chains",
     "annotate_ppgenes": "annotate_processed_pseudogenes",
     "preprocessing_job_num": "preprocessing_jobs",
@@ -1052,7 +1335,7 @@ TOGA2_SLOT2ARG: Dict[str, str] = {
     "cesar_non_canon_u12_donor": "cesar_non_canon_u12_donor",
     "cesar_first_acceptor": "cesar_first_acceptor",
     "cesar_last_donor": "cesar_last_donor",
-    "separate_site_treat": "separate_splice_site_treatment",
+    "joint_site_treat": "joint_splice_site_treatment",
     "bigwig2wig_binary": "bigwig2wig_binary",
     "min_splice_prob": "min_splice_prob",
     "splice_prob_margin": "splice_prob_margin",
@@ -1109,6 +1392,9 @@ TOGA2_SLOT2ARG: Dict[str, str] = {
     "ucsc_prefix": "ucsc_prefix",
     "bedtobigbed_binary": "bedtobigbed_binary",
     "ignore_crashed_parallel_batches": "ignore_crashed_parallel_batches",
+    "container_image": "container_image",
+    "container_executor": "container_executor",
+    "bindings": "bindings",
 }
 
 TOGA2_ARG2SLOT: Dict[str, str] = {v: k for k, v in TOGA2_SLOT2ARG.items()}

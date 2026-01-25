@@ -19,3 +19,5 @@ biogl==2.3.0
 biopython>=1.85
 matplotlib
 maturin==1.10.1
+ete3
+in_place

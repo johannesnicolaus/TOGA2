@@ -46,6 +46,7 @@ from modules.cesar_wrapper_constants import (
     U2,
     U12,
 )
+from modules.constants import RejectionReasons
 from modules.preprocessing import (
     AnnotationEntry,
     Exon,
@@ -91,8 +92,6 @@ LAST_DONOR: str = os.path.join(LOCATION, *LAST_DONOR)
 # HL_LAST_DONOR: str = os.path.join(*HL_LAST_DONOR)
 # HL_EQ_ACCEPTOR: str = os.path.join(LOCATION, *HL_EQ_ACCEPTOR)
 # HL_EQ_DONOR: str = os.path.join(LOCATION, *HL_EQ_DONOR)
-PREPROCESSING_REJ: str = "PROJECTION\t{}\t{}\t{}\t{}\t{}"
-SPANNING_CHAIN_REASON: str = "PROJECTION\t{}\t0\tSpanning chain\tSPANNING\t{}"
 LOST: str = "L"
 MISSING: str = "M"
 
@@ -985,7 +984,7 @@ class CesarPreprocessor(CommandLineManager):
                         )
                         space_gaps: bool = find_gaps(space_seq, self.assembly_gap_size)
                         status: List[str] = MISSING if space_gaps else LOST
-                        rej_line: str = SPANNING_CHAIN_REASON.format(
+                        rej_line: str = RejectionReasons.SPANNING_CHAIN_REASON.format(
                             f"{tr}#{chain_id}", status
                         )
                         self.rejected_transcripts.append(rej_line)
@@ -1503,11 +1502,14 @@ class CesarPreprocessor(CommandLineManager):
                             # )
                         else:
                             status: str = LOST
-                        rej_info: Tuple[str, int] = (
-                            tr,
-                            "0",
-                            status,
-                            "No aligned exons found",
+                        # rej_info: Tuple[str, int] = (
+                        #     tr,
+                        #     "0",
+                        #     status,
+                        #     "No aligned exons found",
+                        # )
+                        rej_info: str = RejectionReasons.NO_ALIGNED_EXON_REJ.format(
+                            f"{tr}#{','.join(self.chains)}", status
                         )
                         self.rejected_transcripts.append(rej_info)
                         # exons_harbored: List[int] = list(chain.e2c.keys())#all_projection_exons((chain, segment))
@@ -2026,7 +2028,7 @@ class CesarPreprocessor(CommandLineManager):
                         for k, v in Counter(self.rejection_reasons[tr][proj]).items()
                     ]
                 )
-                report: str = PREPROCESSING_REJ.format(
+                report: str = RejectionReasons.PREPROCESSING_REJ.format(
                     f"{tr}#{','.join(self.chains)}",
                     proj,
                     msg,

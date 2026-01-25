@@ -100,10 +100,16 @@ fn main() {
                     // do not record the sequence line if it does not belong to query
                     if !is_query {record = false; continue}
                 }
-                let proj = comps[0].replace('>', "");
+                let proj = comps[0]
+                    .replace('>', "")
+                    .replace("#retro", "")
+                    .replace("#paralog", "");
                 // do not record the deprecated projection's sequence
                 // if excluded_projs.contains(&proj) {record = false; continue}
-                if included_projs.len() > 0 && !included_projs.contains(&proj) {continue}
+                if included_projs.len() > 0 && !included_projs.contains(&proj) {
+                    record = false;
+                    continue
+                }
                 header = comps[0].clone();
                 if paralogs.contains(&proj) {header += "#paralog"}
                 if ppgenes.contains(&proj) {header += "#retro"}

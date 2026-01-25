@@ -15,14 +15,8 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 
 import click
 
-from .constants import Headers
-from .filter_ref_bed import (
-    CONTIG_REJ_REASON,
-    FRAME_REJ_REASON,
-    NAME_REJ_REASON,
-    NON_CODING_REJ_REASON,
-    consistent_name,
-)
+from .constants import Headers, RejectionReasons
+from .filter_ref_bed import consistent_name
 from .shared import CommandLineManager, dir_name_by_date, get_upper_dir, hex_dir_name
 
 logging.basicConfig(level=logging.INFO)
@@ -62,9 +56,6 @@ PROFILE_DIR: str = "CESAR2.0_profiles"
 EQUI_ACC: str = "equiprobable_acceptor.tsv"
 EQUI_DONOR: str = "equiprobable_donor.tsv"
 DEFAULT_MEMORY_LIMIT: int = 24
-
-REJ_GENE: str = "GENE\t{}\t0\tNo (valid) transcripts found in the reference annotation\tZERO_TRANSCRIPT_INPUT\tN"
-ORPHAN_TR: str = "TRANSCRIPT\t{}\t0\tNo corresponding gene found in the isoform file\tZERO_GENE_INPUT\tN"
 EXTRACTION_ERR_MSG: str = "ERROR: twoBitToFa call failed"
 
 
@@ -298,7 +289,7 @@ class InputProducer(CommandLineManager):
             )
             self.rejected_transcripts.extend(illegal_name)
             self.rejected_lines.extend(
-                [NAME_REJ_REASON.format(x) for x in illegal_name]
+                [RejectionReasons.NAME_REJ_REASON.format(x) for x in illegal_name]
             )
         if rejected_contigs:
             self._to_log(
@@ -311,7 +302,7 @@ class InputProducer(CommandLineManager):
             )
             self.rejected_transcripts.extend(rejected_contigs)
             self.rejected_lines.extend(
-                [CONTIG_REJ_REASON.format(x) for x in rejected_contigs]
+                [RejectionReasons.CONTIG_REJ_REASON.format(x) for x in rejected_contigs]
             )
         if non_coding:
             self._to_log(
@@ -324,7 +315,7 @@ class InputProducer(CommandLineManager):
             )
             self.rejected_transcripts.extend(non_coding)
             self.rejected_lines.extend(
-                [NON_CODING_REJ_REASON.format(x) for x in non_coding]
+                [RejectionReasons.NON_CODING_REJ_REASON.format(x) for x in non_coding]
             )
         if out_of_frame:
             self._to_log(
@@ -337,7 +328,7 @@ class InputProducer(CommandLineManager):
             )
             self.rejected_transcripts.extend(out_of_frame)
             self.rejected_lines.extend(
-                [FRAME_REJ_REASON.format(x) for x in out_of_frame]
+                [RejectionReasons.FRAME_REJ_REASON.format(x) for x in out_of_frame]
             )
         ## proceed further
 
@@ -394,7 +385,9 @@ class InputProducer(CommandLineManager):
                 % "\n\t".join(rejected_genes),
                 "warning",
             )
-            self.rejected_lines.extend([REJ_GENE.format(x) for x in rejected_genes])
+            self.rejected_lines.extend(
+                [RejectionReasons.REJ_GENE.format(x) for x in rejected_genes]
+            )
         ## report transcripts for which genes were not found in the isoform file
         rejected_transcripts: List[str] = [
             x for x in self.tr2annot if x not in trs_found
@@ -410,7 +403,7 @@ class InputProducer(CommandLineManager):
                 "warning",
             )
             self.rejected_lines.extend(
-                [ORPHAN_TR.format(x) for x in rejected_transcripts]
+                [RejectionReasons.ORPHAN_TR.format(x) for x in rejected_transcripts]
             )
             self.tr2annot = {
                 k: v for k, v in self.tr2annot.items() if k not in rejected_transcripts

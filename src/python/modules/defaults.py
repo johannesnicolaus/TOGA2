@@ -14,19 +14,29 @@ HUMAN_PROFILES: str = os.path.join(PROFILES, "human")
 BIN: str = os.path.join(TOGA_DIR, "bin")
 
 DEFAULT_ARGS: Dict[str, Union[str, int, float, bool, None]] = {
-    "ref_2bit": os.path.join(TEST_INPUT, "hg38.micro_sample.2bit"),
-    "query_2bit": os.path.join(TEST_INPUT, "q2bit_micro_sample.2bit"),
-    "chain_file": os.path.join(TEST_INPUT, "align_micro_sample.chain"),
-    "ref_annotation": os.path.join(TEST_INPUT, "annot_micro_sample.bed"),
+    "ref_2bit": os.path.join(TEST_INPUT, "hg38", "hg38.2bit"),
+    "query_2bit": os.path.join(TEST_INPUT, "mm10", "mm10.2bit"),
+    "chain_file": os.path.join(
+        TEST_INPUT, "hg38", "lastz", "vs_mm10", "axtChain", "hg38.mm10.allfilled.chain"
+    ),
+    "ref_annotation": os.path.join(
+        TEST_INPUT, "hg38", "TOGA2", "currentAnnotation", "hg38.toga.transcripts.bed"
+    ),
+    "isoform_file": None,
+    "no_isoform_file": False,
+    "u12_file": None,
+    "no_u12_file": False,
+    "spliceai_dir": None,
+    "no_spliceai": False,
+    "input_directory": None,
+    "ref_name": None,
+    "query_name": None,
     "resume_from": "all",
     "halt_at": "all",
     "selected_feature_batches": None,
     "selected_preprocessing_batches": None,
     "selected_alignment_batches": None,
     "no_utr_annotation": False,
-    "isoform_file": None,
-    "u12_file": None,
-    "spliceai_dir": None,
     "min_chain_score": 5000,
     "min_orthologous_chain_score": 15000,
     "feature_jobs": 100,
@@ -38,6 +48,7 @@ DEFAULT_ARGS: Dict[str, Union[str, int, float, bool, None]] = {
     "disable_fragment_assembly": False,
     "orthologs_only": False,
     "one2ones_only": False,
+    "paralogs_over_spanning": False,
     "enable_spanning_chains": False,
     "annotate_processed_pseudogenes": False,
     "preprocessing_jobs": 300,
@@ -57,14 +68,14 @@ DEFAULT_ARGS: Dict[str, Union[str, int, float, bool, None]] = {
     "cesar_canon_u12_acceptor": os.path.join(HUMAN_PROFILES, "canon_U12_acceptor.tsv"),
     "cesar_canon_u12_donor": os.path.join(HUMAN_PROFILES, "canon_U12_donor.tsv"),
     "cesar_non_canon_u12_acceptor": os.path.join(
-        HUMAN_PROFILES, "canon_U12_acceptor.tsv"
+        HUMAN_PROFILES, "equiprobable_acceptor.tsv"
     ),
     "cesar_non_canon_u12_donor": os.path.join(
-        HUMAN_PROFILES, "non_canon_U12_acceptor.tsv"
+        HUMAN_PROFILES, "non_canon_U12_donor.tsv"
     ),
     "cesar_first_acceptor": os.path.join(PROFILES, "firstCodon_profile.tsv"),
     "cesar_last_donor": os.path.join(PROFILES, "lastCodon_profile.tsv"),
-    "separate_splice_site_treatment": False,
+    "joint_splice_site_treatment": False,
     "bigwig2wig_binary": None,
     "min_splice_prob": 0.02,
     "splice_prob_margin": 0.02,
@@ -119,4 +130,7 @@ DEFAULT_ARGS: Dict[str, Union[str, int, float, bool, None]] = {
     "ixixx_binary": None,
     "ucsc_prefix": "HLTOGAAnnot",
     "ignore_crashed_parallel_batches": False,
+    "container_image": None,
+    "container_executor": "apptainer",
+    "bindings": None
 }

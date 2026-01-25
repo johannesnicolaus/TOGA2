@@ -4,21 +4,19 @@
 Wrapper over TogaMain for file-configured runs
 """
 
-import os
+import sys
 from typing import Dict, List, Optional, Tuple, Union
 
 import click
 
 from .constants import TOGA2_ARG2SLOT, TOGA2_SLOT2ARG
-from .shared import CommandLineManager
-from .toga_main import __version__
+from .shared import CommandLineManager, get_upper_dir
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"
 __all__ = None
 
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-TOGA2: str = os.path.join(LOCATION, "toga2.py")
+LOCATION: str = get_upper_dir(__file__, 4)
 COL_NUM: int = 2
 REF: str = "ref_2bit"
 QUERY: str = "query_2bit"
@@ -30,7 +28,6 @@ FALSE: str = "False"
 NONE: str = "None"
 PROJ_ARG_FILE: str = "project_args.json"
 VERSION: str = "version"
-
 
 class Toga2ConfiguredLauncher(CommandLineManager):
     __slots__ = ("v", "config_file", "override")
@@ -45,6 +42,8 @@ class Toga2ConfiguredLauncher(CommandLineManager):
         self.override: Union[str, None] = override
 
     def run(self) -> Dict[str, str]:
+        sys.path.append(LOCATION)
+        from __version__ import __version__
         cmd_args: Dict[str, str] = {}
         for i, line in enumerate(self.config_file, start=1):
             data: List[str] = line.strip().split("\t")
@@ -139,4 +138,5 @@ class Toga2ConfiguredLauncher(CommandLineManager):
         #         cmd_args.append(option)
         #     else:
         #         cmd_args.extend((option, value))
+        sys.path.remove(LOCATION)
         return cmd_args

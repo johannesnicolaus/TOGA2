@@ -11,12 +11,11 @@ from typing import Dict, List, Optional, Set, TextIO, Tuple, Union
 import click
 
 from .cesar_wrapper_constants import CLASS_TO_NUM
-from .constants import Headers
+from .constants import Headers, RejectionReasons
 from .shared import CONTEXT_SETTINGS, base_proj_name, parse_single_column
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"
-__version__ = "2.0"
 __email__ = "yury.malovichko@senckenberg.de"
 __credits__ = ("Bogdan Kirilenko", "Michael Hiller", "Virag Sharma", "David Jebb")
 
@@ -31,8 +30,6 @@ REDUNDANT_PARALOG: str = "REDUNDANT_PARALOG"
 REDUNDANT_PPGENE: str = "REDUNDANT_PPGENE"
 SECOND_BEST: str = "SECOND_BEST"
 IGNORED_ITEMS: Tuple[str] = ("REDUNDANT_PARALOG", "REDUNDANT_PPGENE", "SECOND_BEST")
-OUTCOMPETED_PARALOG_REASON: str = "TRANSCRIPT\t{}\t0\tAll paralogous projections outcompeted by orthologous predictions of other items\tALL_PARALOGS_REDUNDANT\tM"
-
 
 def parse_precedence_file(file: TextIO) -> Dict[str, str]:
     """ """
@@ -189,7 +186,7 @@ def rejection_file_to_report(
     file: Union[str, TextIO],
 ) -> Tuple[Dict[str, str], Dict[str, str]]:
     """
-    Parses the genes_rejection_reason.tsv file containing transcripts which were
+    Parses the rejection_reasons.tsv file containing transcripts which were
     rejected for one reason or another at the CESAR alignment step or upstream
     """
     proj2status: Dict[str, str] = {}
@@ -279,7 +276,14 @@ def add_rejection_data(
             orig_tr2status[tr] = max(
                 (orig_tr_status, rej_tr_status), key=lambda x: CLASS_TO_NUM[x]
             )
-
+    for rej_tr, rej_tr_status in reject_tr2status.items():
+        if rej_tr not in orig_tr2status:
+            orig_tr2status[rej_tr] = rej_tr_status
+        else:
+            orig_tr_status: str = orig_tr2status[tr]
+            orig_tr2status[tr] = max(
+                (orig_tr_status, rej_tr_status), key=lambda x: CLASS_TO_NUM[x]
+            )
     return (orig_proj2status, orig_tr2status)
 
 
@@ -436,7 +440,7 @@ def main(
     if confirmed_rejected_paralogs and rejected_projections is not None:
         with open(rejected_projections, "a") as h:
             for transcript in confirmed_rejected_paralogs:
-                h.write(OUTCOMPETED_PARALOG_REASON.format(transcript) + "\n")
+                h.write(RejectionReasons.OUTCOMPETED_PARALOG_REASON.format(transcript) + "\n")
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ from shutil import copy2, rmtree
 from typing import Any, Dict, Iterable, List, Optional, Set, TextIO, Tuple, Union
 
 import click
+import click_option_group
 import networkx as nx
 from click_option_group import OptionGroup
 
@@ -62,6 +63,230 @@ class PrettyGroup(OptionGroup):
         if init_help is None:
             return None
         return "\n" + init_help[0], init_help[1]
+
+
+class DependentOption(click_option_group.GroupedOption):
+    """
+    An expansion of the original GroupedOption class with mutex and dependency functionlities.
+    Mutex functionality is based on the solution from https://github.com/pallets/click/issues/257
+    """
+    def __init__(self, *args, **kwargs) -> None:
+        ## mutex functionality: deprecate the joint use of mutually exclusive options
+        self.competes_with: Union[List[str], None] = kwargs.pop("competes_with", None)
+        self.required_mutex: bool = kwargs.pop("required_mutex", False)
+        ## dependence functionality: enforce the use of the option in tandem with its dependencies
+        self.requires: Union[List[str], None] = kwargs.pop("requires", None)
+        ## 'soft dependence' functionality: enforce the use of the option unless alternative is provided
+        self.not_required_if: Union[List[str], None] = kwargs.pop("not_required_if", None)
+        # if kwargs["help"] and self.competes_with is not None:
+        if self.competes_with or self.not_required_if or self.requires:
+            kwargs["help"] = "" if not kwargs["help"] else kwargs["help"] + ". "
+            if self.competes_with is not None:
+                kwargs["help"] += (
+                    "Mutually exclusive with the following options: " + 
+                    ", ".join(self.competes_with) + 
+                    ". "
+                )
+            if self.requires is not None:
+                kwargs["help"] += (
+                    "Requires the following options: " + 
+                    ", ".join(self.requires) + 
+                    ". "
+                )
+            if self.not_required_if is not None:
+                kwargs["help"] += (
+                    "Not required if the following options are provided: " + 
+                    ", ".join(self.not_required_if) + 
+                    ". "
+                )
+        super(DependentOption, self).__init__(*args, **kwargs)
+
+    def handle_parse_result(self, ctx, opts, args) -> None:
+        current_opt: bool = self.name in opts
+        alternative_found: bool = False
+        if self.competes_with:
+            for mutex_opt in self.competes_with:
+                if mutex_opt in opts:
+                    if current_opt:
+                        raise click.UsageError(
+                            "Options %s and %s are mutually exclusive"
+                            % (self.name, mutex_opt)
+                        )
+                    else:
+                        self.prompt = None
+                    alternative_found = True
+        if self.not_required_if:
+            for alternative in self.not_required_if:
+                if alternative in opts:
+                    alternative_found = True
+                    self.required = False
+                    self.prompt = None
+                    break
+        if self.requires and current_opt:
+            for requirement in self.requires:
+                if requirement not in opts:
+                    raise click.UsageError(
+                        "Option %s requires option %s, which is missing"
+                        % (self.name, requirement)
+                    )
+        if not current_opt and not alternative_found and self.required_mutex:
+            raise click.UsageError(
+                "One of the following options is required for TOGA2 execution: %s"
+                % (self.name + ", " + ",".join(self.competes_with))
+            )
+        return super(DependentOption, self).handle_parse_result(ctx, opts, args)
+
+# class MutexOption(click_option_group.GroupedOption):
+#     """
+#     Mutually exclusive Click option class.
+#     Based on the solution from https://github.com/pallets/click/issues/257
+#     """
+
+#     def __init__(self, *args, **kwargs) -> None:
+#         if "competes_with" not in kwargs:
+#             raise click.UsageError(
+#                 "Argument \"competes_with=\" mandatory for MutexOption class "
+#                 "is missing for option %s"
+#                 % self.name
+#             )
+#         self.competes_with: List[str] = kwargs.pop("competes_with")
+#         if self.competes_with is None or not self.competes_with:
+#             raise click.UsageError(
+#                 "No competing options for an MutexOption instance %s, "
+#                 "with no defaults. Please provide a list of competing options "
+#                 'with "competes_with" argument'
+#                 % self.name
+#             )
+#         self.required_mutex: bool = (
+#             kwargs.pop("required_mutex") if "required_mutex" in kwargs else False
+#         )
+#         self.not_required_if: Union[List[str], None] = (
+#             kwargs.pop("not_required_if") if "not_required_if" in kwargs else None
+#         )
+#         kwargs["help"] = (
+#             "" if kwargs.get("help") is None else (kwargs.get("help", "") + ". ") + 
+#             "Mutually exclusive with the following options: " + 
+#             ", ".join(self.competes_with) + 
+#             "."
+#         )
+#         super(MutexOption, self).__init__(*args, **kwargs)
+
+#     def handle_parse_result(self, ctx, opts, args) -> None:
+#         current_opt: bool = self.name in opts
+#         alternative_found: bool = False
+#         for mutex_opt in self.competes_with:
+#             if mutex_opt in opts:
+#                 if current_opt:
+#                     raise click.UsageError(
+#                         "Options %s and %s are mutually exclusive"
+#                         % (self.name, mutex_opt)
+#                     )
+#                 else:
+#                     self.prompt = None
+#                 alternative_found = True
+#         if self.not_required_if is not None:
+#             for alternative in self.not_required_if:
+#                 if alternative in opts:
+#                     self.prompt = None
+#                     alternative_found = True
+#                     break
+#         if not current_opt and not alternative_found and self.required_mutex:
+#             raise click.UsageError(
+#                 "One of the following options is required for TOGA2 execution: %s"
+#                 % (self.name + ", " + ",".join(self.competes_with))
+#             )
+#         return super(MutexOption, self).handle_parse_result(ctx, opts, args)
+
+
+# class DependentOption(click_option_group.GroupedOption):
+#     """
+#     A grouped option that requires one or more other options for the client to start. 
+#     A rework of the MutexClass above.
+#     """
+#     def __init__(self, *args, **kwargs) -> None:
+#         if "requires" not in kwargs:
+#             raise click.UsageError(
+#                 "Argument \"requires=\" mandatory for DependentOption class "
+#                 "is missing for option %s"
+#                 % kwargs["name"]
+#             )
+#         self.requires: List[str] = kwargs.pop("requires")
+#         if self.requires is None or not self.requires:
+#             raise click.UsageError(
+#                 "No required options for an DependentOption instance %s, "
+#                 "with no defaults. Please provide a list of required options "
+#                 'with "requires" argument'
+#                 % kwargs["name"]
+#             )
+#         kwargs["help"] = (
+#             "" if kwargs.get("help") is None else (kwargs.get("help", "") + ". ") + 
+#             "Requires the following options: " + 
+#             ", ".join(self.requires) + 
+#             "."
+#         )
+#         super(DependentOption, self).__init__(*args, **kwargs)
+
+#     def handle_parse_result(self, ctx, opts, args) -> None:
+#         if self.name in opts:
+#             for requirement in self.requires:
+#                 if requirement not in opts:
+#                     raise click.UsageError(
+#                         "Option %s requires option %s, which is missing"
+#                         % (self.name, requirement)
+#                     )
+#         return super(MutexOption, self).handle_parse_result(ctx, opts, args)
+
+class TogaDirConfig:
+    ## NOTE: Slots are currently deprecated due to Postoga using vars() when logging starting args
+    ## TO be changed after the respective change is pushed to Postoga
+    # __slots__ = (
+    #     "togadir", 
+    #     "orthology_class",
+    #     "loss_status",
+    #     "orthology_score",
+    #     "to",
+    #     "bed_type",
+    #     "min_paralog_score",
+    #     "with_isoforms",
+    #     "extract",
+    #     "outdir",
+    #     "only_table",
+    #     "only_convert",
+    #     "log_level",
+    #     "depure",
+    # )
+
+    def __init__(
+        self,
+        togadir: os.PathLike,
+        by_loss_status: Optional[Union[str, None]] = None,
+        by_orthology_class: Optional[Union[str, None]] = None,
+        by_orthology_score: Optional[Union[float, None]] = None,
+        to: Optional[str] = "bed",
+        target: Optional[str] = "utr",
+        by_paralog_score: Optional[Union[float, None]] = None,
+        with_isoforms: Optional[Union[os.PathLike, None]] = None,
+        extract: Optional[Union[bool, str]] = False,
+        outdir: Optional[Union[os.PathLike, None]] = None,
+        only_table: Optional[bool] = True,
+        only_convert: Optional[bool] = False,
+        level: Optional[str] = "warning",
+        depure: Optional[bool] = True,
+    ) -> None:
+        self.togadir: os.PathLike = togadir
+        self.loss_status: Union[str, None] = by_loss_status
+        self.orthology_class: Union[str, None] = by_orthology_class
+        self.orthology_score: Union[float, None] = by_orthology_score
+        self.to: str = to
+        self.bed_type: str = target
+        self.min_paralog_score: Union[float, None] = by_paralog_score
+        self.with_isoforms: Union[os.PathLike, None] = with_isoforms
+        self.extract: Union[bool, str] = extract
+        self.outdir: Union[os.PathLike, None] = outdir
+        self.only_table: bool = only_table
+        self.only_convert: bool = only_convert
+        self.log_level: str = level
+        self.depure: bool = depure
 
 
 ## Executables
