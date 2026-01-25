@@ -2872,14 +2872,12 @@ class TogaMain(CommandLineManager):
         _ = self._exec(nuc_cmd, "Final nucleotide sequence file preparation failed:")
         ## 3. Filter the protein sequence file
         ## TESTING PROTEINS CREATED AT RUNTIME
-        huh = os.path.join(self.output, "_pre_filtered.protein.fa")
-        self._exec(f"mv {self.prot_fasta} {huh}", "Huhing failed")
         # prot_cmd: str = (
         #     f"{self.FASTA_FILTER_SCRIPT} -i {self.aa_fasta} "
         #     f"-b {bed_file} -o {self.prot_fasta}"
         # )
         prot_cmd: str = (
-            f"{self.FASTA_FILTER_SCRIPT} -i {huh} "
+            f"{self.FASTA_FILTER_SCRIPT} -i {self.prot_fasta_tmp} "
             f"-b {bed_file} -o {self.prot_fasta}"
         )
         # if discarded_files:
