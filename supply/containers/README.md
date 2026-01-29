@@ -8,7 +8,7 @@ apptainer build <your_container_name> apptainer.def
 Note that the resulting container supports only local execution. If you want to use TOGA2 with a cluster job manager as Nextflow executor, proceed to the next section.
 Running the resulting container is comparably straightforward; all you need is to provide the necessary bindings for directories on the local machine:
 ```
-apptainer run --bind <your bindings go here>  <your_container_name> toga2.py <your_settings>
+apptainer exec --bind <your bindings go here>  <your_container_name> toga2.py <your_settings>
 ```
 
 ## Building container for cluster execution
@@ -56,7 +56,7 @@ In this case, TOGA2 needs a path to the container from which the parallel jobs w
 
 Below is a sample command to run TOGA2 from the container image at `/home/toga2.sif`, with input files stored at `/home/input/` and output being written to `/home/output/`:
 ```
-apptainer run \
+apptainer exec \
     --bind /home,/opt/slurm,/opt/slurm/bin,/opt/slurm/etc,/var/log/munge,/var/run/munge,/usr/lib64:/host/usr/lib64 \
     --env TMPDIR=/scratch_local,EXEC_DIR=/opt/slurm/bin,SLURM_CONF=/opt/slurm/etc/slurm.conf,LIB_DIR=/host/usr/lib64 \
     /home/toga2.sif toga2.py run \

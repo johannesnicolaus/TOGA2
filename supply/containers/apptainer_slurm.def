@@ -9,6 +9,7 @@ Stage: build
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/host/usr/lib64
     export SHELL=/bin/bash
     export NXF_HOME=$TMPDIR/.nextflow
+    source /opt/TOGA2/toga2/bin/activate
 
 %post
     ## install curl, Java, mailx, and git
@@ -49,6 +50,9 @@ Stage: build
     ## Note: for development purposes, the `develop` branch is being cloned here
     git clone --single-branch --recurse-submodules https://github.com/hillerlab/TOGA2 /opt/TOGA2
     cd /opt/TOGA2
+    ## create TOGA2 running environment
+    python3 -m venv toga2
+    . toga2/bin/activate
     ## build TOGA2
     make
 

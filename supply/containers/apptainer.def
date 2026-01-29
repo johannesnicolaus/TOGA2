@@ -8,7 +8,7 @@ Stage: build
     export PATH=$HOME/.cargo/bin:/opt/nextflow:/opt/conda/bin:/opt/TOGA2:/opt/TOGA2/bin:/opt/TOGA2/bin/prank:/opt/TOGA2/bin/iqtree2:/opt/TOGA2/bin/intronIC:$PATH
     export SHELL=/bin/bash
     export NXF_HOME=$TMPDIR/.nextflow
-    # source /opt/TOGA2/toga2/bin/activate
+    source /opt/TOGA2/toga2/bin/activate
 
 %post
     ## install curl, Java, mailx, and git
@@ -49,8 +49,8 @@ Stage: build
     git clone --recurse-submodules https://github.com/hillerlab/TOGA2 /opt/TOGA2
     cd /opt/TOGA2
     ## create TOGA2 running environment
-    # python3 -m venv toga2
-    # . toga2/bin/activate
+    python3 -m venv toga2
+    . toga2/bin/activate
     ## build TOGA2, install/update the necessary third-party requirements
     make
 
