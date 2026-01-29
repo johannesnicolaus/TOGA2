@@ -5,20 +5,13 @@ Turns the IntronIC results into an HDF5 storage containing data
 on reference genome's non-canonical introns
 """
 
-import os
-import sys
-
-LOCATION: str = os.path.dirname(os.path.abspath(__file__))
-PARENT: str = os.sep.join(LOCATION.split(os.sep)[:-1])
-sys.path.extend([LOCATION, PARENT])
-
 from collections import defaultdict
 from typing import Dict, Iterable, List, Optional, Tuple, TypeVar
 
 import click
 import h5py
 from numpy import array, str_
-from shared import CONTEXT_SETTINGS, CommandLineManager
+from .shared import CONTEXT_SETTINGS, CommandLineManager
 
 __author__ = "Yury V. Malovichko"
 __year__ = "2024"
@@ -148,7 +141,7 @@ class IntronIcConverter(CommandLineManager):
         strand: str = data[5]
         is_pos: bool = strand == "+"
         cds_start: int = int(data[6])
-        cds_end: int = int(data[7])
+        # cds_end: int = int(data[7])
         exon_num: int = int(data[9])
         exon_sizes: int = list(map(int, data[10].split(",")[:-1]))
         exon_starts: int = list(map(int, data[11].split(",")[:-1]))
