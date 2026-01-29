@@ -22,6 +22,7 @@
         * Suppressed Pandas warnings at `classification` step 
         * Transcripts which do not have a single overlapping chain are now reported at `classification` step unless legacy feature extraction procedure is enabled
         * Setting default non-canonical U12 acceptor to `equiprobable_acceptor.tsv`
+        * Proper non-canonical U12 donor profiel
         * Setting separate splice site treatment by default, replacing `--separate_splice_site_treatment` flag with `--joint_splice_site_treatment`
         * Fixed memory bin mem-to-jobs mapping for `alignment` step
         * Sequences in `nucleotide.fa` and `protein.fa` now contain only sequences from present (non-missing and non-deleted) exons

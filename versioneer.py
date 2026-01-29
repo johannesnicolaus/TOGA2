@@ -53,6 +53,7 @@ def versioneer(version: str) -> None:
                 if line.strip():
                     continue
                 h.write("#" + changelog_lines + '\n')
+                h.write("For the full list of code changes, see `changelog.md`")
                 anchor_found = False
             else:
                 h.write(line)
