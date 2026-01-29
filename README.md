@@ -29,7 +29,8 @@ Detailed explanations of all output files can be found in our
 * Updated local installation
     * Postoga installation
     * Conda environment support
-    * Updated `bigWigToWig` version (`-bed` and `-header` options) now distributed with TOGA2  
+    * Updated `bigWigToWig` version (`-bed` and `-header` options) now distributed with TOGA2
+
 For the full list of code changes, see `changelog.md`## Installation
 
 ### from Github
