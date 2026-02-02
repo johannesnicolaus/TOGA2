@@ -2116,6 +2116,8 @@ def sequence_alignment(**kwargs) -> None:
     sequence_alignment - Align orthologous sequences from multiple TOGA2 queries.
     Spiritual successor of `extract_codon_alignment.py` companion script from TOGA1 suite.
     """
+    from src.python.modules.codon_alignment import CodonAligner
+    CodonAligner(**kwargs)
 
 
 @toga2.command(
