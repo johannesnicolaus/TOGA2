@@ -168,8 +168,8 @@ class NextflowStrategy(ParallelizationStrategy):
 
     def _create_config_file(self) -> Union[str, None]:
         """Generates a configuration file for the scheduled Nextflow process"""
-        if self.use_local_executor:
-            return
+        # if self.use_local_executor:
+        #     return
         ## define a path to the configuration file
         config_path: str = os.path.join(
             self.nextflow_config_dir, self.label + ".config"
@@ -186,6 +186,7 @@ class NextflowStrategy(ParallelizationStrategy):
         ## write the populated boilerplate to a file
         with open(config_path, "w") as h:
             h.write(config_body + "\n")
+        print(f"{config_path=}")
         return config_path
 
     # def __create_config_file(self):
