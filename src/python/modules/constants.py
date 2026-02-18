@@ -19,8 +19,11 @@ class Constants:
         "twobittofa_binary": "twoBitToFa",
         "ixixx_binary": "ixIxx",
         "prank_bin": "prank",
+        "tree_bin": "iqtree2",
         "mailx_binary": "mailx",
     }
+
+    RAXML_DEFAULT_NAME: str = "raxmlHPC-PTHREADS-AVX"
 
     SPLICEAI_FILES: Tuple[str, ...] = (
         "spliceAiDonorPlus.bw",

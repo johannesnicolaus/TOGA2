@@ -1565,6 +1565,8 @@ class TogaMain(CommandLineManager):
                     'warning'
                 )
                 continue
+            if attr == "tree_binary" and self.use_raxml:
+                default_name = Constants.RAXML_DEFAULT_NAME
             if self.__getattribute__(attr) is None:
                 if default_name == "prank":
                     expected_path: str = os.path.join(BIN, default_name, default_name)
