@@ -141,6 +141,10 @@ jobs:
 
         ./toga2.py -h
     
+    - name: Test run
+      run:
+        ./toga2.py test
+
     - name: Verify build artifacts
       run: |
         echo "Checking if binaries exist:"
