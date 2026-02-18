@@ -2103,7 +2103,7 @@ class CesarPreprocessor(CommandLineManager):
 
     def _run_2bit2fa(self, file: str, bed: str) -> str:
         """ """
-        cmd = f"twoBitToFa -bed=/dev/stdin {file} stdout"
+        cmd = f"{self.twobit2fa_binary} -bed=/dev/stdin {file} stdout"
         res_str: str = self._exec(cmd, self.bw2w_err, bed)
         return res_str
 
