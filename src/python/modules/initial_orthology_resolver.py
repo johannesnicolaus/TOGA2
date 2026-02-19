@@ -518,7 +518,7 @@ def fasta_sort_key(fasta_seq: str) -> Tuple[int, str]:
     "-rs",
     type=int,
     metavar="INT",
-    default=100,
+    default=5000,
     show_default=True,
     help="A number of bootstrap replications for RAxML run",
 )
@@ -1411,7 +1411,7 @@ class InitialOrthologyResolver(CommandLineManager):
                 cmd: str = (
                     f"{executor} {table_path} {res_path} -t "
                     f"-pb {self.prank_bin} -rb {self.tree_bin} "
-                    f"-rc {self.tree_cpus} -rs {self.tree_bootnum}"
+                    f"-rc {self.tree_cpus} -rs {self.tree_bootnum} "
                 )
                 if self.container_image is not None:
                     if self.binding_map is not None:
@@ -1603,7 +1603,7 @@ class InitialOrthologyResolver(CommandLineManager):
                 cmd: str = (
                     f"{FINE_RESOLVER} {table_path} {res_path} -t "
                     f"-pb {self.prank_bin} -rb {self.tree_bin} "
-                    f"-rc {self.tree_cpus} -rs {self.tree_bootnum}"
+                    f"-rc {self.tree_cpus} -rs {self.tree_bootnum} "
                 )
                 if self.use_raxml:
                     cmd += " -raxml"
